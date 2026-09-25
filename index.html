@@ -3631,13 +3631,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         </div>
 
         <div class="pia-result" id="pia-result" style="display:none">
-          <div class="pia-tabs" id="pia-tabs">
-            <button class="pia-tab active" data-cap="Todos">Todos</button>
-            <button class="pia-tab" data-cap="Arquitectura">Arquitectura</button>
-            <button class="pia-tab" data-cap="Estructura">Estructura</button>
-            <button class="pia-tab" data-cap="Hidrosanitario">Hidrosanitario</button>
-            <button class="pia-tab" data-cap="Eléctrico">Eléctrico</button>
-          </div>
+          <div class="pia-tabs" id="pia-tabs"></div>
 
           <div class="pia-table-wrap">
             <table class="pia-table">
@@ -14650,8 +14644,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   var PIA_MODEL = 'gemini-2.5-flash';
   var PIA_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
-  var CAP_LABELS = ['Arquitectura', 'Estructura', 'Hidrosanitario', 'Eléctrico'];
-  var CAP_KEYS = { arq: 'Arquitectura', est: 'Estructura', hid: 'Hidrosanitario', ele: 'Eléctrico' };
+  // Los 16 capítulos reales que ya usa BuildMatrix (CAPS_DEFAULT) — se le piden a la IA tal cual,
+  // así los rubros caen directo en el capítulo correcto del presupuesto en vez de crear uno genérico nuevo.
+  var CAP_LABELS = [
+    'TRAMITES Y PERMISOS MUNICIPALES', 'OBRAS PRELIMINARES', 'ESTRUCTURA DE HORMIGON ARMADO',
+    'ESTRUCTURA METALICA', 'MAMPOSTERIA', 'ENLUCIDOS Y ACABADOS DE PAREDES', 'PISOS Y CONTRAPISOS',
+    'CUBIERTA', 'CARPINTERIA METALICA MADERA Y ALUMINIO', 'INSTALACIONES HIDROSANITARIAS',
+    'APARATOS SANITARIOS Y GRIFERIA', 'INSTALACIONES ELECTRICAS', 'PINTURA Y RECUBRIMIENTOS',
+    'CIELOS FALSOS GYPSUM', 'FACHALETA Y ACABADOS FACHADA', 'OBRAS COMPLEMENTARIAS Y EXTERIORES'
+  ];
+  var CAP_FALLBACK = 'OBRAS COMPLEMENTARIAS Y EXTERIORES';
+  var CAP_KEYS = { arq: 'Arquitectónica', est: 'Estructural', hid: 'Hidrosanitaria', ele: 'Eléctrica' };
+  function normCapitulo(s) {
+    var t = String(s || '').trim().toUpperCase();
+    if (CAP_LABELS.indexOf(t) >= 0) return t;
+    var hit = CAP_LABELS.filter(function (c) { return c.indexOf(t) >= 0 || t.indexOf(c) >= 0; })[0];
+    return hit || CAP_FALLBACK;
+  }
 
   var PIA = { files: { arq: null, est: null, hid: null, ele: null }, rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '' };
 
@@ -14697,71 +14706,87 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   var PROMPT_BASE =
-    'Actúa como un INGENIERO PRESUPUESTISTA SENIOR de Ecuador, con más de 25 años de experiencia real en obra, ' +
-    'el mejor cuantificador de costos de construcción del país. Vas a recibir hasta 4 planos (Arquitectónico, ' +
-    'Estructural, Hidrosanitario, Eléctrico) como imágenes o PDF, y una lista de APUs REALES de referencia. Tu ' +
-    'trabajo es generar un presupuesto de obra COMPLETO Y PROFESIONAL, no un resumen superficial. Un presupuesto ' +
-    'de vivienda real en Ecuador normalmente tiene entre 40 y 120 rubros repartidos en TODOS los capítulos de ' +
-    'construcción, jamás 6 u 8 líneas: un presupuesto corto es sinónimo de un presupuesto MAL hecho, y eso te ' +
-    'costará la reputación profesional. Analiza cada plano con extremo detalle, línea por línea, midiendo o ' +
-    'estimando cada elemento visible, antes de escribir el JSON final.\n\n' +
+    'Actúa como un INGENIERO PRESUPUESTISTA SENIOR de Ecuador, el mejor cuantificador de costos del país, ' +
+    'aplicando metodología BIM 5D (Building Information Modeling) de cuantificación de obra: en BIM real, cada ' +
+    'elemento constructivo (cada zapata, cada columna, cada muro, cada puerta, cada punto eléctrico) se modela y ' +
+    'se cuantifica de forma INDIVIDUAL con su propia regla de medición, y luego se agrupan por tipo dentro de su ' +
+    'capítulo (WBS). Vas a recibir hasta 4 planos (Arquitectónico, Estructural, Hidrosanitario, Eléctrico) como ' +
+    'imágenes o PDF, y una lista de APUs REALES de referencia. NO vas a resumir el proyecto: vas a hacer el ' +
+    'levantamiento de cantidades completo, capítulo por capítulo, como lo haría un software profesional de ' +
+    'presupuestos (tipo Presto, CYPE, Arquímedes, Novo) alimentado por un modelo BIM.\n\n' +
 
-    'METODOLOGÍA OBLIGATORIA (síguela en este orden, mentalmente, antes de responder):\n' +
-    '1) Estima el ÁREA DE CONSTRUCCIÓN TOTAL en m2 a partir del plano arquitectónico (súmala por piso si hay ' +
-    'más de uno). Este dato es crítico: todo el presupuesto se valida contra él al final.\n' +
-    '2) Recorre el plano arquitectónico ambiente por ambiente (cada dormitorio, baño, cocina, sala, pasillos, ' +
-    'balcones, escaleras, fachadas) y anota mentalmente sus mamposterías, enlucidos, pisos, cielo raso, puertas, ' +
-    'ventanas y acabados. NO agrupes distintos acabados en una sola línea genérica: un piso cerámico de sala es ' +
-    'un rubro y un piso de porcelanato de baño es otro rubro distinto si difieren de material o precio.\n' +
-    '3) Recorre el plano estructural elemento por elemento (cada tipo de zapata/plinto, cada sección de columna, ' +
-    'vigas por nivel, losas/entrepisos, escaleras) y cuantifica hormigón y acero por separado.\n' +
-    '4) Recorre el plano hidrosanitario contando cada punto de agua fría/caliente, cada punto de desagüe, cada ' +
-    'aparato sanitario (inodoro, lavamanos, ducha, fregadero, calefón/tanque si aplica), tubería por tramos.\n' +
-    '5) Recorre el plano eléctrico contando cada punto de iluminación, cada tomacorriente 110V y 220V por ' +
-    'separado, tablero(s), acometida, puesta a tierra.\n' +
-    '6) Con eso ya tienes Estructura, Arquitectura (mampostería/acabados), Hidrosanitario y Eléctrico. PERO un ' +
-    'presupuesto real de obra SIEMPRE incluye además, aunque no se vean explícitos en los planos, los siguientes ' +
-    'capítulos — DEBES incluirlos con una estimación razonable proporcional al área de construcción y al tipo de ' +
-    'proyecto (nunca los omitas salvo que el proyecto sea evidentemente de otra naturaleza):\n' +
-    '   • PRELIMINARES: limpieza de terreno, cerramiento provisional, bodega/guardianía, trazado y replanteo, ' +
-    'acometidas provisionales de agua y luz.\n' +
-    '   • MOVIMIENTO DE TIERRAS: desbanque/desalojo, excavación de plintos y cimientos, relleno compactado.\n' +
-    '   • CIMENTACIONES: replantillo de hormigón simple, plintos, cadenas de cimentación.\n' +
-    '   • CUBIERTA: estructura de cubierta, cubierta (teja/zinc/losa según lo que muestre el plano), ' +
-    'impermeabilización, canales y bajantes de aguas lluvias.\n' +
-    '   • CARPINTERÍA: puertas interiores y exteriores, ventanería (si no viene detallada en el plano ' +
-    'arquitectónico, cuenta los vanos), muebles bajos y altos de cocina si se aprecian.\n' +
-    '   • OBRAS EXTERIORES / VARIOS: cerramiento definitivo si se ve en el plano, veredas perimetrales, ' +
-    'limpieza final de obra.\n' +
-    '7) AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: suma el costo directo de todos los rubros que generaste ' +
-    'y divídelo entre el área de construcción estimada. En Ecuador, una vivienda de construcción media a buena ' +
-    'terminada (con acabados, mampostería, instalaciones y estructura) cuesta habitualmente entre 350 y 650 ' +
-    'USD/m2 de COSTO DIRECTO (sin indirectos ni IVA); obra gris o económica puede bajar hasta ~220 USD/m2, y una ' +
-    'vivienda de lujo puede superar 800 USD/m2. Si tu resultado da muy por debajo de ese rango (por ejemplo menos ' +
-    'de 180 USD/m2), es una señal INEQUÍVOCA de que faltan capítulos o rubros completos: revisa qué omitiste ' +
-    '(normalmente preliminares, movimiento de tierras, cimentación, cubierta o acabados) y agrégalo ANTES de dar ' +
-    'tu respuesta final. Nunca entregues un presupuesto que sepas que está incompleto solo por ir más rápido.\n\n' +
+    'CAPÍTULOS OBLIGATORIOS (usa EXACTAMENTE estos 16 nombres, en mayúsculas, tal como están escritos aquí, en ' +
+    'el campo "capitulo" de cada rubro — es la estructura de capítulos real del sistema del usuario):\n' +
+    '1. TRAMITES Y PERMISOS MUNICIPALES\n2. OBRAS PRELIMINARES\n3. ESTRUCTURA DE HORMIGON ARMADO\n' +
+    '4. ESTRUCTURA METALICA\n5. MAMPOSTERIA\n6. ENLUCIDOS Y ACABADOS DE PAREDES\n7. PISOS Y CONTRAPISOS\n' +
+    '8. CUBIERTA\n9. CARPINTERIA METALICA MADERA Y ALUMINIO\n10. INSTALACIONES HIDROSANITARIAS\n' +
+    '11. APARATOS SANITARIOS Y GRIFERIA\n12. INSTALACIONES ELECTRICAS\n13. PINTURA Y RECUBRIMIENTOS\n' +
+    '14. CIELOS FALSOS GYPSUM\n15. FACHALETA Y ACABADOS FACHADA\n16. OBRAS COMPLEMENTARIAS Y EXTERIORES\n\n' +
+
+    'METODOLOGÍA DE CUANTIFICACIÓN BIM (síguela mentalmente antes de escribir el JSON final):\n' +
+    'PASO 1 — Estima el ÁREA DE CONSTRUCCIÓN TOTAL en m2 desde el plano arquitectónico (súmala por piso si hay ' +
+    'más de uno).\n' +
+    'PASO 2 — NO analices "el plano" en general: analiza CADA ELEMENTO INDIVIDUAL que puedas identificar, con su ' +
+    'propia regla de medición (igual que un modelador BIM):\n' +
+    '   • Muros/mampostería → por ÁREA (largo x alto, descontando vanos de puertas/ventanas), separados por tipo ' +
+    'de bloque/espesor si el plano distingue más de uno; NO mezcles muro interior de 10cm con muro exterior de ' +
+    '20cm en la misma línea.\n' +
+    '   • Zapatas/plintos → CONTEO por tipo/dimensión, y su hormigón por VOLUMEN (ancho x largo x peralte x ' +
+    'cantidad); si hay zapatas de distinta dimensión, son rubros distintos.\n' +
+    '   • Columnas → hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo por PESO (kg), como ' +
+    'dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
+    '   • Vigas y cadenas → igual: hormigón por volumen y acero por peso, por nivel si aplica.\n' +
+    '   • Losas/entrepisos → por ÁREA o VOLUMEN según el sistema constructivo que se aprecie (losa maciza, ' +
+    'alivianada, etc.), separando por nivel.\n' +
+    '   • Pisos/contrapisos/enlucidos → por ÁREA, separados por AMBIENTE O TIPO DE ACABADO cuando cambien de ' +
+    'material (cerámica de sala ≠ porcelanato de baño ≠ contrapiso de garaje: son rubros distintos, no los ' +
+    'agrupes en "pisos en general").\n' +
+    '   • Cielo raso → por ÁREA, por ambiente o tipo si cambia el material.\n' +
+    '   • Cubierta → estructura de cubierta (por área o por peso si es metálica), cubierta propiamente dicha ' +
+    '(por área), impermeabilización (por área), canales y bajantes (por longitud/unidad), como rubros separados.\n' +
+    '   • Puertas y ventanas → por CONTEO, agrupando solo las que compartan tipo y dimensión exacta (ej. "Puerta ' +
+    'tablero 0.70x2.10m" es un rubro con su cantidad; "Ventana aluminio corrediza 1.20x1.00m" es otro).\n' +
+    '   • Puntos hidrosanitarios (agua fría, agua caliente, desagüe) → por CONTEO de puntos, separados por tipo.\n' +
+    '   • Aparatos sanitarios (inodoro, lavamanos, ducha/grifería, fregadero, calefón/tanque) → por CONTEO, cada ' +
+    'tipo de aparato es un rubro propio.\n' +
+    '   • Puntos eléctricos (iluminación, tomacorriente 110V, tomacorriente 220V) → por CONTEO, cada tipo es un ' +
+    'rubro separado; tablero(s) y acometida como rubros propios por unidad.\n' +
+    '   • Pintura → por ÁREA, interior y exterior como rubros separados si ambos se aprecian.\n' +
+    '   • Fachaleta/revestimientos de fachada → por ÁREA si se aprecian en el plano arquitectónico.\n' +
+    'PASO 3 — Aunque un capítulo no tenga plano específico (Trámites, Preliminares, Estructura metálica si no ' +
+    'aplica, Obras exteriores), DEBES incluir una estimación razonable proporcional al área de construcción; ' +
+    'nunca dejes un capítulo vacío salvo que sea evidente que no aplica a este proyecto (ejemplo: sin Estructura ' +
+    'Metálica si todo el sistema es de hormigón armado, aunque incluso ahí revisa si hay cubierta con cerchas ' +
+    'metálicas).\n' +
+    'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: (a) cuenta cuántos capítulos de los 16 quedaron ' +
+    'con al menos un rubro — deberían ser prácticamente todos, salvo excepción justificada; (b) suma el costo ' +
+    'directo total y divídelo entre el área de construcción: en Ecuador, una vivienda de construcción media a ' +
+    'buena terminada cuesta habitualmente 350-650 USD/m2 de costo directo (obra gris ~220 USD/m2, lujo >800 ' +
+    'USD/m2); si tu resultado da muy por debajo de ese rango, es señal inequívoca de que faltan elementos — ' +
+    'revisa qué capítulo(s) quedaron pobres en detalle y complétalos ANTES de responder. Un presupuesto de menos ' +
+    'de 50 rubros para una vivienda completa casi siempre significa que agrupaste elementos que debían ir ' +
+    'separados: vuelve a los planos y desglosa más, no menos.\n\n' +
 
     'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
-    '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos cubriste y con qué nivel de certeza", ' +
-    '"rubros": [{"capitulo": "Arquitectura|Estructura|Hidrosanitario|Eléctrico", "codigo": "string", ' +
-    '"descripcion": "string", "unidad": "string", "cantidad": 0.00, "precio_unitario": 0.00, ' +
-    '"memoria_calculo": "string breve y explícita con las dimensiones u operaciones usadas para llegar a la ' +
-    'cantidad"}]}. Nota: aunque el capítulo real sea "Preliminares", "Movimiento de Tierras", "Cimentaciones", ' +
-    '"Cubierta", "Carpintería" u "Obras Exteriores", usa el valor "capitulo" que corresponda a su especialidad más ' +
-    'cercana de la lista permitida (Preliminares/Movimiento de tierras/Cimentaciones → "Estructura"; ' +
-    'Cubierta/Carpintería/Obras exteriores → "Arquitectura"), y dilo claramente al inicio de la ' +
-    '"descripcion" (ej. "Preliminares: limpieza de terreno").\n\n' +
+    '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
+    'sin rubros y por qué", "rubros": [{"capitulo": "uno de los 16 nombres exactos listados arriba", ' +
+    '"codigo": "string", "descripcion": "string específica del elemento (no genérica)", "unidad": "string", ' +
+    '"cantidad": 0.00, "precio_unitario": 0.00, "memoria_calculo": "string breve y explícita con la medición u ' +
+    'operación exacta usada, incluyendo el elemento contado (ej. \\"6 columnas de 0.25x0.25m x 2.60m de altura = ' +
+    '0.975 m3\\")"}]}.\n\n' +
 
     'REGLAS DE CRUCE CON LA BASE DE APUs: Cruza cada rubro con el código de la lista de referencia más parecido ' +
-    '(misma naturaleza y unidad); si ninguno encaja, crea un código nuevo y coherente por capítulo (ej. PRE-01, ' +
-    'MT-01, CIM-01, EST-05, ARQ-08, CUB-01, CAR-01, HID-05, ELE-05, VAR-01) y estima un precio unitario razonable ' +
-    'de mercado ecuatoriano actual. No inventes cantidades sin sustento: cada "cantidad" debe poder rastrearse a ' +
-    'una medición u operación explicada en "memoria_calculo". Si un plano no es legible o una especialidad no ' +
-    'tiene información suficiente, sé honesto en "resumen_cobertura" en vez de inventar datos para esa ' +
-    'especialidad, pero NUNCA dejes de generar los capítulos generales (preliminares, movimiento de tierras, ' +
-    'cimentación, cubierta, carpintería, obras exteriores) que se pueden estimar aunque no tengas un plano ' +
-    'específico de estructura. Devuelve el JSON minificado (una sola línea), sin espacios de más.';
+    '(misma naturaleza y unidad); si ninguno encaja, crea un código nuevo y coherente con prefijo del capítulo ' +
+    '(ej. PRE-01 para preliminares, EST-05 para estructura, MAM-02 para mampostería, PIS-03 para pisos, CUB-01 ' +
+    'para cubierta, CAR-04 para carpintería, HID-06 para hidrosanitario, SAN-02 para aparatos sanitarios, ' +
+    'ELE-07 para eléctrico, PIN-01 para pintura, GYP-01 para cielo raso, FAC-01 para fachaleta, VAR-01 para ' +
+    'obras exteriores) y estima un precio unitario razonable de mercado ecuatoriano actual. No inventes ' +
+    'cantidades sin sustento: cada "cantidad" debe poder rastrearse a una medición u operación explicada en ' +
+    '"memoria_calculo". Si un plano no es legible o una especialidad no tiene información suficiente, sé ' +
+    'honesto en "resumen_cobertura" en vez de inventar datos para esa especialidad específica, pero eso NO te ' +
+    'exime de estimar los capítulos generales que dependen del área total (preliminares, trámites, obras ' +
+    'exteriores) aunque no tengas el plano de esa especialidad. Devuelve el JSON minificado (una sola línea), ' +
+    'sin espacios de más.';
 
   /* ─────────────── Dropzones ─────────────── */
   function fileToBase64(file) {
@@ -14929,8 +14954,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   function normRubro(r) {
-    var cap = String(r.capitulo || 'Arquitectura').trim();
-    if (CAP_LABELS.indexOf(cap) < 0) cap = 'Arquitectura';
+    var cap = normCapitulo(r.capitulo);
     return {
       id: newId(), capitulo: cap, codigo: String(r.codigo || '').trim() || 'S/C',
       descripcion: String(r.descripcion || '').trim() || '(sin descripción)',
@@ -14992,7 +15016,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var rubros = out.rubros;
       if (!rubros.length) throw { code: 'EMPTY' };
       PIA.rubros = rubros; PIA.activeTab = 'Todos'; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
-      document.querySelectorAll('#pia-tabs .pia-tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-cap') === 'Todos'); });
+      renderTabs();
       renderTable();
       $('pia-result').style.display = '';
 
@@ -15017,6 +15041,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   /* ─────────────── Tabla + totales ─────────────── */
   function subtotalOf(r) { return round2(r.cantidad * r.precio_unitario); }
+
+  function renderTabs() {
+    var box = $('pia-tabs'); if (!box) return;
+    var present = CAP_LABELS.filter(function (c) { return PIA.rubros.some(function (r) { return r.capitulo === c; }); });
+    if (present.indexOf(PIA.activeTab) < 0) PIA.activeTab = 'Todos';
+    var items = ['Todos'].concat(present);
+    box.innerHTML = items.map(function (c) {
+      return '<button type="button" class="pia-tab' + (c === PIA.activeTab ? ' active' : '') + '" data-cap="' + esc(c) + '">' + esc(titleCase(c)) + '</button>';
+    }).join('');
+  }
+  function titleCase(s) {
+    if (s === 'Todos') return s;
+    return s.toLowerCase().replace(/(^|\s)([a-záéíóúñ])/g, function (m, sp, ch) { return sp + ch.toUpperCase(); });
+  }
 
   function renderTable() {
     var tbody = $('pia-tbody'); if (!tbody) return;
@@ -15065,12 +15103,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var b = e.target.closest && e.target.closest('[data-del]'); if (!b) return;
     var id = b.getAttribute('data-del');
     PIA.rubros = PIA.rubros.filter(function (r) { return r.id !== id; });
+    renderTabs();
     renderTable();
   }
   function onTabClick(e) {
     var tab = e.target.closest && e.target.closest('.pia-tab'); if (!tab) return;
-    document.querySelectorAll('#pia-tabs .pia-tab').forEach(function (t) { t.classList.remove('active'); });
-    tab.classList.add('active'); PIA.activeTab = tab.getAttribute('data-cap'); renderTable();
+    PIA.activeTab = tab.getAttribute('data-cap');
+    renderTabs();
+    renderTable();
   }
 
   /* ─────────────── Exportar a CSV ─────────────── */
@@ -15136,7 +15176,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (typeof _silentSaveProject === 'function') _silentSaveProject();
     if (typeof renderBudget === 'function') { try { renderBudget(); } catch (e) {} }
     if (typeof calcFin === 'function') { try { calcFin(); } catch (e) {} }
-    PIA.rubros = []; renderTable(); $('pia-result').style.display = 'none';
+    PIA.rubros = []; renderTabs(); renderTable(); $('pia-result').style.display = 'none';
     setStatus('ok', added + ' rubro(s) agregados al presupuesto de "' + S.proj + '"' + (newApuCount ? ' (' + newApuCount + ' códigos nuevos)' : '') + '.');
     say(added + ' rubros agregados al presupuesto');
   }

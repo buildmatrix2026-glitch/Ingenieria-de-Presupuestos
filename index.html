@@ -2008,6 +2008,11 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-st.processing{color:var(--gx-tx);border-color:var(--gx-pri)}
 #v-gas .gx-st .gx-spin{width:11px;height:11px;border-width:2px;margin:0}
 
+/* Botón "Eliminar todas" */
+#v-gas .gx-btn-danger{color:var(--gx-err);border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.06)}
+#v-gas .gx-btn-danger:hover{background:rgba(248,113,113,.14);border-color:var(--gx-err);box-shadow:0 8px 24px rgba(248,113,113,.14)}
+#v-gas .gx-row .gx-btn{flex:1 1 0}
+
 /* ═══════════ PRESUPUESTO AVANZADO CON IA (#v-pia) ═══════════ */
 #v-pia{font-family:var(--f-ui);color:var(--ow)}
 #v-pia *{box-sizing:border-box}
@@ -3541,6 +3546,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div id="gx-sum"></div>
               <div class="gx-row" style="margin-top:14px">
                 <button type="button" class="gx-btn primary" id="gx-export" style="min-height:46px;letter-spacing:.06em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>EXPORTAR</span></button>
+                <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="min-height:46px;letter-spacing:.02em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
               </div>
             </div>
 
@@ -13170,9 +13176,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return r;
   }
 
+  function updateDeleteAllLabel(list) {
+    var btn = $('gx-delete-all'), lbl = $('gx-delete-all-label'); if (!btn || !lbl) return;
+    lbl.textContent = list.length ? 'Eliminar todas (' + list.length + ')' : 'Eliminar todas';
+    btn.classList[list.length ? 'remove' : 'add']('is-disabled');
+  }
+
   function renderSummary() {
     var el = $('gx-sum'); if (!el) return;
     var list = filtered(load()), s = summarize(list);
+    updateDeleteAllLabel(list);
     var cats = Object.keys(s.byCat).filter(function (c) { return s.byCat[c] > 0; }).sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });
     var max = cats.length ? s.byCat[cats[0]] : 1;
     var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
@@ -13423,6 +13436,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (CLOUD.uid) { addTomb(id); deleteCloud(id); }
       render(); say('Comprobante eliminado');
     }
+  }
+
+  // Elimina de una sola vez TODOS los comprobantes de la selección actual ("Ver" en Resumen de gastos):
+  // un proyecto puntual, o todos los proyectos si está en "Todos los proyectos".
+  function deleteAllFiltered() {
+    var list = load(), toDelete = filtered(list);
+    if (!toDelete.length) { say('No hay comprobantes para eliminar en esta selección'); return; }
+    var scope = st.filter === ALL ? 'TODOS los proyectos' : '"' + st.filter + '"';
+    var total = round2(toDelete.reduce(function (s, g) { return s + g.total; }, 0));
+    var msg = 'Vas a eliminar ' + toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') +
+      ' de ' + scope + ' (' + money(total) + ' en total).\nEsta acción NO se puede deshacer.\n\n¿Continuar?';
+    if (!confirm(msg)) return;
+    // segunda confirmación solo cuando el alcance es amplio (todos los proyectos o más de 5 comprobantes):
+    // una sola confirmación ya protege borrados puntuales, pero un vaciado grande merece un paso más.
+    if ((st.filter === ALL || toDelete.length > 5) &&
+        !confirm('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
+    var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
+    if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
+    if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
+    st.shown = 15;
+    render();
+    say(toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') + ' eliminado' + (toDelete.length === 1 ? '' : 's'));
   }
 
   /* ─────────────── escaneo ─────────────── */
@@ -14571,6 +14606,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
     $('gx-filtro').addEventListener('change', function () { st.filter = this.value; st.shown = 15; renderSummary(); renderList(); });
     $('gx-export').addEventListener('click', openExportModal);
+    $('gx-delete-all').addEventListener('click', deleteAllFiltered);
     var mod = $('gx-exb');
     if (mod && document.body && mod.parentNode !== document.body) document.body.appendChild(mod);   // por encima de todo
     if (mod) mod.addEventListener('click', function (e) { if (e.target === mod) closeExportModal(); });

@@ -2008,6 +2008,115 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-st.processing{color:var(--gx-tx);border-color:var(--gx-pri)}
 #v-gas .gx-st .gx-spin{width:11px;height:11px;border-width:2px;margin:0}
 
+/* Botón "Eliminar todas" */
+#v-gas .gx-btn-danger{color:var(--gx-err);border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.06)}
+#v-gas .gx-btn-danger:hover{background:rgba(248,113,113,.14);border-color:var(--gx-err);box-shadow:0 8px 24px rgba(248,113,113,.14)}
+#v-gas .gx-row .gx-btn{flex:1 1 0}
+
+/* ═══════════ PRESUPUESTO AVANZADO CON IA (#v-pia) ═══════════ */
+#v-pia{font-family:var(--f-ui);color:var(--ow)}
+#v-pia *{box-sizing:border-box}
+#v-pia .pia-mono{font-family:var(--f-mo)}
+#v-pia .pia-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+#v-pia .pia-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:999px;background:rgba(0,212,255,.08);border:1px solid var(--brc);color:var(--cy);font-size:12px;font-weight:600;white-space:nowrap}
+#v-pia .pia-badge svg{flex:0 0 auto}
+
+#v-pia .pia-proj-banner{font-size:12.5px;color:var(--sl);background:var(--s3);border:1px solid var(--br);border-radius:12px;padding:14px 16px;margin-bottom:20px}
+#v-pia .pia-proj-banner b{color:var(--ow)}
+#v-pia .pia-proj-active{display:none}
+#v-pia .pia-proj-banner.has-project .pia-proj-active{display:flex;align-items:center;gap:9px}
+#v-pia .pia-proj-banner.has-project .pia-proj-create{display:none}
+#v-pia .pia-proj-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);flex:0 0 auto;box-shadow:0 0 0 3px rgba(110,231,183,.15)}
+#v-pia .pia-proj-create{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#v-pia .pia-proj-create-txt{color:var(--am);font-size:12.5px;font-weight:600;white-space:nowrap}
+#v-pia .pia-proj-create-in{flex:1 1 220px;min-width:160px;background:var(--ds);border:1px solid var(--br);border-radius:9px;padding:9px 12px;font-family:var(--f-ui);font-size:13px;color:var(--ow)}
+#v-pia .pia-proj-create-in:focus{outline:none;border-color:var(--cy)}
+#v-pia .pia-proj-create-btn{padding:9px 16px;min-height:0;white-space:nowrap;flex:0 0 auto}
+#v-pia .pia-proj-create-btn svg{flex:0 0 auto}
+
+#v-pia .pia-drop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:16px}
+#v-pia .pia-drop{position:relative;background:var(--s3);border:1px solid var(--br);border-radius:16px;padding:20px 16px;text-align:center;cursor:pointer;overflow:hidden;transition:border-color .25s,box-shadow .3s,transform .15s;min-height:158px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#v-pia .pia-drop::before{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(0,212,255,.07),transparent 55%);opacity:0;transition:opacity .25s;pointer-events:none}
+#v-pia .pia-drop:hover{border-color:var(--brc);box-shadow:0 10px 30px rgba(0,212,255,.1)}
+#v-pia .pia-drop:hover::before{opacity:1}
+#v-pia .pia-drop:active{transform:scale(.99)}
+#v-pia .pia-drop.pia-dragover{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy),0 12px 34px rgba(0,212,255,.18)}
+#v-pia .pia-drop.pia-dragover::before{opacity:1}
+#v-pia .pia-drop.pia-filled{border-color:rgba(110,231,183,.4);background:linear-gradient(160deg,rgba(110,231,183,.06),var(--s3) 60%)}
+#v-pia .pia-drop.pia-filled:hover{box-shadow:0 10px 30px rgba(110,231,183,.12)}
+#v-pia .pia-drop-icon{position:relative;z-index:1;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:rgba(0,212,255,.09);color:var(--cy);margin-bottom:12px;transition:background .25s,color .25s}
+#v-pia .pia-drop.pia-filled .pia-drop-icon{background:rgba(110,231,183,.12);color:var(--gr)}
+#v-pia .pia-drop-svg{display:block}
+#v-pia .pia-drop-title{position:relative;z-index:1;font-weight:700;font-size:13.5px;margin-bottom:4px}
+#v-pia .pia-drop-desc{position:relative;z-index:1;font-size:11px;color:var(--sld);line-height:1.4;margin-bottom:10px}
+#v-pia .pia-empty-icon{position:relative;z-index:1;display:block;color:var(--sld);opacity:.6;margin-bottom:4px}
+#v-pia .pia-empty-txt{position:relative;z-index:1;font-size:11.5px;color:var(--sld)}
+#v-pia .pia-file-info{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+#v-pia .pia-file-name{font-size:12px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-pia .pia-file-size{font-size:10.5px;color:var(--sld);font-family:var(--f-mo)}
+#v-pia .pia-file-remove{margin-top:6px;font-size:11px;font-weight:600;color:var(--rd);background:none;border:1px solid rgba(255,92,92,.4);border-radius:8px;padding:5px 11px;cursor:pointer;transition:.15s}
+#v-pia .pia-file-remove:hover{background:rgba(255,92,92,.1);border-color:var(--rd)}
+#v-pia .pia-thumb{max-width:100%;max-height:52px;border-radius:8px;margin-bottom:6px;object-fit:cover}
+
+#v-pia .pia-actions-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+#v-pia .pia-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--f-ui);font-size:13.5px;font-weight:600;padding:11px 20px;border-radius:10px;border:1px solid var(--br);background:var(--s3);color:var(--ow);cursor:pointer;transition:.15s}
+#v-pia .pia-btn svg{flex:0 0 auto}
+#v-pia .pia-btn:hover{border-color:var(--cy)}
+#v-pia .pia-btn:disabled{opacity:.5;cursor:not-allowed}
+#v-pia .pia-btn-primary{background:rgba(0,212,255,.08);border-color:var(--brc);color:var(--cy)}
+#v-pia .pia-btn-primary:hover:not(:disabled){background:rgba(0,212,255,.16);box-shadow:0 6px 22px rgba(0,212,255,.16)}
+#v-pia .pia-hint{font-size:12px;color:var(--sl)}
+#v-pia .pia-status{margin-top:10px;font-size:12.5px;padding:10px 13px;border-radius:10px;border:1px solid var(--br);background:var(--s3);display:none}
+#v-pia .pia-status.on{display:block}
+#v-pia .pia-status.err{color:var(--rd);border-color:rgba(255,92,92,.4)}
+#v-pia .pia-status.warn{color:var(--am);border-color:rgba(255,178,36,.4)}
+#v-pia .pia-status.ok{color:var(--gr);border-color:rgba(110,231,183,.35)}
+
+#v-pia .pia-overlay{display:none;position:fixed;inset:0;background:rgba(6,11,20,.85);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center}
+#v-pia .pia-overlay.pia-show{display:flex}
+#v-pia .pia-overlay-box{text-align:center}
+#v-pia .pia-spinner{width:50px;height:50px;border:4px solid rgba(0,212,255,.18);border-top-color:var(--cy);border-radius:50%;margin:0 auto 18px;animation:pia-spin 1s linear infinite}
+@keyframes pia-spin{to{transform:rotate(360deg)}}
+#v-pia .pia-overlay-msg{font-size:15px;font-weight:600;color:var(--ow);margin-bottom:6px}
+#v-pia .pia-overlay-sub{font-size:12px;color:var(--sl)}
+
+#v-pia .pia-result{margin-top:20px}
+#v-pia .pia-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+#v-pia .pia-tab{font-family:var(--f-ui);font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:999px;border:1px solid var(--br);background:var(--s3);color:var(--sl);cursor:pointer;transition:.15s}
+#v-pia .pia-tab:hover{color:var(--ow)}
+#v-pia .pia-tab.active{background:var(--mb);border-color:var(--mb);color:#fff}
+
+#v-pia .pia-table-wrap{overflow-x:auto;border:1px solid var(--br);border-radius:12px}
+#v-pia .pia-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:960px}
+#v-pia .pia-table thead th{background:var(--s3);color:var(--sl);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:11px 10px;text-align:left;border-bottom:1px solid var(--br);white-space:nowrap}
+#v-pia .pia-table th.pia-num,#v-pia .pia-table td.pia-num{text-align:right}
+#v-pia .pia-table tbody td{padding:9px 10px;border-bottom:1px solid var(--br);vertical-align:top}
+#v-pia .pia-table tbody tr:hover{background:rgba(0,212,255,.03)}
+#v-pia .pia-table tbody tr.pia-row-hidden{display:none}
+#v-pia .pia-cap-chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(0,212,255,.12);color:var(--cy);white-space:nowrap}
+#v-pia .pia-desc-cell{max-width:220px}
+#v-pia .pia-memo-cell{max-width:250px;font-size:11px;color:var(--sl);line-height:1.4}
+#v-pia .pia-qty-input{width:76px;font-family:var(--f-mo);font-size:12.5px;text-align:right;padding:6px 8px;border-radius:6px;border:1px solid var(--br);background:var(--ds);color:var(--ow)}
+#v-pia .pia-qty-input:focus{outline:none;border-color:var(--cy)}
+#v-pia .pia-empty-row td{text-align:center;padding:28px;color:var(--sl);font-size:13px}
+#v-pia .pia-row-del{width:26px;height:26px;border-radius:7px;border:1px solid transparent;background:none;color:var(--rd);font-size:15px;cursor:pointer;line-height:1}
+#v-pia .pia-row-del:hover{border-color:var(--rd);background:rgba(255,92,92,.08)}
+
+#v-pia .pia-summary{margin-top:18px;background:var(--s3);border:1px solid var(--br);border-radius:14px;padding:16px 20px;max-width:460px;margin-left:auto}
+#v-pia .pia-summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--br);font-size:13px;color:var(--sl)}
+#v-pia .pia-summary-row:last-child{border-bottom:none}
+#v-pia .pia-summary-row b{color:var(--ow);font-size:14px}
+#v-pia .pia-summary-editable{gap:8px}
+#v-pia .pia-aiu-input-wrap{display:flex;align-items:center;gap:4px;color:var(--ow);font-size:12.5px}
+#v-pia .pia-input-pct{width:54px;font-family:var(--f-mo);font-size:12.5px;text-align:right;padding:5px 7px;border-radius:6px;border:1px solid var(--br);background:var(--ds);color:var(--ow)}
+#v-pia .pia-input-pct:focus{outline:none;border-color:var(--cy)}
+#v-pia .pia-summary-total{padding-top:13px;margin-top:4px;border-top:2px solid var(--mb)}
+#v-pia .pia-summary-total span{font-size:14px;font-weight:600;color:var(--ow)}
+#v-pia .pia-summary-total b{font-size:19px;color:var(--cy)}
+
+#v-pia .pia-actions-bottom{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+@media (max-width:700px){#v-pia .pia-summary{max-width:100%}}
+
 </style>
 
 <!-- ── Auth simulado (Firebase removido) ──────────────────────────────── -->
@@ -2907,6 +3016,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <button class="ni" data-v="apu" onclick="go('apu')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Constructor APU<span class="ct" data-bm-count="apu">2.063</span></button>
       <button class="ni" data-v="ins" onclick="go('ins')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>Insumos<span class="ct" data-bm-count="ins">4.157</span></button>
       <button class="ni" data-v="grp" onclick="go('grp')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21V12h6v9"/></svg>Grupos y rubros<span class="ct" data-bm-count="grp">75</span></button>
+      <button class="ni" data-v="pia" onclick="go('pia')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z"/></svg>Presupuesto IA</button>
       <button class="ni" data-v="gas" onclick="go('gas')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Gastos y facturas</button>
       <!-- Admin nav — visible solo para role:admin -->
       <div id="admin-nav-section" style="display:none">
@@ -3436,6 +3546,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div id="gx-sum"></div>
               <div class="gx-row" style="margin-top:14px">
                 <button type="button" class="gx-btn primary" id="gx-export" style="min-height:46px;letter-spacing:.06em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>EXPORTAR</span></button>
+                <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="min-height:46px;letter-spacing:.02em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
               </div>
             </div>
 
@@ -3460,6 +3571,106 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           </div>
         </div>
       </div>
+      <!-- ═══════════ VISTA: PRESUPUESTO AVANZADO CON IA ═══════════ -->
+      <div class="vw" id="v-pia">
+        <div class="pia-head">
+          <div>
+            <h2>Presupuesto Avanzado con IA</h2>
+            <div class="sub">Análisis multimodal de planos (Arquitectura, Estructura, MEP) y cuantificación automática de APUs</div>
+          </div>
+          <span class="pia-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg>Powered by Gemini</span>
+        </div>
+
+        <div class="pia-proj-banner" id="pia-proj-banner">
+          <div class="pia-proj-active" id="pia-proj-active"></div>
+          <form class="pia-proj-create" id="pia-proj-create" onsubmit="return false">
+            <span class="pia-proj-create-txt">No tienes un proyecto abierto:</span>
+            <input type="text" id="pia-new-proj-name" class="pia-proj-create-in" placeholder="Nombre del nuevo proyecto" autocomplete="off" maxlength="120">
+            <button type="button" class="pia-btn pia-btn-primary pia-proj-create-btn" id="pia-new-proj-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg><span>Crear y continuar</span></button>
+          </form>
+        </div>
+
+        <div class="pia-drop-grid">
+          <div class="pia-drop" id="pia-drop-arq" data-key="arq">
+            <input type="file" id="pia-file-arq" accept="image/*,application/pdf" hidden>
+            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/><path d="M14 14l3 3M17 14l-3 3"/></svg></div>
+            <div class="pia-drop-title">Plano Arquitectónico</div>
+            <div class="pia-drop-desc">Mamposterías, enlucidos, contrapisos, acabados, vanos</div>
+            <div class="pia-drop-state" id="pia-state-arq"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
+          </div>
+          <div class="pia-drop" id="pia-drop-est" data-key="est">
+            <input type="file" id="pia-file-est" accept="image/*,application/pdf" hidden>
+            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M4 21V8l8-5 8 5v13"/><path d="M4 21h16M9 21V12h6v9"/></svg></div>
+            <div class="pia-drop-title">Plano Estructural</div>
+            <div class="pia-drop-desc">Zapatas, columnas, vigas, losas, volumen de hormigón</div>
+            <div class="pia-drop-state" id="pia-state-est"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
+          </div>
+          <div class="pia-drop" id="pia-drop-hid" data-key="hid">
+            <input type="file" id="pia-file-hid" accept="image/*,application/pdf" hidden>
+            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M12 3c3.5 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 2.5-7 6-11z"/></svg></div>
+            <div class="pia-drop-title">Plano Hidrosanitario</div>
+            <div class="pia-drop-desc">Puntos AF/AC, bajantes, cajas, aparatos</div>
+            <div class="pia-drop-state" id="pia-state-hid"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
+          </div>
+          <div class="pia-drop" id="pia-drop-ele" data-key="ele">
+            <input type="file" id="pia-file-ele" accept="image/*,application/pdf" hidden>
+            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg></div>
+            <div class="pia-drop-title">Plano Eléctrico</div>
+            <div class="pia-drop-desc">Puntos de luz, tomacorrientes 110V/220V, tableros, acometida</div>
+            <div class="pia-drop-state" id="pia-state-ele"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
+          </div>
+        </div>
+
+        <div class="pia-actions-top">
+          <button class="pia-btn pia-btn-primary" id="pia-generate-btn" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg><span>Generar Presupuesto con IA</span></button>
+          <span class="pia-hint" id="pia-count-hint">0 de 4 planos cargados</span>
+        </div>
+        <div class="pia-status" id="pia-status"></div>
+
+        <div class="pia-overlay" id="pia-overlay">
+          <div class="pia-overlay-box">
+            <div class="pia-spinner"></div>
+            <div class="pia-overlay-msg" id="pia-overlay-msg">Preparando planos…</div>
+            <div class="pia-overlay-sub" id="pia-overlay-sub">Esto puede tardar hasta un minuto</div>
+            <button type="button" class="pia-btn" id="pia-overlay-cancel" style="margin-top:16px">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="pia-result" id="pia-result" style="display:none">
+          <div class="pia-tabs" id="pia-tabs"></div>
+
+          <div class="pia-table-wrap">
+            <table class="pia-table">
+              <thead>
+                <tr>
+                  <th>Capítulo</th><th>Código APU</th><th>Descripción</th><th>Unidad</th>
+                  <th class="pia-num">Cantidad</th><th class="pia-num">P. Unitario</th>
+                  <th class="pia-num">Subtotal</th><th>Memoria de cálculo</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="pia-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="pia-summary">
+            <div class="pia-summary-row"><span>Costo Directo Total</span><b class="pia-mono" id="pia-sum-cd">$0.00</b></div>
+            <div class="pia-summary-row pia-summary-editable">
+              <span>Indirectos / A.I.U.</span>
+              <span class="pia-aiu-input-wrap"><input type="number" id="pia-aiu-pct" class="pia-input-pct" value="15" min="0" max="100" step="0.1">%</span>
+              <b class="pia-mono" id="pia-sum-aiu">$0.00</b>
+            </div>
+            <div class="pia-summary-row"><span>Subtotal sin IVA</span><b class="pia-mono" id="pia-sum-sub">$0.00</b></div>
+            <div class="pia-summary-row"><span>IVA (15%)</span><b class="pia-mono" id="pia-sum-iva">$0.00</b></div>
+            <div class="pia-summary-row pia-summary-total"><span>Presupuesto Total General de Obra</span><b class="pia-mono" id="pia-sum-total">$0.00</b></div>
+          </div>
+
+          <div class="pia-actions-bottom">
+            <button class="pia-btn" id="pia-export-csv-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exportar a CSV</span></button>
+            <button class="pia-btn pia-btn-primary" id="pia-save-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>Agregar al presupuesto activo</span></button>
+          </div>
+        </div>
+      </div>
+
       <div class="vw" id="v-grp">
         <div class="vh"><div><h2>Grupos y rubros</h2><div class="sub"><span data-bm-count="grp">75</span> grupos · <span data-bm-count="apu">2.063</span> rubros con APU</div></div></div>
         <div id="ghome">
@@ -4051,6 +4262,7 @@ function go(v){
   else if(v==='ins')renderIns();
   else if(v==='grp')renderGG();
   else if(v==='gas'&&typeof renderGastos==='function')renderGastos();
+  else if(v==='pia'&&typeof renderPiaModule==='function')renderPiaModule();
   else if(v==='admin'){
     // Si ya sabemos que es superadmin, mostrar el tab de presupuestos de inmediato (sin lag)
     if (_isSuperAdminUser) _showProjectsTab();
@@ -12964,9 +13176,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return r;
   }
 
+  function updateDeleteAllLabel(list) {
+    var btn = $('gx-delete-all'), lbl = $('gx-delete-all-label'); if (!btn || !lbl) return;
+    lbl.textContent = list.length ? 'Eliminar todas (' + list.length + ')' : 'Eliminar todas';
+    btn.classList[list.length ? 'remove' : 'add']('is-disabled');
+  }
+
   function renderSummary() {
     var el = $('gx-sum'); if (!el) return;
     var list = filtered(load()), s = summarize(list);
+    updateDeleteAllLabel(list);
     var cats = Object.keys(s.byCat).filter(function (c) { return s.byCat[c] > 0; }).sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });
     var max = cats.length ? s.byCat[cats[0]] : 1;
     var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
@@ -13217,6 +13436,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (CLOUD.uid) { addTomb(id); deleteCloud(id); }
       render(); say('Comprobante eliminado');
     }
+  }
+
+  // Elimina de una sola vez TODOS los comprobantes de la selección actual ("Ver" en Resumen de gastos):
+  // un proyecto puntual, o todos los proyectos si está en "Todos los proyectos".
+  function deleteAllFiltered() {
+    var list = load(), toDelete = filtered(list);
+    if (!toDelete.length) { say('No hay comprobantes para eliminar en esta selección'); return; }
+    var scope = st.filter === ALL ? 'TODOS los proyectos' : '"' + st.filter + '"';
+    var total = round2(toDelete.reduce(function (s, g) { return s + g.total; }, 0));
+    var msg = 'Vas a eliminar ' + toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') +
+      ' de ' + scope + ' (' + money(total) + ' en total).\nEsta acción NO se puede deshacer.\n\n¿Continuar?';
+    if (!confirm(msg)) return;
+    // segunda confirmación solo cuando el alcance es amplio (todos los proyectos o más de 5 comprobantes):
+    // una sola confirmación ya protege borrados puntuales, pero un vaciado grande merece un paso más.
+    if ((st.filter === ALL || toDelete.length > 5) &&
+        !confirm('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
+    var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
+    if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
+    if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
+    st.shown = 15;
+    render();
+    say(toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') + ' eliminado' + (toDelete.length === 1 ? '' : 's'));
   }
 
   /* ─────────────── escaneo ─────────────── */
@@ -14365,6 +14606,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
     $('gx-filtro').addEventListener('change', function () { st.filter = this.value; st.shown = 15; renderSummary(); renderList(); });
     $('gx-export').addEventListener('click', openExportModal);
+    $('gx-delete-all').addEventListener('click', deleteAllFiltered);
     var mod = $('gx-exb');
     if (mod && document.body && mod.parentNode !== document.body) document.body.appendChild(mod);   // por encima de todo
     if (mod) mod.addEventListener('click', function (e) { if (e.target === mod) closeExportModal(); });
@@ -14417,6 +14659,706 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   };
   window.bmGastosStart = cloudStart;
   window.bmGastosStop = cloudStop;
+})();
+</script>
+
+<script id="bm-presupuesto-ia">
+/* ═══════════════════════════════════════════════════════════════════════
+   BuildMatrix · Presupuesto Avanzado con IA
+   Analiza hasta 4 planos (Arquitectónico, Estructural, Hidrosanitario,
+   Eléctrico) con Gemini y genera un despiece de rubros con memoria de
+   cálculo. "Agregar al presupuesto activo" los inserta de verdad en el
+   proyecto abierto (S.caps / capítulos), cruzando cada código con la
+   base real de APUs (BD.A) para tomar el costo directo calculado cuando
+   coincide, en vez de una simple estimación de la IA.
+
+   La clave de Gemini es la MISMA que configuras en Gastos y facturas
+   (botón "Clave API" de esa pestaña) — se guarda una sola vez.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var PIA_MODEL = 'gemini-2.5-flash';
+  var PIA_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  // Los 16 capítulos reales que ya usa BuildMatrix (CAPS_DEFAULT) — se le piden a la IA tal cual,
+  // así los rubros caen directo en el capítulo correcto del presupuesto en vez de crear uno genérico nuevo.
+  var CAP_LABELS = [
+    'TRAMITES Y PERMISOS MUNICIPALES', 'OBRAS PRELIMINARES', 'ESTRUCTURA DE HORMIGON ARMADO',
+    'ESTRUCTURA METALICA', 'MAMPOSTERIA', 'ENLUCIDOS Y ACABADOS DE PAREDES', 'PISOS Y CONTRAPISOS',
+    'CUBIERTA', 'CARPINTERIA METALICA MADERA Y ALUMINIO', 'INSTALACIONES HIDROSANITARIAS',
+    'APARATOS SANITARIOS Y GRIFERIA', 'INSTALACIONES ELECTRICAS', 'PINTURA Y RECUBRIMIENTOS',
+    'CIELOS FALSOS GYPSUM', 'FACHALETA Y ACABADOS FACHADA', 'OBRAS COMPLEMENTARIAS Y EXTERIORES'
+  ];
+  var CAP_FALLBACK = 'OBRAS COMPLEMENTARIAS Y EXTERIORES';
+  var CAP_KEYS = { arq: 'Arquitectónica', est: 'Estructural', hid: 'Hidrosanitaria', ele: 'Eléctrica' };
+  function normCapitulo(s) {
+    var t = String(s || '').trim().toUpperCase();
+    if (CAP_LABELS.indexOf(t) >= 0) return t;
+    var hit = CAP_LABELS.filter(function (c) { return c.indexOf(t) >= 0 || t.indexOf(c) >= 0; })[0];
+    return hit || CAP_FALLBACK;
+  }
+
+  var PIA = { files: { arq: null, est: null, hid: null, ele: null }, rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '' };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+  function fmtKB(b) { return (b / 1024).toFixed(1) + ' KB'; }
+  function newId() { return 'pr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function say(m) { if (typeof toast === 'function') { try { toast(m); } catch (e) {} } }
+
+  /* ─────────────── Clave de Gemini: compartida con el módulo de Gastos ─────────────── */
+  function getKey() {
+    try { return (localStorage.getItem('bm_gemini_key') || '').trim(); } catch (e) { return ''; }
+  }
+
+  /* ─────────────── Referencia de APUs reales para el cruce ─────────────── */
+  // Toma una muestra representativa de la base real (BD.A) por especialidad, en vez de datos inventados,
+  // para que el código que sugiera la IA pueda coincidir con un APU real y usar su costo calculado.
+  function sampleReference() {
+    var groups = {
+      Arquitectura: /mamposter|bloque|enlucid|contrapiso|ceramic|porcelanato|pintura|cielo raso|piso/i,
+      Estructura: /hormig[oó]n|zapata|columna|viga|losa|acero de refuerzo|cimentaci[oó]n/i,
+      Hidrosanitario: /punto de agua|agua fr[ií]a|agua caliente|desag|bajante|pvc|tuber[ií]a|aparato sanitario/i,
+      Eléctrico: /punto de luz|iluminaci[oó]n|tomacorriente|breaker|tablero el[eé]ctrico|acometida/i
+    };
+    var out = [];
+    Object.keys(groups).forEach(function (cap) {
+      var re = groups[cap], picked = 0;
+      Object.keys(BD.A).some(function (code) {
+        if (picked >= 6) return true;
+        var a = BD.A[code];
+        var desc = (a && (a._desc || code)) || code;
+        var text = code + ' ' + desc;
+        if (!re.test(text)) return false;
+        var pu = 0; try { pu = calcAPU(a).cd; } catch (e) {}
+        if (!pu) return false;
+        out.push({ capitulo: cap, codigo: code, descripcion: desc.slice(0, 80), unidad: (a && a.r) ? '' : '', precio_unitario: round2(pu) });
+        picked++; return false;
+      });
+    });
+    return out;
+  }
+
+  var PROMPT_BASE =
+    'Actúa como un INGENIERO PRESUPUESTISTA SENIOR de Ecuador, el mejor cuantificador de costos del país, ' +
+    'aplicando metodología BIM 5D (Building Information Modeling) de cuantificación de obra: en BIM real, cada ' +
+    'elemento constructivo (cada zapata, cada columna, cada muro, cada puerta, cada punto eléctrico) se modela y ' +
+    'se cuantifica de forma INDIVIDUAL con su propia regla de medición, y luego se agrupan por tipo dentro de su ' +
+    'capítulo (WBS). Vas a recibir hasta 4 planos (Arquitectónico, Estructural, Hidrosanitario, Eléctrico) como ' +
+    'imágenes o PDF, y una lista de APUs REALES de referencia. NO vas a resumir el proyecto: vas a hacer el ' +
+    'levantamiento de cantidades completo, capítulo por capítulo, como lo haría un software profesional de ' +
+    'presupuestos (tipo Presto, CYPE, Arquímedes, Novo) alimentado por un modelo BIM.\n\n' +
+
+    'CAPÍTULOS OBLIGATORIOS (usa EXACTAMENTE estos 16 nombres, en mayúsculas, tal como están escritos aquí, en ' +
+    'el campo "capitulo" de cada rubro — es la estructura de capítulos real del sistema del usuario):\n' +
+    '1. TRAMITES Y PERMISOS MUNICIPALES\n2. OBRAS PRELIMINARES\n3. ESTRUCTURA DE HORMIGON ARMADO\n' +
+    '4. ESTRUCTURA METALICA\n5. MAMPOSTERIA\n6. ENLUCIDOS Y ACABADOS DE PAREDES\n7. PISOS Y CONTRAPISOS\n' +
+    '8. CUBIERTA\n9. CARPINTERIA METALICA MADERA Y ALUMINIO\n10. INSTALACIONES HIDROSANITARIAS\n' +
+    '11. APARATOS SANITARIOS Y GRIFERIA\n12. INSTALACIONES ELECTRICAS\n13. PINTURA Y RECUBRIMIENTOS\n' +
+    '14. CIELOS FALSOS GYPSUM\n15. FACHALETA Y ACABADOS FACHADA\n16. OBRAS COMPLEMENTARIAS Y EXTERIORES\n\n' +
+
+    'METODOLOGÍA DE CUANTIFICACIÓN BIM (síguela mentalmente antes de escribir el JSON final):\n' +
+    'PASO 1 — Estima el ÁREA DE CONSTRUCCIÓN TOTAL en m2 desde el plano arquitectónico (súmala por piso si hay ' +
+    'más de uno).\n' +
+    'PASO 2 — NO analices "el plano" en general: analiza CADA ELEMENTO INDIVIDUAL que puedas identificar, con su ' +
+    'propia regla de medición (igual que un modelador BIM):\n' +
+    '   • Muros/mampostería → por ÁREA (largo x alto, descontando vanos de puertas/ventanas), separados por tipo ' +
+    'de bloque/espesor si el plano distingue más de uno; NO mezcles muro interior de 10cm con muro exterior de ' +
+    '20cm en la misma línea.\n' +
+    '   • Zapatas/plintos → CONTEO por tipo/dimensión, y su hormigón por VOLUMEN (ancho x largo x peralte x ' +
+    'cantidad); si hay zapatas de distinta dimensión, son rubros distintos.\n' +
+    '   • Columnas → hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo por PESO (kg), como ' +
+    'dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
+    '   • Vigas y cadenas → igual: hormigón por volumen y acero por peso, por nivel si aplica.\n' +
+    '   • Losas/entrepisos → por ÁREA o VOLUMEN según el sistema constructivo que se aprecie (losa maciza, ' +
+    'alivianada, etc.), separando por nivel.\n' +
+    '   • Pisos/contrapisos/enlucidos → por ÁREA, separados por AMBIENTE O TIPO DE ACABADO cuando cambien de ' +
+    'material (cerámica de sala ≠ porcelanato de baño ≠ contrapiso de garaje: son rubros distintos, no los ' +
+    'agrupes en "pisos en general").\n' +
+    '   • Cielo raso → por ÁREA, por ambiente o tipo si cambia el material.\n' +
+    '   • Cubierta → estructura de cubierta (por área o por peso si es metálica), cubierta propiamente dicha ' +
+    '(por área), impermeabilización (por área), canales y bajantes (por longitud/unidad), como rubros separados.\n' +
+    '   • Puertas y ventanas → por CONTEO, agrupando solo las que compartan tipo y dimensión exacta (ej. "Puerta ' +
+    'tablero 0.70x2.10m" es un rubro con su cantidad; "Ventana aluminio corrediza 1.20x1.00m" es otro).\n' +
+    '   • Puntos hidrosanitarios (agua fría, agua caliente, desagüe) → por CONTEO de puntos, separados por tipo.\n' +
+    '   • Aparatos sanitarios (inodoro, lavamanos, ducha/grifería, fregadero, calefón/tanque) → por CONTEO, cada ' +
+    'tipo de aparato es un rubro propio.\n' +
+    '   • Puntos eléctricos (iluminación, tomacorriente 110V, tomacorriente 220V) → por CONTEO, cada tipo es un ' +
+    'rubro separado; tablero(s) y acometida como rubros propios por unidad.\n' +
+    '   • Pintura → por ÁREA, interior y exterior como rubros separados si ambos se aprecian.\n' +
+    '   • Fachaleta/revestimientos de fachada → por ÁREA si se aprecian en el plano arquitectónico.\n' +
+    'PASO 3 — Aunque un capítulo no tenga plano específico (Trámites, Preliminares, Estructura metálica si no ' +
+    'aplica, Obras exteriores), DEBES incluir una estimación razonable proporcional al área de construcción; ' +
+    'nunca dejes un capítulo vacío salvo que sea evidente que no aplica a este proyecto (ejemplo: sin Estructura ' +
+    'Metálica si todo el sistema es de hormigón armado, aunque incluso ahí revisa si hay cubierta con cerchas ' +
+    'metálicas).\n' +
+    'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: (a) cuenta cuántos capítulos de los 16 quedaron ' +
+    'con al menos un rubro — deberían ser prácticamente todos, salvo excepción justificada; (b) suma el costo ' +
+    'directo total y divídelo entre el área de construcción. El usuario de esta cuenta es un profesional de la ' +
+    'construcción en Ibarra, Ecuador, y su referencia real de campo es que una obra de construcción media-buena ' +
+    'en esa zona cuesta ALREDEDOR DE 450 USD/m2 de costo directo, SIN IVA y sin indirectos (tolera un rango de ' +
+    '380 a 550 USD/m2 según el nivel de acabados que muestren los planos; a nivel nacional el rango general es ' +
+    '220-800 USD/m2, pero 450 USD/m2 es el dato calibrado y más confiable para este caso). Si tu resultado da ' +
+    'muy por debajo de ese rango, es señal inequívoca de que faltan elementos — revisa qué capítulo(s) quedaron ' +
+    'pobres en detalle y complétalos ANTES de responder. Un presupuesto de menos de 50 rubros para una vivienda ' +
+    'completa casi siempre significa que agrupaste elementos que debían ir separados: vuelve a los planos y ' +
+    'desglosa más, no menos.\n\n' +
+
+    'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
+    '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
+    'sin rubros y por qué", "rubros": [{"capitulo": "uno de los 16 nombres exactos listados arriba", ' +
+    '"codigo": "string", "descripcion": "string específica del elemento (no genérica)", "unidad": "string", ' +
+    '"cantidad": 0.00, "precio_unitario": 0.00, "memoria_calculo": "string breve y explícita con la medición u ' +
+    'operación exacta usada, incluyendo el elemento contado (ej. \\"6 columnas de 0.25x0.25m x 2.60m de altura = ' +
+    '0.975 m3\\")"}]}.\n\n' +
+
+    'REGLAS DE CRUCE CON LA BASE DE APUs: Cruza cada rubro con el código de la lista de referencia más parecido ' +
+    '(misma naturaleza y unidad); si ninguno encaja, crea un código nuevo y coherente con prefijo del capítulo ' +
+    '(ej. PRE-01 para preliminares, EST-05 para estructura, MAM-02 para mampostería, PIS-03 para pisos, CUB-01 ' +
+    'para cubierta, CAR-04 para carpintería, HID-06 para hidrosanitario, SAN-02 para aparatos sanitarios, ' +
+    'ELE-07 para eléctrico, PIN-01 para pintura, GYP-01 para cielo raso, FAC-01 para fachaleta, VAR-01 para ' +
+    'obras exteriores) y estima un precio unitario razonable de mercado ecuatoriano actual. No inventes ' +
+    'cantidades sin sustento: cada "cantidad" debe poder rastrearse a una medición u operación explicada en ' +
+    '"memoria_calculo". Si un plano no es legible o una especialidad no tiene información suficiente, sé ' +
+    'honesto en "resumen_cobertura" en vez de inventar datos para esa especialidad específica, pero eso NO te ' +
+    'exime de estimar los capítulos generales que dependen del área total (preliminares, trámites, obras ' +
+    'exteriores) aunque no tengas el plano de esa especialidad. Devuelve el JSON minificado (una sola línea), ' +
+    'sin espacios de más.' +
+    '__MARKET_RESEARCH__';
+
+  var MARKET_PLACEHOLDER = '__MARKET_RESEARCH__';
+  function withMarketBlock(base, marketText) {
+    var block = marketText
+      ? ('\n\nINVESTIGACIÓN DE PRECIOS DE MERCADO (obtenida hoy vía Google Search, ferreterías de Ibarra y ' +
+         'referencias nacionales — úsala para calibrar tus precios unitarios en vez de estimarlos a ciegas, ' +
+         'sobre todo en materiales de alto peso en el presupuesto como cemento, bloque, acero, tubería, cable y ' +
+         'acabados):\n' + marketText)
+      : '\n\n(No se pudo obtener investigación de precios en vivo para esta generación; usa tu mejor estimación ' +
+        'de mercado ecuatoriano actual, con especial atención a no subestimar precios.)';
+    return base.replace(MARKET_PLACEHOLDER, block);
+  }
+
+  /* ─────────────── Dropzones ─────────────── */
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(',')[1] || ''); };
+      fr.onerror = function () { reject({ code: 'READ' }); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(key, file) {
+    if (!file) return;
+    var isImg = /^image\//i.test(file.type || '');
+    var isPdf = /pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+    if (!isImg && !isPdf) { say('Solo se aceptan imágenes o archivos PDF'); return; }
+    if (file.size > 15 * 1024 * 1024) { say('El archivo pesa más de 15 MB. Usa uno más liviano'); return; }
+    try {
+      var base64 = await fileToBase64(file);
+      var thumbUrl = isImg ? URL.createObjectURL(file) : null;
+      if (PIA.files[key] && PIA.files[key].thumbUrl) URL.revokeObjectURL(PIA.files[key].thumbUrl);
+      PIA.files[key] = { name: file.name, size: file.size, mime: file.type || 'application/pdf', base64: base64, thumbUrl: thumbUrl };
+      renderDropzone(key);
+      updateGenerateState();
+    } catch (e) { say('No se pudo leer el archivo'); }
+  }
+
+  function renderDropzone(key) {
+    var zone = $('pia-drop-' + key), stateEl = $('pia-state-' + key), f = PIA.files[key];
+    if (!zone || !stateEl) return;
+    if (!f) { zone.classList.remove('pia-filled'); stateEl.innerHTML = '<span class="pia-empty-txt">Arrastra un archivo o haz clic</span>'; return; }
+    zone.classList.add('pia-filled');
+    var thumb = f.thumbUrl ? '<img class="pia-thumb" src="' + f.thumbUrl + '" alt="">' : '';
+    stateEl.innerHTML = '<div class="pia-file-info">' + thumb +
+      '<span class="pia-file-name">' + esc(f.name) + '</span>' +
+      '<span class="pia-file-size">' + fmtKB(f.size) + '</span>' +
+      '<button type="button" class="pia-file-remove" data-remove="' + key + '">Quitar / Cambiar</button></div>';
+  }
+
+  function updateGenerateState() {
+    var count = Object.keys(PIA.files).filter(function (k) { return PIA.files[k]; }).length;
+    var hint = $('pia-count-hint'); if (hint) hint.textContent = count + ' de 4 planos cargados';
+    var btn = $('pia-generate-btn'); if (btn) btn.disabled = count === 0 || typeof S === 'undefined' || !S.proj;
+  }
+
+  function wireDropzone(key) {
+    var zone = $('pia-drop-' + key), input = $('pia-file-' + key);
+    if (!zone || !input) return;
+    zone.addEventListener('click', function (e) { if (!e.target.closest('[data-remove]')) input.click(); });
+    input.addEventListener('change', function () { var f = input.files && input.files[0]; input.value = ''; handleFile(key, f); });
+    zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('pia-dragover'); });
+    zone.addEventListener('dragleave', function () { zone.classList.remove('pia-dragover'); });
+    zone.addEventListener('drop', function (e) {
+      e.preventDefault(); zone.classList.remove('pia-dragover');
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) handleFile(key, file);
+    });
+    zone.addEventListener('click', function (e) {
+      var rm = e.target.closest('[data-remove]'); if (!rm) return;
+      e.stopPropagation();
+      var k = rm.getAttribute('data-remove');
+      if (PIA.files[k] && PIA.files[k].thumbUrl) URL.revokeObjectURL(PIA.files[k].thumbUrl);
+      PIA.files[k] = null; renderDropzone(k); updateGenerateState();
+    });
+  }
+
+  /* ─────────────── Estado / overlay ─────────────── */
+  function setStatus(type, msg, opts) {
+    var el = $('pia-status'); if (!el) return;
+    if (!type) { el.className = 'pia-status'; el.innerHTML = ''; return; }
+    el.className = 'pia-status on ' + type;
+    el.innerHTML = '<span>' + esc(msg) + '</span>' + (opts && opts.retry ? ' <button type="button" class="pia-file-remove" id="pia-retry-btn" style="color:var(--cy);border-color:var(--brc)">Reintentar</button>' : '');
+    if (opts && opts.retry) { var b = $('pia-retry-btn'); if (b) b.addEventListener('click', generatePresupuesto); }
+  }
+
+  var PROGRESS_STEPS = ['Preparando planos…', 'Enviando información a la IA…', 'Analizando planos y despiece…', 'Cruzando rubros con APUs…', 'Calculando cantidades…', 'Casi listo…'];
+  var progressTimer = null;
+  function showOverlay() {
+    var ov = $('pia-overlay'); if (!ov) return;
+    ov.classList.add('pia-show');
+    var i = 0; $('pia-overlay-msg').textContent = PROGRESS_STEPS[0];
+    progressTimer = setInterval(function () { i = Math.min(i + 1, PROGRESS_STEPS.length - 1); $('pia-overlay-msg').textContent = PROGRESS_STEPS[i]; }, 4000);
+  }
+  function hideOverlay() { clearInterval(progressTimer); var ov = $('pia-overlay'); if (ov) ov.classList.remove('pia-show'); }
+
+  /* ─────────────── Llamada a Gemini (misma lógica de robustez usada en Gastos) ─────────────── */
+  function newTok() {
+    var t = { cancelled: false, cur: null };
+    t.cancel = function () { t.cancelled = true; if (t.cur) { try { t.cur.abort(); } catch (e) {} } };
+    return t;
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function sendOnce(model, parts, key, tok) {
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (tok) tok.cur = ctrl;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 150000) : null;
+    var resp;
+    try {
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
+      });
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      if (tok && tok.cancelled) throw { code: 'CANCEL' };
+      if (e && e.name === 'AbortError') return { timeout: true, resp: { ok: false, status: 0 } };
+      throw { code: 'NETWORK' };
+    }
+    if (timer) clearTimeout(timer);
+    var body = null; try { body = await resp.json(); } catch (e) {}
+    if (tok && tok.cancelled) throw { code: 'CANCEL' };
+    var msg = (body && body.error && body.error.message) || '';
+    var invalidKey = resp.status === 401 || resp.status === 403 || /API key not valid|API_KEY_INVALID|PERMISSION_DENIED/i.test(msg);
+    return { resp: resp, body: body, msg: msg, invalidKey: invalidKey };
+  }
+
+  function extractText(body) {
+    try { return (body.candidates[0].content.parts || []).filter(function (p) { return p && typeof p.text === 'string'; }).map(function (p) { return p.text; }).join('').trim(); }
+    catch (e) { return ''; }
+  }
+
+  async function callGeminiForBudget(parts, tok, onRetry) {
+    var key = getKey();
+    if (!key) throw { code: 'NO_KEY' };
+    var models = [PIA_MODEL].concat(PIA_MODEL_FALLBACKS);
+    var backoff = [2000, 4000, 7000], lastErr = null, t0 = Date.now();
+    for (var round = 0; round < 3; round++) {
+      for (var i = 0; i < models.length; i++) {
+        if (tok && tok.cancelled) throw { code: 'CANCEL' };
+        var r = await sendOnce(models[i], parts, key, tok);
+        if (r.timeout) { lastErr = { code: 'TIMEOUT' }; continue; }
+        if (r.resp.ok) {
+          var text = extractText(r.body);
+          if (!text) { lastErr = { code: 'EMPTY' }; continue; }
+          return text;
+        }
+        if (r.invalidKey) throw { code: 'BAD_KEY', msg: r.msg };
+        if (r.resp.status === 404) { lastErr = { code: 'NO_MODEL' }; continue; }
+        if (r.resp.status === 429) { lastErr = { code: 'QUOTA', msg: r.msg }; continue; }
+        if (r.resp.status >= 500) { lastErr = { code: 'SERVER', msg: r.msg }; continue; }
+        throw { code: 'HTTP', status: r.resp.status, msg: r.msg };
+      }
+      if (round < 2 && Date.now() - t0 < 240000) {
+        if (onRetry) { try { onRetry(round + 1); } catch (e) {} }
+        await sleep(backoff[round] || 6000);
+      }
+    }
+    throw lastErr || { code: 'NO_MODEL' };
+  }
+
+  /* ─────────────── Investigación de precios de mercado (Google Search grounding) ───────────────
+     Una llamada aparte, con la herramienta de búsqueda de Google activada, para cotejar precios actuales de
+     materiales clave contra ferreterías de Ibarra y el mercado nacional. Se cachea 7 días: los precios de
+     materiales no cambian de un día para otro, y así no se gasta cuota de Gemini en cada generación. Si falla
+     o no hay cuota, el presupuesto se genera igual (con la calibración de 450 USD/m2 como respaldo). */
+  var MARKET_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  var MARKET_ITEMS = [
+    'saco de cemento 50kg', 'bloque de hormigón 15x20x40', 'varilla de acero de refuerzo fy4200 (precio por kg)',
+    'tubería PVC presión 1/2" y desagüe 110mm', 'cable eléctrico THHN #12 y #10 (precio por metro)',
+    'cerámica de piso 30x30 o similar (precio por m2)', 'pintura látex interior (precio por galón)',
+    'plancha de gypsum y perfilería para cielo raso', 'inodoro y lavamanos de línea económica/media',
+    'plancha de zinc o teja para cubierta'
+  ];
+  function marketPrompt() {
+    return 'Eres un investigador de precios de materiales de construcción en Ecuador. Busca en internet los ' +
+      'precios ACTUALES (de hoy) de los siguientes materiales, priorizando ferreterías de Ibarra (Kywi, Disensa, ' +
+      'Ferrisariato, ferreterías locales de Ibarra/Imbabura) y, si no encuentras precio local, usa el precio ' +
+      'promedio de mercado nacional ecuatoriano: ' + MARKET_ITEMS.join('; ') + '. Para cada material, responde ' +
+      'en una línea con el formato "material — precio USD (unidad) — fuente/tienda si la identificaste". Sé ' +
+      'breve y concreto, sin introducciones ni conclusiones, solo la lista de precios encontrados.';
+  }
+  function cacheKey() { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, ''); }
+  function readMarketCache() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('bm_pia_market_') === 0) {
+          var v = JSON.parse(localStorage.getItem(k) || 'null');
+          if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v.text;
+          if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+  function writeMarketCache(text) {
+    try { localStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), text: text })); } catch (e) {}
+  }
+
+  async function getMarketResearch(onStatus) {
+    var cached = readMarketCache();
+    if (cached) return cached;
+    var key = getKey();
+    if (!key) return null;
+    if (onStatus) onStatus();
+    try {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 45000) : null;
+      var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketPrompt() }] }], tools: [{ google_search: {} }] })
+      });
+      if (timer) clearTimeout(timer);
+      var body = await resp.json().catch(function () { return null; });
+      if (!resp.ok) return null;
+      var text = extractText(body);
+      if (!text) return null;
+      writeMarketCache(text);
+      return text;
+    } catch (e) { return null; }
+  }
+
+  function friendly(e) {
+    var c = e && e.code;
+    if (c === 'NO_KEY') return 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).';
+    if (c === 'BAD_KEY') return 'Google rechazó la clave de API. Revísala en Gastos y facturas → "Clave API".';
+    if (c === 'QUOTA') return 'Se agotó la cuota gratuita de Gemini por ahora. Espera un momento e inténtalo de nuevo.';
+    if (c === 'SERVER') return 'Los servidores de Gemini están saturados. Reintenta en un momento.';
+    if (c === 'TIMEOUT') return 'La IA tardó demasiado en responder. Inténtalo de nuevo.';
+    if (c === 'NETWORK') return 'No se pudo conectar con Google. Revisa tu conexión.';
+    if (c === 'CANCEL') return 'Cancelado.';
+    if (c === 'PARSE' || c === 'EMPTY') return 'No se pudo leer el resultado de la IA. Prueba con planos más claros.';
+    if (c === 'NO_MODEL') return 'Ningún modelo de Gemini respondió.';
+    return 'No se pudo generar el presupuesto: ' + ((e && e.msg) || (e && e.message) || 'error desconocido');
+  }
+
+  function normRubro(r) {
+    var cap = normCapitulo(r.capitulo);
+    return {
+      id: newId(), capitulo: cap, codigo: String(r.codigo || '').trim() || 'S/C',
+      descripcion: String(r.descripcion || '').trim() || '(sin descripción)',
+      unidad: String(r.unidad || 'u').trim() || 'u',
+      cantidad: Math.max(0, Number(r.cantidad) || 0),
+      precio_unitario: Math.max(0, Number(r.precio_unitario) || 0),
+      memoria_calculo: String(r.memoria_calculo || '').trim()
+    };
+  }
+
+  // Un presupuesto completo (40-120 rubros con memoria de cálculo) puede cortar la respuesta antes de cerrar
+  // el JSON. Si pasa, se recuperan los rubros que sí llegaron completos en vez de perder todo el resultado.
+  function parseResponse(text) {
+    var t = String(text || '').replace(/```(?:json)?/gi, '').trim();
+    var a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0) throw { code: 'PARSE' };
+    var json, truncated = false;
+    if (b > a) { try { json = JSON.parse(t.slice(a, b + 1)); } catch (e) {} }
+    if (!json) {
+      var ri = t.indexOf('"rubros"');
+      if (ri > a) {
+        var arrStart = t.indexOf('[', ri);
+        if (arrStart > 0) {
+          var lastObjEnd = t.lastIndexOf('}', t.length);
+          if (lastObjEnd > arrStart) {
+            try { json = { rubros: JSON.parse(t.slice(arrStart, lastObjEnd + 1) + ']') }; truncated = true; } catch (e) {}
+          }
+        }
+      }
+    }
+    if (!json) throw { code: 'PARSE' };
+    var list = Array.isArray(json.rubros) ? json.rubros : [];
+    var rubros = list.map(normRubro).filter(function (r) { return r.descripcion && (r.cantidad > 0 || r.precio_unitario > 0); });
+    return { rubros: rubros, areaM2: Math.max(0, Number(json.area_m2) || 0), cobertura: String(json.resumen_cobertura || '').trim(), truncated: truncated };
+  }
+
+  async function generatePresupuesto() {
+    var count = Object.keys(PIA.files).filter(function (k) { return PIA.files[k]; }).length;
+    if (!count) { say('Carga al menos un plano antes de generar el presupuesto'); return; }
+    if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto antes de generar el presupuesto'); return; }
+
+    var btn = $('pia-generate-btn'); if (btn) btn.disabled = true;
+    var tok = newTok(); PIA.tok = tok;
+    showOverlay(); setStatus('');
+
+    var marketText = await getMarketResearch(function () {
+      var el = $('pia-overlay-msg'); if (el) el.textContent = 'Consultando precios actuales en ferreterías (Ibarra y mercado nacional)…';
+    });
+    if (tok.cancelled) { hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null; setStatus('warn', 'Generación cancelada.'); return; }
+
+    var promptText = withMarketBlock(PROMPT_BASE, marketText);
+    var parts = [{ text: promptText + '\n\nAPUs de referencia (reales, de tu base de datos):\n' + JSON.stringify(sampleReference()) }];
+    Object.keys(PIA.files).forEach(function (k) {
+      var f = PIA.files[k]; if (!f) return;
+      parts.push({ text: '\nPlano de especialidad: ' + CAP_KEYS[k] });
+      parts.push({ inline_data: { mime_type: f.mime, data: f.base64 } });
+    });
+    var cancelBtn = $('pia-overlay-cancel');
+    if (cancelBtn) cancelBtn.onclick = function () { tok.cancel(); };
+    try {
+      var text = await callGeminiForBudget(parts, tok, function (round) {
+        var el = $('pia-overlay-msg'); if (el) el.textContent = 'Gemini está saturado: reintentando (intento ' + (round + 1) + ')…';
+      });
+      var out = parseResponse(text);
+      var rubros = out.rubros;
+      if (!rubros.length) throw { code: 'EMPTY' };
+      PIA.rubros = rubros; PIA.activeTab = 'Todos'; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
+      renderTabs();
+      renderTable();
+      $('pia-result').style.display = '';
+
+      var cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
+      var perM2 = out.areaM2 > 0 ? cd / out.areaM2 : 0;
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '');
+      if (out.truncated) {
+        setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los capítulos (Preliminares, Estructura, Acabados, Instalaciones, Cubierta…) antes de continuar.');
+      } else if (out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
+        setStatus('warn', base + ' El costo directo da ' + money(perM2) + '/m², un valor muy bajo para una obra completa: probablemente faltan capítulos (revisa Preliminares, Cimentación, Cubierta, Acabados). Puedes agregar rubros manualmente o volver a generar.');
+      } else {
+        setStatus('ok', base + (perM2 > 0 ? ' Costo directo ≈ ' + money(perM2) + '/m².' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
+      }
+      try { $('pia-result').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    } catch (e) {
+      if (e && e.code === 'CANCEL') setStatus('warn', 'Generación cancelada.');
+      else setStatus('err', friendly(e), { retry: e && e.code !== 'BAD_KEY' && e.code !== 'NO_KEY' });
+    } finally {
+      hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null;
+    }
+  }
+
+  /* ─────────────── Tabla + totales ─────────────── */
+  function subtotalOf(r) { return round2(r.cantidad * r.precio_unitario); }
+
+  function renderTabs() {
+    var box = $('pia-tabs'); if (!box) return;
+    var present = CAP_LABELS.filter(function (c) { return PIA.rubros.some(function (r) { return r.capitulo === c; }); });
+    if (present.indexOf(PIA.activeTab) < 0) PIA.activeTab = 'Todos';
+    var items = ['Todos'].concat(present);
+    box.innerHTML = items.map(function (c) {
+      return '<button type="button" class="pia-tab' + (c === PIA.activeTab ? ' active' : '') + '" data-cap="' + esc(c) + '">' + esc(titleCase(c)) + '</button>';
+    }).join('');
+  }
+  function titleCase(s) {
+    if (s === 'Todos') return s;
+    return s.toLowerCase().replace(/(^|\s)([a-záéíóúñ])/g, function (m, sp, ch) { return sp + ch.toUpperCase(); });
+  }
+
+  function renderTable() {
+    var tbody = $('pia-tbody'); if (!tbody) return;
+    var rows = PIA.activeTab === 'Todos' ? PIA.rubros : PIA.rubros.filter(function (r) { return r.capitulo === PIA.activeTab; });
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="pia-empty-row"><td colspan="9">No hay rubros en esta especialidad.</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        return '<tr data-id="' + r.id + '">' +
+          '<td><span class="pia-cap-chip">' + esc(r.capitulo) + '</span></td>' +
+          '<td class="pia-mono">' + esc(r.codigo) + '</td>' +
+          '<td class="pia-desc-cell">' + esc(r.descripcion) + '</td>' +
+          '<td>' + esc(r.unidad) + '</td>' +
+          '<td class="pia-num"><input type="text" inputmode="decimal" class="pia-qty-input" data-qty="' + r.id + '" value="' + r.cantidad + '"></td>' +
+          '<td class="pia-num pia-mono">' + money(r.precio_unitario) + '</td>' +
+          '<td class="pia-num pia-mono" data-subtotal="' + r.id + '">' + money(subtotalOf(r)) + '</td>' +
+          '<td class="pia-memo-cell">' + esc(r.memoria_calculo) + '</td>' +
+          '<td><button type="button" class="pia-row-del" data-del="' + r.id + '" title="Quitar rubro">×</button></td></tr>';
+      }).join('');
+    }
+    renderTotals();
+  }
+
+  function renderTotals() {
+    var cd = round2(PIA.rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
+    var aiu = round2(cd * (PIA.aiuPct / 100));
+    var sub = round2(cd + aiu);
+    var iva = round2(sub * (PIA.ivaPct / 100));
+    var total = round2(sub + iva);
+    $('pia-sum-cd').textContent = money(cd);
+    $('pia-sum-aiu').textContent = money(aiu);
+    $('pia-sum-sub').textContent = money(sub);
+    $('pia-sum-iva').textContent = money(iva);
+    $('pia-sum-total').textContent = money(total);
+    return { cd: cd, aiu: aiu, sub: sub, iva: iva, total: total };
+  }
+
+  function onQtyInput(e) {
+    var input = e.target.closest && e.target.closest('[data-qty]'); if (!input) return;
+    var r = PIA.rubros.filter(function (x) { return x.id === input.getAttribute('data-qty'); })[0]; if (!r) return;
+    r.cantidad = Math.max(0, parseFloat(String(input.value).replace(',', '.')) || 0);
+    var cell = document.querySelector('[data-subtotal="' + r.id + '"]'); if (cell) cell.textContent = money(subtotalOf(r));
+    renderTotals();
+  }
+  function onRowDelete(e) {
+    var b = e.target.closest && e.target.closest('[data-del]'); if (!b) return;
+    var id = b.getAttribute('data-del');
+    PIA.rubros = PIA.rubros.filter(function (r) { return r.id !== id; });
+    renderTabs();
+    renderTable();
+  }
+  function onTabClick(e) {
+    var tab = e.target.closest && e.target.closest('.pia-tab'); if (!tab) return;
+    PIA.activeTab = tab.getAttribute('data-cap');
+    renderTabs();
+    renderTable();
+  }
+
+  /* ─────────────── Exportar a CSV ─────────────── */
+  function exportCSV() {
+    if (!PIA.rubros.length) { say('No hay rubros para exportar'); return; }
+    var headers = ['Capítulo', 'Código APU', 'Descripción', 'Unidad', 'Cantidad', 'Precio Unitario', 'Subtotal', 'Memoria de cálculo'];
+    function esc2(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+    var lines = [headers.map(esc2).join(',')];
+    PIA.rubros.forEach(function (r) { lines.push([r.capitulo, r.codigo, r.descripcion, r.unidad, r.cantidad, r.precio_unitario, subtotalOf(r), r.memoria_calculo].map(esc2).join(',')); });
+    var blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'Presupuesto_IA_' + (S && S.proj ? S.proj.replace(/[^A-Za-z0-9]+/g, '_') : 'proyecto') + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    say('CSV descargado');
+  }
+
+  /* ─────────────── Agregar al presupuesto activo (integración real) ───────────────
+     Busca o crea el capítulo del rubro en S.caps; si el código coincide con un APU
+     real de BD.A usa su costo calculado (calcAPU), si no, usa el precio de la IA como
+     línea directa. Guarda el proyecto y sincroniza con la nube (igual que el resto
+     de la app). Los códigos nuevos que la IA propuso también quedan en tu biblioteca
+     personal para que aparezcan en el resto de tus proyectos. */
+  function findOrCreateCap(nombre) {
+    var caps = getCaps();
+    for (var i = 0; i < caps.length; i++) { if (String(caps[i]).trim().toLowerCase() === nombre.toLowerCase()) return i; }
+    var ci = caps.length;
+    if (!S.caps) S.caps = [];
+    while (S.caps.length <= ci) S.caps.push([]);
+    if (!S.capNames) S.capNames = [];
+    S.capNames[ci] = nombre.toUpperCase();
+    if (!S.capNums) S.capNums = [];
+    S.capNums[ci] = ci;
+    return ci;
+  }
+
+  function addToActiveProject() {
+    if (!PIA.rubros.length) { say('No hay rubros para agregar'); return; }
+    if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto antes de agregar el presupuesto'); return; }
+    if (!confirm('Se agregarán ' + PIA.rubros.length + ' rubro(s) al presupuesto de "' + S.proj + '". ¿Continuar?')) return;
+
+    var added = 0, newApuCount = 0;
+    PIA.rubros.forEach(function (r) {
+      var ci = findOrCreateCap(r.capitulo);
+      var known = BD.A[r.codigo];
+      if (!known) {
+        // código nuevo sugerido por la IA: se crea como línea de precio fijo (no un APU con insumos propios)
+        // y queda registrado en BD.G para que sea visible/editable desde "Grupos y rubros"
+        var grp = BD.G.filter(function (g) { return g.n === r.capitulo; })[0];
+        if (!grp) { grp = { n: r.capitulo, p: '', r: [] }; BD.G.push(grp); }
+        if (!grp.r.some(function (row) { return row[0] === r.codigo; })) grp.r.push([r.codigo, r.descripcion, r.unidad, r.precio_unitario]);
+        if (typeof _syncUserLibrary === 'function') {
+          try { _syncUserLibrary('insumo', { ins: [r.codigo, r.descripcion, r.unidad, r.precio_unitario], cat: r.codigo.split('-')[0] }); } catch (e) {}
+        }
+        newApuCount++;
+      }
+      if (!S.caps[ci]) S.caps[ci] = [];
+      S.caps[ci].push({ code: r.codigo, desc: r.descripcion, unit: r.unidad, pu: known ? (function () { try { return calcAPU(known).cd; } catch (e) { return r.precio_unitario; } })() : r.precio_unitario, qty: r.cantidad });
+      added++;
+    });
+
+    persist();
+    if (typeof _silentSaveProject === 'function') _silentSaveProject();
+    if (typeof renderBudget === 'function') { try { renderBudget(); } catch (e) {} }
+    if (typeof calcFin === 'function') { try { calcFin(); } catch (e) {} }
+    PIA.rubros = []; renderTabs(); renderTable(); $('pia-result').style.display = 'none';
+    setStatus('ok', added + ' rubro(s) agregados al presupuesto de "' + S.proj + '"' + (newApuCount ? ' (' + newApuCount + ' códigos nuevos)' : '') + '.');
+    say(added + ' rubros agregados al presupuesto');
+  }
+
+  /* ─────────────── Banner de proyecto activo / crear proyecto ─────────────── */
+  function renderProjBanner() {
+    var el = $('pia-proj-banner'); if (!el) return;
+    var has = typeof S !== 'undefined' && !!S.proj;
+    el.classList.toggle('has-project', has);
+    if (has) {
+      var active = $('pia-proj-active');
+      if (active) active.innerHTML = '<span class="pia-proj-dot"></span>Proyecto activo: <b>' + esc(S.proj) + '</b> · el presupuesto que generes se agregará aquí.';
+    }
+    updateGenerateState();
+  }
+
+  // Crea un proyecto nuevo (vacío) con el nombre indicado, usando el mismo flujo
+  // real de "Guardar proyecto" del resto de la app (aparece en Mis proyectos y
+  // se sincroniza a la nube), sin salir de esta vista.
+  function createProjectInline() {
+    var input = $('pia-new-proj-name');
+    var name = input ? input.value.trim() : '';
+    if (!name) { say('Escribe un nombre para el nuevo proyecto'); if (input) input.focus(); return; }
+    if (typeof getSavedProjects === 'function' && getSavedProjects().some(function (p2) { return p2.name === name; })) {
+      say('Ya existe un proyecto con ese nombre. Ábrelo desde "Mis proyectos" o usa otro nombre.'); return;
+    }
+    // newProject() y go() navegan a la pestaña "Presupuesto" (es su comportamiento normal en el resto de la
+    // app). Como todo esto ocurre de forma síncrona en el mismo tick, "devolver" la vista a Presupuesto IA
+    // justo después pasa antes de que el navegador pinte nada: el usuario nunca ve el salto.
+    if (typeof newProject === 'function') { try { newProject(); } catch (e) {} }
+    if (typeof go === 'function') { try { go('pia'); } catch (e) {} }
+    if (typeof S !== 'undefined') S.proj = name;
+    var pname = $('pname'); if (pname) pname.value = name;
+    if (typeof saveProject === 'function') { try { saveProject(); } catch (e) {} }
+    if (typeof go === 'function') { try { go('pia'); } catch (e) {} }   // por si saveProject() también navegara en el futuro
+    if (input) input.value = '';
+    renderProjBanner();
+    say('Proyecto "' + name + '" creado. Ya puedes cargar los planos y generar el presupuesto sin salir de aquí.');
+  }
+
+  /* ─────────────── Inicialización ─────────────── */
+  var wired = false;
+  function init() {
+    if (wired || !$('pia-generate-btn')) return;
+    wired = true;
+    ['arq', 'est', 'hid', 'ele'].forEach(wireDropzone);
+    $('pia-generate-btn').addEventListener('click', generatePresupuesto);
+    $('pia-tbody').addEventListener('input', onQtyInput);
+    $('pia-tbody').addEventListener('click', onRowDelete);
+    $('pia-tabs').addEventListener('click', onTabClick);
+    $('pia-aiu-pct').addEventListener('input', function (e) { PIA.aiuPct = Math.max(0, Number(e.target.value) || 0); renderTotals(); });
+    $('pia-export-csv-btn').addEventListener('click', exportCSV);
+    $('pia-save-btn').addEventListener('click', addToActiveProject);
+    var newBtn = $('pia-new-proj-btn'); if (newBtn) newBtn.addEventListener('click', createProjectInline);
+    var newInput = $('pia-new-proj-name');
+    if (newInput) newInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); createProjectInline(); } });
+    updateGenerateState();
+  }
+
+  window.renderPiaModule = function () { init(); renderProjBanner(); };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, state: PIA };
 })();
 </script>
 

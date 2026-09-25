@@ -5178,7 +5178,7 @@ function renderCap(name,ci){
       <div style="overflow-x:auto">
       <table class="tbl" style="min-width:600px">
         <thead><tr><th>Código</th><th>Descripción</th><th class="r">Unidad</th><th class="r" style="min-width:90px">Cantidad</th><th class="r">P.Unitario</th><th class="r">P.Total</th><th></th></tr></thead>
-        <tbody id="cb-${ci}">${rows.map((r,ri)=>rowHTML(ci,ri,r)).join('')}</tbody>
+        <tbody id="cb-${ci}">${rows.map((r,ri)=>rowHTML(ci,ri,r,ri===rows.length-1)).join('')}</tbody>
       </table></div>
       <div class="cafoot">
         <button class="btn ghost" style="padding:8px 14px;font-size:12.5px" onclick="openRM(${ci})">
@@ -5189,7 +5189,7 @@ function renderCap(name,ci){
     </div>
   </div>`;
 }
-function rowHTML(ci,ri,r){
+function rowHTML(ci,ri,r,isLast){
   const tot=(r.qty||0)*(r.pu||0);
   return`<tr class="added" id="row-${ci}-${ri}">
     <td class="code">${esc(r.code)}</td>
@@ -5198,9 +5198,27 @@ function rowHTML(ci,ri,r){
     <td class="r"><input type="text" class="qi" inputmode="decimal" step="any" min="0" value="${r.qty||0}" onchange="updateQty(${ci},${ri},this.value)"></td>
     <td class="r"><input type="text" class="qi" inputmode="decimal" step="any" min="0" value="${r.pu||0}" title="Precio unitario (editable para este presupuesto)" onchange="updatePU(${ci},${ri},this.value)" style="color:var(--gr);text-align:right"></td>
     <td class="r money" id="ptot-${ci}-${ri}">${fmtUSD(tot)}</td>
-    <td><button class="rx" onclick="removeRow(${ci},${ri})" title="Eliminar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+    <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:2px">
+      <button class="rx" title="Mover arriba" style="opacity:${ri===0?'0.2':'0.7'}" ${ri===0?'disabled':''} onclick="moveRubroUp(${ci},${ri})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg></button>
+      <button class="rx" title="Mover abajo" style="opacity:${isLast?'0.2':'0.7'}" ${isLast?'disabled':''} onclick="moveRubroDown(${ci},${ri})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="rx" onclick="removeRow(${ci},${ri})" title="Eliminar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </span></td>
   </tr>`;
 }
+
+// Reordena un rubro dentro de su capítulo (arriba/abajo), sincroniza y persiste
+// igual que cualquier otro cambio del Presupuesto (nube incluida vía _silentSaveProject).
+function _swapRubro(ci,ri,dir){
+  var rows=S.caps[ci]; if(!rows) return;
+  var rj=ri+dir; if(rj<0||rj>=rows.length) return;
+  var tmp=rows[ri]; rows[ri]=rows[rj]; rows[rj]=tmp;
+  var tbody=$id('cb-'+ci);
+  if(tbody) tbody.innerHTML=rows.map(function(r,ri2){ return rowHTML(ci,ri2,r,ri2===rows.length-1); }).join('');
+  updateCapHeader(ci); calcFin(); persist();
+  if(typeof _silentSaveProject==='function') _silentSaveProject();
+}
+function moveRubroUp(ci,ri){ _swapRubro(ci,ri,-1); }
+function moveRubroDown(ci,ri){ _swapRubro(ci,ri,1); }
 function toggleCap(ci){
   const el=$id(`cap-${ci}`);el.classList.toggle('op');
 }
@@ -5227,7 +5245,7 @@ function updateCapHeader(ci){
 function removeRow(ci,ri){
   S.caps[ci].splice(ri,1);
   const tbody=$id(`cb-${ci}`);
-  if(tbody)tbody.innerHTML=S.caps[ci].map((r,ri2)=>rowHTML(ci,ri2,r)).join('');
+  if(tbody)tbody.innerHTML=S.caps[ci].map((r,ri2)=>rowHTML(ci,ri2,r,ri2===S.caps[ci].length-1)).join('');
   updateCapHeader(ci);calcFin();
 }
 function addRubroToCap(ci,rub){
@@ -5237,9 +5255,8 @@ function addRubroToCap(ci,rub){
   S.caps[ci].push({code:rub[0],desc:rub[1],unit:rub[2],pu,qty:1});
   const tbody=$id(`cb-${ci}`);
   if(tbody){
-    const ri=S.caps[ci].length-1;
-    const tr=document.createElement('tbody');tr.innerHTML=rowHTML(ci,ri,S.caps[ci][ri]);
-    const newtr=tr.firstChild;newtr.classList.add('added');tbody.appendChild(newtr);
+    tbody.innerHTML=S.caps[ci].map((r,ri2)=>rowHTML(ci,ri2,r,ri2===S.caps[ci].length-1)).join('');
+    const lastTr=tbody.lastElementChild; if(lastTr) lastTr.classList.add('added');
   }
   const cap=$id(`cap-${ci}`);if(cap)cap.classList.add('op');
   updateCapHeader(ci);calcFin();
@@ -5842,9 +5859,31 @@ function deleteRubro(gIdx,rIdx){
   var g=BD.G[gIdx]; if(!g)return;
   var r=g.r[rIdx]; if(!r)return;
   if(!confirm('¿Eliminar el rubro/APU '+r[0]+' - '+r[1]+'?\nEsta acción no se puede deshacer.'))return;
+  var code=r[0];
   g.r.splice(rIdx,1);
-  if(BD.A&&BD.A[r[0]])delete BD.A[r[0]];
-  try{ if(typeof _bmLibOnDeleted==='function') _bmLibOnDeleted('apu', r[0]); }catch(e){}
+  if(BD.A&&BD.A[code])delete BD.A[code];
+  try{ if(typeof _bmLibOnDeleted==='function') _bmLibOnDeleted('apu', code); }catch(e){}
+  // Si este APU ya estaba insertado en el Presupuesto, quitarlo de TODOS los capítulos donde aparezca
+  // (antes se borraba de Grupos y Rubros pero quedaba "huérfano" en el Presupuesto).
+  var removedFrom=0;
+  if(S && Array.isArray(S.caps)){
+    S.caps.forEach(function(cap, ci){
+      var before=cap.length;
+      for(var i=cap.length-1; i>=0; i--){ if(cap[i].code===code) cap.splice(i,1); }
+      if(cap.length!==before){
+        removedFrom++;
+        var tbody=$id('cb-'+ci);
+        if(tbody) tbody.innerHTML=cap.map(function(rr,ri2){ return rowHTML(ci,ri2,rr,ri2===cap.length-1); }).join('');
+        if(typeof updateCapHeader==='function') updateCapHeader(ci);
+      }
+    });
+  }
+  if(removedFrom>0){
+    if(typeof calcFin==='function') calcFin();
+    persist();
+    if(typeof _silentSaveProject==='function') _silentSaveProject();
+    toast('APU eliminado: también se quitó de '+removedFrom+' capítulo'+(removedFrom===1?'':'s')+' del Presupuesto');
+  }
   var ed=document.getElementById('gdet-editor');
   if(ed)ed.innerHTML='';
   renderGrpDet(g);

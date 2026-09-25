@@ -14760,12 +14760,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'metálicas).\n' +
     'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: (a) cuenta cuántos capítulos de los 16 quedaron ' +
     'con al menos un rubro — deberían ser prácticamente todos, salvo excepción justificada; (b) suma el costo ' +
-    'directo total y divídelo entre el área de construcción: en Ecuador, una vivienda de construcción media a ' +
-    'buena terminada cuesta habitualmente 350-650 USD/m2 de costo directo (obra gris ~220 USD/m2, lujo >800 ' +
-    'USD/m2); si tu resultado da muy por debajo de ese rango, es señal inequívoca de que faltan elementos — ' +
-    'revisa qué capítulo(s) quedaron pobres en detalle y complétalos ANTES de responder. Un presupuesto de menos ' +
-    'de 50 rubros para una vivienda completa casi siempre significa que agrupaste elementos que debían ir ' +
-    'separados: vuelve a los planos y desglosa más, no menos.\n\n' +
+    'directo total y divídelo entre el área de construcción. El usuario de esta cuenta es un profesional de la ' +
+    'construcción en Ibarra, Ecuador, y su referencia real de campo es que una obra de construcción media-buena ' +
+    'en esa zona cuesta ALREDEDOR DE 450 USD/m2 de costo directo, SIN IVA y sin indirectos (tolera un rango de ' +
+    '380 a 550 USD/m2 según el nivel de acabados que muestren los planos; a nivel nacional el rango general es ' +
+    '220-800 USD/m2, pero 450 USD/m2 es el dato calibrado y más confiable para este caso). Si tu resultado da ' +
+    'muy por debajo de ese rango, es señal inequívoca de que faltan elementos — revisa qué capítulo(s) quedaron ' +
+    'pobres en detalle y complétalos ANTES de responder. Un presupuesto de menos de 50 rubros para una vivienda ' +
+    'completa casi siempre significa que agrupaste elementos que debían ir separados: vuelve a los planos y ' +
+    'desglosa más, no menos.\n\n' +
 
     'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
     '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
@@ -14786,7 +14789,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'honesto en "resumen_cobertura" en vez de inventar datos para esa especialidad específica, pero eso NO te ' +
     'exime de estimar los capítulos generales que dependen del área total (preliminares, trámites, obras ' +
     'exteriores) aunque no tengas el plano de esa especialidad. Devuelve el JSON minificado (una sola línea), ' +
-    'sin espacios de más.';
+    'sin espacios de más.' +
+    '__MARKET_RESEARCH__';
+
+  var MARKET_PLACEHOLDER = '__MARKET_RESEARCH__';
+  function withMarketBlock(base, marketText) {
+    var block = marketText
+      ? ('\n\nINVESTIGACIÓN DE PRECIOS DE MERCADO (obtenida hoy vía Google Search, ferreterías de Ibarra y ' +
+         'referencias nacionales — úsala para calibrar tus precios unitarios en vez de estimarlos a ciegas, ' +
+         'sobre todo en materiales de alto peso en el presupuesto como cemento, bloque, acero, tubería, cable y ' +
+         'acabados):\n' + marketText)
+      : '\n\n(No se pudo obtener investigación de precios en vivo para esta generación; usa tu mejor estimación ' +
+        'de mercado ecuatoriano actual, con especial atención a no subestimar precios.)';
+    return base.replace(MARKET_PLACEHOLDER, block);
+  }
 
   /* ─────────────── Dropzones ─────────────── */
   function fileToBase64(file) {
@@ -14939,6 +14955,69 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     throw lastErr || { code: 'NO_MODEL' };
   }
 
+  /* ─────────────── Investigación de precios de mercado (Google Search grounding) ───────────────
+     Una llamada aparte, con la herramienta de búsqueda de Google activada, para cotejar precios actuales de
+     materiales clave contra ferreterías de Ibarra y el mercado nacional. Se cachea 7 días: los precios de
+     materiales no cambian de un día para otro, y así no se gasta cuota de Gemini en cada generación. Si falla
+     o no hay cuota, el presupuesto se genera igual (con la calibración de 450 USD/m2 como respaldo). */
+  var MARKET_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  var MARKET_ITEMS = [
+    'saco de cemento 50kg', 'bloque de hormigón 15x20x40', 'varilla de acero de refuerzo fy4200 (precio por kg)',
+    'tubería PVC presión 1/2" y desagüe 110mm', 'cable eléctrico THHN #12 y #10 (precio por metro)',
+    'cerámica de piso 30x30 o similar (precio por m2)', 'pintura látex interior (precio por galón)',
+    'plancha de gypsum y perfilería para cielo raso', 'inodoro y lavamanos de línea económica/media',
+    'plancha de zinc o teja para cubierta'
+  ];
+  function marketPrompt() {
+    return 'Eres un investigador de precios de materiales de construcción en Ecuador. Busca en internet los ' +
+      'precios ACTUALES (de hoy) de los siguientes materiales, priorizando ferreterías de Ibarra (Kywi, Disensa, ' +
+      'Ferrisariato, ferreterías locales de Ibarra/Imbabura) y, si no encuentras precio local, usa el precio ' +
+      'promedio de mercado nacional ecuatoriano: ' + MARKET_ITEMS.join('; ') + '. Para cada material, responde ' +
+      'en una línea con el formato "material — precio USD (unidad) — fuente/tienda si la identificaste". Sé ' +
+      'breve y concreto, sin introducciones ni conclusiones, solo la lista de precios encontrados.';
+  }
+  function cacheKey() { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, ''); }
+  function readMarketCache() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('bm_pia_market_') === 0) {
+          var v = JSON.parse(localStorage.getItem(k) || 'null');
+          if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v.text;
+          if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+  function writeMarketCache(text) {
+    try { localStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), text: text })); } catch (e) {}
+  }
+
+  async function getMarketResearch(onStatus) {
+    var cached = readMarketCache();
+    if (cached) return cached;
+    var key = getKey();
+    if (!key) return null;
+    if (onStatus) onStatus();
+    try {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 45000) : null;
+      var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketPrompt() }] }], tools: [{ google_search: {} }] })
+      });
+      if (timer) clearTimeout(timer);
+      var body = await resp.json().catch(function () { return null; });
+      if (!resp.ok) return null;
+      var text = extractText(body);
+      if (!text) return null;
+      writeMarketCache(text);
+      return text;
+    } catch (e) { return null; }
+  }
+
   function friendly(e) {
     var c = e && e.code;
     if (c === 'NO_KEY') return 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).';
@@ -14996,16 +15075,22 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!count) { say('Carga al menos un plano antes de generar el presupuesto'); return; }
     if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto antes de generar el presupuesto'); return; }
 
-    var parts = [{ text: PROMPT_BASE + '\n\nAPUs de referencia (reales, de tu base de datos):\n' + JSON.stringify(sampleReference()) }];
+    var btn = $('pia-generate-btn'); if (btn) btn.disabled = true;
+    var tok = newTok(); PIA.tok = tok;
+    showOverlay(); setStatus('');
+
+    var marketText = await getMarketResearch(function () {
+      var el = $('pia-overlay-msg'); if (el) el.textContent = 'Consultando precios actuales en ferreterías (Ibarra y mercado nacional)…';
+    });
+    if (tok.cancelled) { hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null; setStatus('warn', 'Generación cancelada.'); return; }
+
+    var promptText = withMarketBlock(PROMPT_BASE, marketText);
+    var parts = [{ text: promptText + '\n\nAPUs de referencia (reales, de tu base de datos):\n' + JSON.stringify(sampleReference()) }];
     Object.keys(PIA.files).forEach(function (k) {
       var f = PIA.files[k]; if (!f) return;
       parts.push({ text: '\nPlano de especialidad: ' + CAP_KEYS[k] });
       parts.push({ inline_data: { mime_type: f.mime, data: f.base64 } });
     });
-
-    var btn = $('pia-generate-btn'); if (btn) btn.disabled = true;
-    var tok = newTok(); PIA.tok = tok;
-    showOverlay(); setStatus('');
     var cancelBtn = $('pia-overlay-cancel');
     if (cancelBtn) cancelBtn.onclick = function () { tok.cancel(); };
     try {
@@ -15022,7 +15107,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
       var cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
       var perM2 = out.areaM2 > 0 ? cd / out.areaM2 : 0;
-      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + '.';
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '');
       if (out.truncated) {
         setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los capítulos (Preliminares, Estructura, Acabados, Instalaciones, Cubierta…) antes de continuar.');
       } else if (out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
@@ -15203,13 +15288,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (typeof getSavedProjects === 'function' && getSavedProjects().some(function (p2) { return p2.name === name; })) {
       say('Ya existe un proyecto con ese nombre. Ábrelo desde "Mis proyectos" o usa otro nombre.'); return;
     }
+    // newProject() y go() navegan a la pestaña "Presupuesto" (es su comportamiento normal en el resto de la
+    // app). Como todo esto ocurre de forma síncrona en el mismo tick, "devolver" la vista a Presupuesto IA
+    // justo después pasa antes de que el navegador pinte nada: el usuario nunca ve el salto.
     if (typeof newProject === 'function') { try { newProject(); } catch (e) {} }
+    if (typeof go === 'function') { try { go('pia'); } catch (e) {} }
     if (typeof S !== 'undefined') S.proj = name;
     var pname = $('pname'); if (pname) pname.value = name;
     if (typeof saveProject === 'function') { try { saveProject(); } catch (e) {} }
+    if (typeof go === 'function') { try { go('pia'); } catch (e) {} }   // por si saveProject() también navegara en el futuro
     if (input) input.value = '';
     renderProjBanner();
-    say('Proyecto "' + name + '" creado. Ya puedes cargar los planos.');
+    say('Proyecto "' + name + '" creado. Ya puedes cargar los planos y generar el presupuesto sin salir de aquí.');
   }
 
   /* ─────────────── Inicialización ─────────────── */
@@ -15232,7 +15322,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, state: PIA };
 })();
 </script>
 

@@ -3779,6 +3779,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <span>Generar Render con IA</span>
             </button>
             <div class="pia-status" id="stu-status"></div>
+            <div class="pia-hint" style="margin-top:8px;line-height:1.5">Nota: la generación de imágenes de Gemini a veces requiere facturación habilitada en tu cuenta de Google AI Studio (aunque no se cobre si te mantienes dentro del uso gratuito). Si el primer intento falla por cuota, revisa la facturación en <span class="pia-mono">aistudio.google.com</span>.</div>
           </div>
 
           <!-- Panel derecho: comparador antes/después -->
@@ -15774,7 +15775,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var c = e && e.code;
     if (c === 'NO_KEY') return 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).';
     if (c === 'BAD_KEY') return 'Google rechazó la clave de API. Revísala en Gastos y facturas → "Clave API".';
-    if (c === 'QUOTA') return 'Se agotó la cuota gratuita de Gemini por ahora. Espera un momento e inténtalo de nuevo.';
+    if (c === 'QUOTA') {
+      var m = (e && e.msg) || '';
+      if (/limit:\s*0\b/i.test(m) || /free_tier/i.test(m)) {
+        return 'Tu cuenta no tiene cuota gratuita para generar imágenes con Gemini (la generación de imágenes suele requerir facturación habilitada en Google AI Studio / Google Cloud, aunque te mantengas dentro del uso gratuito). Actívala en aistudio.google.com → tu proyecto → Facturación, y vuelve a intentarlo.';
+      }
+      return 'Se agotó la cuota gratuita de Gemini por ahora. Espera un momento e inténtalo de nuevo.';
+    }
     if (c === 'SERVER') return 'Los servidores de Gemini están saturados. Reintenta en un momento.';
     if (c === 'TIMEOUT') return 'La generación tardó demasiado. Inténtalo de nuevo.';
     if (c === 'NETWORK') return 'No se pudo conectar con Google. Revisa tu conexión.';

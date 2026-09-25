@@ -5632,10 +5632,13 @@ function updateInsPrice(code,val,el){
     });
   });
   // Recalcular precio en S.caps para rubros que usen APUs afectados
+  // (el insumo puede estar en equipo, mano de obra O materiales — hay que revisar los tres)
   Object.entries(BD.A).forEach(function(entry){
     var apuCode=entry[0], apu=entry[1];
-    if(!apu.t) return;
-    var affected=apu.t.some(function(row){return row[0]===code;});
+    var affected =
+      (apu.e && apu.e.some(function(row){return row[0]!=='HM' && row[0]===code;})) ||
+      (apu.m && apu.m.some(function(row){return row[0]===code;})) ||
+      (apu.t && apu.t.some(function(row){return row[0]===code;}));
     if(affected){
       var newPU=calcAPU(apu).cd;
       S.caps.forEach(function(cap){
@@ -6116,17 +6119,25 @@ function saveRubroEdit(gIdx, rIdx, a){
     BD.A[code]=BD.A[oldCode];
     delete BD.A[oldCode];
   }
-  // Recalcular precio en todos los capítulos que usen este APU
+  // Sincroniza código/descripción/unidad/precio en TODOS los capítulos del Presupuesto
+  // que ya tengan un rubro con este código (se busca por el código ANTERIOR, por si se
+  // renombró, y se deja con el código NUEVO para que el vínculo no se rompa).
+  function _syncCapsRubro(newPU){
+    S.caps.forEach(function(cap){
+      cap.forEach(function(rub){
+        if(rub.code===oldCode || rub.code===code){
+          rub.code=code; rub.desc=desc; rub.unit=unit;
+          if(newPU!=null) rub.pu=newPU;
+        }
+      });
+    });
+  }
   const updatedAPU = BD.A[code];
   if(updatedAPU){
     const newPU = calcAPU(updatedAPU).cd;
     // Actualizar el precio en BD.G para que la lista de grupos refleje el valor real
     g.r[rIdx][3] = newPU;
-    S.caps.forEach(function(cap){
-      cap.forEach(function(rub){
-        if(rub.code===code){ rub.pu=newPU; }
-      });
-    });
+    _syncCapsRubro(newPU);
     // Sincronizar en S.customAPU — copia profunda para evitar pérdida por referencia
     if(!S.customAPU) S.customAPU={};
     updatedAPU._custom = true;
@@ -6138,7 +6149,10 @@ function saveRubroEdit(gIdx, rIdx, a){
     persist();
     if(typeof renderBudget==='function') renderBudget();
   } else {
+    // Rubro de precio fijo (sin composición de APU): igual debe reflejarse en el Presupuesto
+    _syncCapsRubro(price);
     persist();
+    if(typeof renderBudget==='function') renderBudget();
   }
   toast('✓ Guardado y actualizado');
   // Actualizar precio en la fila de la lista: buscar gdrow-{gIdx}-{rIdx}, 4ta td
@@ -8547,14 +8561,18 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
             _showAccessPending(identifier, displayName, data.status || 'pending');
           }
         } else {
-          // 🆕 Doc no existe por UID — crear doc pending (nunca sobreescribir si ya existe)
-          // Crear doc SIN campos approved/role para cumplir regla noAdminFieldsOnCreate
+          // 🆕 Doc no existe por UID — crear doc y admitir de inmediato (nunca sobreescribir si ya existe)
+          // Se admite de inmediato en modo prueba — sin aprobación manual del admin.
+          // role/superadmin/isPro quedan fuera a propósito: el propio registro no puede
+          // auto-otorgarse ninguno de esos privilegios (ver noAdminFieldsOnCreate en
+          // firestore.rules); solo un admin puede darlos después.
           db.collection('users').doc(user.uid).set({
             uid:         user.uid,
             email:       user.email || null,
             displayName: displayName,
             identifier:  identifier,
-            status:      'pending',
+            status:      'approved',
+            approved:    true,
             provider:    (user.providerData[0] && user.providerData[0].providerId) || 'unknown',
             photoURL:    user.photoURL || null,
             requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -8563,8 +8581,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
             presupuestosCount: 0,
             isPro:       false
           }).then(function() {
-            firebase.auth().signOut();
-            _showAccessPending(identifier, displayName, 'pending');
+            _admitUser(user, identifier, displayName);
           }).catch(function(err) {
             console.error('Error creando doc usuario:', err.code, err.message);
             // Si el doc ya existe, intentar leerlo

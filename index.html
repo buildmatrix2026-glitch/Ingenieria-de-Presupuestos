@@ -4239,8 +4239,8 @@ function persist(){
     sessionStorage.setItem('bm_session',JSON.stringify(S));
     // También guardar el nombre del proyecto activo en localStorage
     // para que al reabrir la app sepa qué proyecto restaurar en BD
-    if(S.proj){ localStorage.setItem('bm_active_proj', S.proj); }
-    else{ localStorage.removeItem('bm_active_proj'); }
+    if(S.proj){ localStorage.setItem(ACTIVE_PROJ_KEY(), S.proj); }
+    else{ localStorage.removeItem(ACTIVE_PROJ_KEY()); }
     $id('ss').textContent='● Guardado';$id('ss').style.color='var(--gr)';
   }
   catch(e){$id('ss').textContent='⚠ Sin espacio';$id('ss').style.color='var(--am)';}
@@ -4273,10 +4273,13 @@ function go(v){
 }
 
 // ── Saved Projects (localStorage — persists across sessions) ───────────
-const PROJ_KEY = 'bm_saved_projects';
+function _localUid(){ try { var u = firebase.auth().currentUser; return u ? u.uid : 'anon'; } catch(e){ return 'anon'; } }
+function PROJ_KEY(){ return 'bm_saved_projects_' + _localUid(); }
+function ACTIVE_PROJ_KEY(){ return 'bm_active_proj_' + _localUid(); }
+function PEND_PROJ_KEY(){ return 'bm_proj_pending_sync_' + _localUid(); }
 
 function getSavedProjects(){
-  try{return JSON.parse(localStorage.getItem(PROJ_KEY))||[];}catch(e){return[];}
+  try{return JSON.parse(localStorage.getItem(PROJ_KEY()))||[];}catch(e){return[];}
 }
 
 function _silentSaveProject(){
@@ -4296,16 +4299,16 @@ function _silentSaveProject(){
       ind:S.ind,uti:S.uti,iva:S.iva,
       customAPU:S.customAPU,customInsumos:S.customInsumos||[],customGroups:cg};
     if(idx>=0) projects[idx]=entry; else projects.push(entry);
-    localStorage.setItem('bm_saved_projects',JSON.stringify(projects));
-    localStorage.setItem('bm_active_proj',S.proj);
+    localStorage.setItem(PROJ_KEY(),JSON.stringify(projects));
+    localStorage.setItem(ACTIVE_PROJ_KEY(),S.proj);
     _syncProjectToFirestore(entry);
   }catch(e){}
 }
 function _markProjPending(name, add) {
-  var pend = []; try { pend = JSON.parse(localStorage.getItem('bm_proj_pending_sync') || '[]'); } catch (e) {}
+  var pend = []; try { pend = JSON.parse(localStorage.getItem(PEND_PROJ_KEY()) || '[]'); } catch (e) {}
   pend = pend.filter(function (n) { return n !== name; });
   if (add) pend.push(name);
-  try { localStorage.setItem('bm_proj_pending_sync', JSON.stringify(pend)); } catch (e) {}
+  try { localStorage.setItem(PEND_PROJ_KEY(), JSON.stringify(pend)); } catch (e) {}
 }
 function _syncProjectToFirestore(entry) {
   var user = firebase.auth().currentUser;
@@ -4441,7 +4444,7 @@ function saveProject(){
   });
   const entry = {name, ts, own: S.own||'', date: S.date||'', caps: S.caps, capNames: S.capNames||[], capNums: S.capNums||[], ind: S.ind, uti: S.uti, iva: S.iva, customAPU: S.customAPU||{}, customInsumos: S.customInsumos||[], customGroups: customGroups};
   if(idx>=0) projects[idx]=entry; else projects.push(entry);
-  try{localStorage.setItem(PROJ_KEY, JSON.stringify(projects));}catch(e){toast('Sin espacio en almacenamiento');return;}
+  try{localStorage.setItem(PROJ_KEY(), JSON.stringify(projects));}catch(e){toast('Sin espacio en almacenamiento');return;}
   renderSavedProjects();
   toast('Proyecto "' + name + '" guardado ✓');
   // Sincronizar a Firestore
@@ -4487,7 +4490,7 @@ function newProject(){
   $id('tpn').textContent='';
   var tph=document.getElementById('tp-header');
   if(tph) tph.style.display='none';
-  localStorage.removeItem('bm_active_proj');
+  localStorage.removeItem(ACTIVE_PROJ_KEY());
   sessionStorage.removeItem('bm_session');
   persist();
   renderBudget();
@@ -4527,7 +4530,7 @@ function loadProject(name){
 function deleteProject(name){
   // Borrar de localStorage INMEDIATAMENTE (optimistic update)
   const projects = getSavedProjects().filter(p=>p.name!==name);
-  localStorage.setItem(PROJ_KEY, JSON.stringify(projects));
+  localStorage.setItem(PROJ_KEY(), JSON.stringify(projects));
   renderSavedProjects();
   toast('Eliminando proyecto...');
   
@@ -4827,7 +4830,7 @@ function _applyProjectToBD(p){
 function _bootProject(){
   // Al arrancar la app, detectar si hay un proyecto activo guardado
   // Primero intentar desde sessionStorage (sesión viva), luego desde localStorage (persistente)
-  var activeProj = S.proj || localStorage.getItem('bm_active_proj') || '';
+  var activeProj = S.proj || localStorage.getItem(ACTIVE_PROJ_KEY()) || '';
   if(!activeProj) return;
   var _projs = getSavedProjects();
   var _p = _projs.find(function(x){ return x.name===activeProj; });
@@ -4902,7 +4905,7 @@ function _projSyncError(err) {
 }
 function _retryPendingProjectSyncs() {
   var user = firebase.auth().currentUser; if (!user) return;
-  var pend = []; try { pend = JSON.parse(localStorage.getItem('bm_proj_pending_sync') || '[]'); } catch (e) {}
+  var pend = []; try { pend = JSON.parse(localStorage.getItem(PEND_PROJ_KEY()) || '[]'); } catch (e) {}
   if (!pend.length) return;
   var projects = getSavedProjects(); var byName = {}; projects.forEach(function (p) { byName[p.name] = p; });
   pend.forEach(function (name) { if (byName[name]) _syncProjectToFirestore(byName[name]); });
@@ -4960,7 +4963,7 @@ function _startProjectsSync() {
         if (done < pending) return;
         // Guardar solo lo que quedó en localMap (eliminados ya fueron borrados)
         var merged = Object.values(localMap).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-        try { localStorage.setItem(PROJ_KEY, JSON.stringify(merged)); } catch(e) {}
+        try { localStorage.setItem(PROJ_KEY(), JSON.stringify(merged)); } catch(e) {}
         renderSavedProjects();
       }
 
@@ -6398,8 +6401,8 @@ function importJSON(inp){
           customGroups:d.customGroups||[]
         };
         if(idx>=0) projs[idx]=entry; else projs.push(entry);
-        try{localStorage.setItem('bm_saved_projects',JSON.stringify(projs));}catch(e){}
-        localStorage.setItem('bm_active_proj',S.proj);
+        try{localStorage.setItem(PROJ_KEY(),JSON.stringify(projs));}catch(e){}
+        localStorage.setItem(ACTIVE_PROJ_KEY(),S.proj);
       }
       persist();
       renderBudget();
@@ -8499,6 +8502,36 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
     firebase.initializeApp(firebaseConfig);
     console.log('✅ Firebase inicializado correctamente.');
   }
+
+  // ── Aislar los datos locales por cuenta: nunca deben mezclarse entre usuarios del
+  // mismo dispositivo (ej. una cuenta admin y luego una cuenta normal en el mismo navegador).
+  // Borra TODO lo de la cuenta que cierra sesión antes de que otra pueda iniciar.
+  function _wipeAccountLocalData(uid) {
+    try {
+      var toRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k) continue;
+        // Cualquier llave de este dispositivo que contenga el uid de la cuenta que sale,
+        // más las llaves "globales" heredadas (sin uid) que causaban la fuga entre cuentas.
+        if ((uid && k.indexOf(uid) !== -1) ||
+            k === 'bm_saved_projects' || k === 'bm_active_proj' || k === 'bm_proj_pending_sync' ||
+            k === 'bm_auth' || k === 'bm_user_email' || k === 'bm_user_name' || k === 'bm_gx_uid') {
+          toRemove.push(k);
+        }
+      }
+      toRemove.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    } catch (e) { console.warn('No se pudo limpiar el almacenamiento local:', e); }
+  }
+  (function () {
+    var _auth = firebase.auth();
+    var _origSignOut = _auth.signOut.bind(_auth);
+    _auth.signOut = function () {
+      var leavingUid = _auth.currentUser ? _auth.currentUser.uid : null;
+      _wipeAccountLocalData(leavingUid);
+      return _origSignOut();
+    };
+  })();
 
   // ── Forzar sincronización inmediata del widget al cargar la página ──
   // firebase.auth().currentUser puede ser null en los primeros ms (es asíncrono),

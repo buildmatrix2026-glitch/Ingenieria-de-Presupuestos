@@ -14653,7 +14653,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   var CAP_LABELS = ['Arquitectura', 'Estructura', 'Hidrosanitario', 'Eléctrico'];
   var CAP_KEYS = { arq: 'Arquitectura', est: 'Estructura', hid: 'Hidrosanitario', ele: 'Eléctrico' };
 
-  var PIA = { files: { arq: null, est: null, hid: null, ele: null }, rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null };
+  var PIA = { files: { arq: null, est: null, hid: null, ele: null }, rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '' };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -14697,18 +14697,71 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   var PROMPT_BASE =
-    'Eres un ingeniero cuantificador de costos de construcción en Ecuador. Recibirás hasta 4 planos ' +
-    '(Arquitectónico, Estructural, Hidrosanitario, Eléctrico) como imágenes o PDF, y una lista de referencia de ' +
-    'APUs REALES de la base de datos del usuario. Analiza cada plano según su especialidad y genera el despiece ' +
-    'y cuantificación de obra. Cruza cada rubro con el código de la lista de referencia más parecido (mismo código ' +
-    'y unidad si aplica); si ninguno encaja, crea un código nuevo y coherente (ej. ARQ-05) y estima un precio ' +
-    'unitario razonable de mercado ecuatoriano. Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni ' +
-    'markdown, con esta forma exacta: {"rubros":[{"capitulo":"Arquitectura|Estructura|Hidrosanitario|Eléctrico",' +
-    '"codigo":"string","descripcion":"string","unidad":"string","cantidad":0.00,"precio_unitario":0.00,' +
-    '"memoria_calculo":"string breve y explícita con las dimensiones u operaciones usadas para llegar a la cantidad"}]}. ' +
-    'La memoria de cálculo debe explicar cómo se obtuvo la cantidad (ej. "Perímetro 24m x altura 2.4m = 57.6 m2"). ' +
-    'No inventes rubros que no se sustenten en los planos recibidos. Si un plano no es legible o no corresponde a ' +
-    'esa especialidad, omite esa sección sin inventar datos. Devuelve el JSON minificado, sin espacios de más.';
+    'Actúa como un INGENIERO PRESUPUESTISTA SENIOR de Ecuador, con más de 25 años de experiencia real en obra, ' +
+    'el mejor cuantificador de costos de construcción del país. Vas a recibir hasta 4 planos (Arquitectónico, ' +
+    'Estructural, Hidrosanitario, Eléctrico) como imágenes o PDF, y una lista de APUs REALES de referencia. Tu ' +
+    'trabajo es generar un presupuesto de obra COMPLETO Y PROFESIONAL, no un resumen superficial. Un presupuesto ' +
+    'de vivienda real en Ecuador normalmente tiene entre 40 y 120 rubros repartidos en TODOS los capítulos de ' +
+    'construcción, jamás 6 u 8 líneas: un presupuesto corto es sinónimo de un presupuesto MAL hecho, y eso te ' +
+    'costará la reputación profesional. Analiza cada plano con extremo detalle, línea por línea, midiendo o ' +
+    'estimando cada elemento visible, antes de escribir el JSON final.\n\n' +
+
+    'METODOLOGÍA OBLIGATORIA (síguela en este orden, mentalmente, antes de responder):\n' +
+    '1) Estima el ÁREA DE CONSTRUCCIÓN TOTAL en m2 a partir del plano arquitectónico (súmala por piso si hay ' +
+    'más de uno). Este dato es crítico: todo el presupuesto se valida contra él al final.\n' +
+    '2) Recorre el plano arquitectónico ambiente por ambiente (cada dormitorio, baño, cocina, sala, pasillos, ' +
+    'balcones, escaleras, fachadas) y anota mentalmente sus mamposterías, enlucidos, pisos, cielo raso, puertas, ' +
+    'ventanas y acabados. NO agrupes distintos acabados en una sola línea genérica: un piso cerámico de sala es ' +
+    'un rubro y un piso de porcelanato de baño es otro rubro distinto si difieren de material o precio.\n' +
+    '3) Recorre el plano estructural elemento por elemento (cada tipo de zapata/plinto, cada sección de columna, ' +
+    'vigas por nivel, losas/entrepisos, escaleras) y cuantifica hormigón y acero por separado.\n' +
+    '4) Recorre el plano hidrosanitario contando cada punto de agua fría/caliente, cada punto de desagüe, cada ' +
+    'aparato sanitario (inodoro, lavamanos, ducha, fregadero, calefón/tanque si aplica), tubería por tramos.\n' +
+    '5) Recorre el plano eléctrico contando cada punto de iluminación, cada tomacorriente 110V y 220V por ' +
+    'separado, tablero(s), acometida, puesta a tierra.\n' +
+    '6) Con eso ya tienes Estructura, Arquitectura (mampostería/acabados), Hidrosanitario y Eléctrico. PERO un ' +
+    'presupuesto real de obra SIEMPRE incluye además, aunque no se vean explícitos en los planos, los siguientes ' +
+    'capítulos — DEBES incluirlos con una estimación razonable proporcional al área de construcción y al tipo de ' +
+    'proyecto (nunca los omitas salvo que el proyecto sea evidentemente de otra naturaleza):\n' +
+    '   • PRELIMINARES: limpieza de terreno, cerramiento provisional, bodega/guardianía, trazado y replanteo, ' +
+    'acometidas provisionales de agua y luz.\n' +
+    '   • MOVIMIENTO DE TIERRAS: desbanque/desalojo, excavación de plintos y cimientos, relleno compactado.\n' +
+    '   • CIMENTACIONES: replantillo de hormigón simple, plintos, cadenas de cimentación.\n' +
+    '   • CUBIERTA: estructura de cubierta, cubierta (teja/zinc/losa según lo que muestre el plano), ' +
+    'impermeabilización, canales y bajantes de aguas lluvias.\n' +
+    '   • CARPINTERÍA: puertas interiores y exteriores, ventanería (si no viene detallada en el plano ' +
+    'arquitectónico, cuenta los vanos), muebles bajos y altos de cocina si se aprecian.\n' +
+    '   • OBRAS EXTERIORES / VARIOS: cerramiento definitivo si se ve en el plano, veredas perimetrales, ' +
+    'limpieza final de obra.\n' +
+    '7) AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: suma el costo directo de todos los rubros que generaste ' +
+    'y divídelo entre el área de construcción estimada. En Ecuador, una vivienda de construcción media a buena ' +
+    'terminada (con acabados, mampostería, instalaciones y estructura) cuesta habitualmente entre 350 y 650 ' +
+    'USD/m2 de COSTO DIRECTO (sin indirectos ni IVA); obra gris o económica puede bajar hasta ~220 USD/m2, y una ' +
+    'vivienda de lujo puede superar 800 USD/m2. Si tu resultado da muy por debajo de ese rango (por ejemplo menos ' +
+    'de 180 USD/m2), es una señal INEQUÍVOCA de que faltan capítulos o rubros completos: revisa qué omitiste ' +
+    '(normalmente preliminares, movimiento de tierras, cimentación, cubierta o acabados) y agrégalo ANTES de dar ' +
+    'tu respuesta final. Nunca entregues un presupuesto que sepas que está incompleto solo por ir más rápido.\n\n' +
+
+    'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
+    '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos cubriste y con qué nivel de certeza", ' +
+    '"rubros": [{"capitulo": "Arquitectura|Estructura|Hidrosanitario|Eléctrico", "codigo": "string", ' +
+    '"descripcion": "string", "unidad": "string", "cantidad": 0.00, "precio_unitario": 0.00, ' +
+    '"memoria_calculo": "string breve y explícita con las dimensiones u operaciones usadas para llegar a la ' +
+    'cantidad"}]}. Nota: aunque el capítulo real sea "Preliminares", "Movimiento de Tierras", "Cimentaciones", ' +
+    '"Cubierta", "Carpintería" u "Obras Exteriores", usa el valor "capitulo" que corresponda a su especialidad más ' +
+    'cercana de la lista permitida (Preliminares/Movimiento de tierras/Cimentaciones → "Estructura"; ' +
+    'Cubierta/Carpintería/Obras exteriores → "Arquitectura"), y dilo claramente al inicio de la ' +
+    '"descripcion" (ej. "Preliminares: limpieza de terreno").\n\n' +
+
+    'REGLAS DE CRUCE CON LA BASE DE APUs: Cruza cada rubro con el código de la lista de referencia más parecido ' +
+    '(misma naturaleza y unidad); si ninguno encaja, crea un código nuevo y coherente por capítulo (ej. PRE-01, ' +
+    'MT-01, CIM-01, EST-05, ARQ-08, CUB-01, CAR-01, HID-05, ELE-05, VAR-01) y estima un precio unitario razonable ' +
+    'de mercado ecuatoriano actual. No inventes cantidades sin sustento: cada "cantidad" debe poder rastrearse a ' +
+    'una medición u operación explicada en "memoria_calculo". Si un plano no es legible o una especialidad no ' +
+    'tiene información suficiente, sé honesto en "resumen_cobertura" en vez de inventar datos para esa ' +
+    'especialidad, pero NUNCA dejes de generar los capítulos generales (preliminares, movimiento de tierras, ' +
+    'cimentación, cubierta, carpintería, obras exteriores) que se pueden estimar aunque no tengas un plano ' +
+    'específico de estructura. Devuelve el JSON minificado (una sola línea), sin espacios de más.';
 
   /* ─────────────── Dropzones ─────────────── */
   function fileToBase64(file) {
@@ -14805,13 +14858,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function sendOnce(model, parts, key, tok) {
     var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     if (tok) tok.cur = ctrl;
-    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 60000) : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 150000) : null;
     var resp;
     try {
       resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         signal: ctrl ? ctrl.signal : undefined,
-        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.15, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } })
+        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
       });
     } catch (e) {
       if (timer) clearTimeout(timer);
@@ -14853,7 +14906,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         if (r.resp.status >= 500) { lastErr = { code: 'SERVER', msg: r.msg }; continue; }
         throw { code: 'HTTP', status: r.resp.status, msg: r.msg };
       }
-      if (round < 2 && Date.now() - t0 < 60000) {
+      if (round < 2 && Date.now() - t0 < 240000) {
         if (onRetry) { try { onRetry(round + 1); } catch (e) {} }
         await sleep(backoff[round] || 6000);
       }
@@ -14875,24 +14928,43 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return 'No se pudo generar el presupuesto: ' + ((e && e.msg) || (e && e.message) || 'error desconocido');
   }
 
+  function normRubro(r) {
+    var cap = String(r.capitulo || 'Arquitectura').trim();
+    if (CAP_LABELS.indexOf(cap) < 0) cap = 'Arquitectura';
+    return {
+      id: newId(), capitulo: cap, codigo: String(r.codigo || '').trim() || 'S/C',
+      descripcion: String(r.descripcion || '').trim() || '(sin descripción)',
+      unidad: String(r.unidad || 'u').trim() || 'u',
+      cantidad: Math.max(0, Number(r.cantidad) || 0),
+      precio_unitario: Math.max(0, Number(r.precio_unitario) || 0),
+      memoria_calculo: String(r.memoria_calculo || '').trim()
+    };
+  }
+
+  // Un presupuesto completo (40-120 rubros con memoria de cálculo) puede cortar la respuesta antes de cerrar
+  // el JSON. Si pasa, se recuperan los rubros que sí llegaron completos en vez de perder todo el resultado.
   function parseResponse(text) {
     var t = String(text || '').replace(/```(?:json)?/gi, '').trim();
     var a = t.indexOf('{'), b = t.lastIndexOf('}');
-    if (a < 0 || b <= a) throw { code: 'PARSE' };
-    var json; try { json = JSON.parse(t.slice(a, b + 1)); } catch (e) { throw { code: 'PARSE' }; }
+    if (a < 0) throw { code: 'PARSE' };
+    var json, truncated = false;
+    if (b > a) { try { json = JSON.parse(t.slice(a, b + 1)); } catch (e) {} }
+    if (!json) {
+      var ri = t.indexOf('"rubros"');
+      if (ri > a) {
+        var arrStart = t.indexOf('[', ri);
+        if (arrStart > 0) {
+          var lastObjEnd = t.lastIndexOf('}', t.length);
+          if (lastObjEnd > arrStart) {
+            try { json = { rubros: JSON.parse(t.slice(arrStart, lastObjEnd + 1) + ']') }; truncated = true; } catch (e) {}
+          }
+        }
+      }
+    }
+    if (!json) throw { code: 'PARSE' };
     var list = Array.isArray(json.rubros) ? json.rubros : [];
-    return list.map(function (r) {
-      var cap = String(r.capitulo || 'Arquitectura').trim();
-      if (CAP_LABELS.indexOf(cap) < 0) cap = 'Arquitectura';
-      return {
-        id: newId(), capitulo: cap, codigo: String(r.codigo || '').trim() || 'S/C',
-        descripcion: String(r.descripcion || '').trim() || '(sin descripción)',
-        unidad: String(r.unidad || 'u').trim() || 'u',
-        cantidad: Math.max(0, Number(r.cantidad) || 0),
-        precio_unitario: Math.max(0, Number(r.precio_unitario) || 0),
-        memoria_calculo: String(r.memoria_calculo || '').trim()
-      };
-    }).filter(function (r) { return r.descripcion && (r.cantidad > 0 || r.precio_unitario > 0); });
+    var rubros = list.map(normRubro).filter(function (r) { return r.descripcion && (r.cantidad > 0 || r.precio_unitario > 0); });
+    return { rubros: rubros, areaM2: Math.max(0, Number(json.area_m2) || 0), cobertura: String(json.resumen_cobertura || '').trim(), truncated: truncated };
   }
 
   async function generatePresupuesto() {
@@ -14916,13 +14988,24 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var text = await callGeminiForBudget(parts, tok, function (round) {
         var el = $('pia-overlay-msg'); if (el) el.textContent = 'Gemini está saturado: reintentando (intento ' + (round + 1) + ')…';
       });
-      var rubros = parseResponse(text);
+      var out = parseResponse(text);
+      var rubros = out.rubros;
       if (!rubros.length) throw { code: 'EMPTY' };
-      PIA.rubros = rubros; PIA.activeTab = 'Todos';
+      PIA.rubros = rubros; PIA.activeTab = 'Todos'; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
       document.querySelectorAll('#pia-tabs .pia-tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-cap') === 'Todos'); });
       renderTable();
       $('pia-result').style.display = '';
-      setStatus('ok', rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados. Revisa cantidades y memoria de cálculo antes de agregarlos.');
+
+      var cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
+      var perM2 = out.areaM2 > 0 ? cd / out.areaM2 : 0;
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + '.';
+      if (out.truncated) {
+        setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los capítulos (Preliminares, Estructura, Acabados, Instalaciones, Cubierta…) antes de continuar.');
+      } else if (out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
+        setStatus('warn', base + ' El costo directo da ' + money(perM2) + '/m², un valor muy bajo para una obra completa: probablemente faltan capítulos (revisa Preliminares, Cimentación, Cubierta, Acabados). Puedes agregar rubros manualmente o volver a generar.');
+      } else {
+        setStatus('ok', base + (perM2 > 0 ? ' Costo directo ≈ ' + money(perM2) + '/m².' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
+      }
       try { $('pia-result').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
     } catch (e) {
       if (e && e.code === 'CANCEL') setStatus('warn', 'Generación cancelada.');

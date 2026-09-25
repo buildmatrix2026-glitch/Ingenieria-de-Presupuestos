@@ -2117,6 +2117,58 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-pia .pia-actions-bottom{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
 @media (max-width:700px){#v-pia .pia-summary{max-width:100%}}
 
+/* ═══════════ GENERACIÓN IA — STUDIO DE DISEÑO (#v-studio) ═══════════ */
+#v-studio{font-family:var(--f-ui);color:var(--ow)}
+#v-studio *{box-sizing:border-box}
+#v-studio .stu-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:980px){ #v-studio .stu-grid{grid-template-columns:minmax(320px,1fr) minmax(0,1.35fr)} }
+#v-studio .stu-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#v-studio .stu-card{background:var(--s3);border:1px solid var(--br);border-radius:14px;padding:16px}
+#v-studio .stu-card-title{font-size:12.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#v-studio .stu-card-title .pia-hint{font-weight:400;font-size:11px}
+#v-studio .stu-viewer-card{flex:1 1 auto}
+
+/* Carga de foto */
+#v-studio .stu-drop{position:relative;border:1px solid var(--br);border-radius:12px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;overflow:hidden;background:var(--ds);transition:border-color .2s,box-shadow .25s}
+#v-studio .stu-drop:hover{border-color:var(--brc);box-shadow:0 8px 24px rgba(0,212,255,.08)}
+#v-studio .stu-drop.pia-dragover{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy)}
+#v-studio .stu-drop-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--sld);font-size:12px;text-align:center;padding:20px}
+#v-studio .stu-drop-img{width:100%;max-height:260px;object-fit:contain;display:block}
+#v-studio .stu-drop .pia-file-remove{position:absolute;bottom:10px;right:10px}
+
+/* Chips */
+#v-studio .stu-chips{display:flex;flex-wrap:wrap;gap:8px}
+#v-studio .stu-chip{font-family:var(--f-ui);font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--br);background:var(--ds);color:var(--sl);cursor:pointer;transition:.15s}
+#v-studio .stu-chip:hover{border-color:var(--brc);color:var(--ow)}
+#v-studio .stu-chip.active{background:var(--mb);border-color:var(--mb);color:#fff}
+#v-studio .stu-chip.active.stu-chip-mat{background:rgba(0,212,255,.16);border-color:var(--cy);color:var(--cy)}
+
+#v-studio .stu-textarea{width:100%;background:var(--ds);border:1px solid var(--br);border-radius:10px;padding:10px 12px;font-family:var(--f-ui);font-size:13px;color:var(--ow);resize:vertical;min-height:64px}
+#v-studio .stu-textarea:focus{outline:none;border-color:var(--cy)}
+
+/* Comparador antes/después */
+#v-studio .stu-viewer{position:relative;border-radius:12px;overflow:hidden;background:var(--ds);border:1px solid var(--br);min-height:260px;display:flex;align-items:center;justify-content:center}
+#v-studio .stu-viewer-empty{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--sld);font-size:12.5px;text-align:center;padding:30px}
+#v-studio .stu-ba{position:relative;width:100%;user-select:none;touch-action:none}
+#v-studio .stu-ba-before{display:block;width:100%;height:auto}
+#v-studio .stu-ba-after{position:absolute;inset:0;width:50%;overflow:hidden}
+#v-studio .stu-ba-after img{position:absolute;top:0;left:0;height:100%;width:auto;max-width:none;display:block}
+#v-studio .stu-ba-handle{position:absolute;top:0;bottom:0;left:50%;width:0;cursor:ew-resize;display:flex;align-items:center;justify-content:center}
+#v-studio .stu-ba-handle::before{content:'';position:absolute;top:0;bottom:0;left:-1px;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+#v-studio .stu-ba-grip{position:relative;width:34px;height:34px;border-radius:50%;background:#fff;color:#0B1220;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+#v-studio .stu-ba-label{position:absolute;top:10px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:999px;pointer-events:none}
+#v-studio .stu-ba-label-l{left:10px}
+#v-studio .stu-ba-label-r{right:10px}
+
+/* Galería */
+#v-studio .stu-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+#v-studio .stu-gallery:empty::after{content:'Aún no has guardado ningún render en este proyecto.';display:block;grid-column:1/-1;color:var(--sld);font-size:12.5px;padding:14px 4px;text-align:center}
+#v-studio .stu-git{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--br);aspect-ratio:1/1;cursor:pointer;background:var(--ds)}
+#v-studio .stu-git img{width:100%;height:100%;object-fit:cover;display:block}
+#v-studio .stu-git .stu-git-cap{position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-size:9.5px;font-weight:600;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.65),transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-studio .stu-git .stu-git-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:6px;border:none;background:rgba(0,0,0,.5);color:#fff;font-size:13px;line-height:1;cursor:pointer}
+#v-studio .stu-git .stu-git-del:hover{background:rgba(255,92,92,.85)}
+
 </style>
 
 <!-- ── Auth simulado (Firebase removido) ──────────────────────────────── -->
@@ -3017,6 +3069,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <button class="ni" data-v="ins" onclick="go('ins')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>Insumos<span class="ct" data-bm-count="ins">4.157</span></button>
       <button class="ni" data-v="grp" onclick="go('grp')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21V12h6v9"/></svg>Grupos y rubros<span class="ct" data-bm-count="grp">75</span></button>
       <button class="ni" data-v="pia" onclick="go('pia')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z"/></svg>Presupuesto IA</button>
+      <button class="ni" data-v="studio" onclick="go('studio')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 13l4.5-4.5a2 2 0 012.8 0L15 13"/><circle cx="16" cy="8" r="1.5"/></svg>Generación IA</button>
       <button class="ni" data-v="gas" onclick="go('gas')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Gastos y facturas</button>
       <!-- Admin nav — visible solo para role:admin -->
       <div id="admin-nav-section" style="display:none">
@@ -3671,6 +3724,103 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         </div>
       </div>
 
+      <!-- ═══════════ VISTA: GENERACIÓN IA — STUDIO DE DISEÑO ═══════════ -->
+      <div class="vw" id="v-studio">
+        <div class="pia-head">
+          <div>
+            <h2>Generación IA — Studio de Diseño</h2>
+            <div class="sub">Sube una foto del espacio y visualiza al instante cómo se vería con otro estilo, materiales y acabados</div>
+          </div>
+          <span class="pia-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg>Powered by Gemini</span>
+        </div>
+
+        <div class="pia-proj-banner" id="stu-proj-banner">
+          <div class="pia-proj-active" id="stu-proj-active"></div>
+        </div>
+
+        <div class="stu-grid">
+          <!-- Panel izquierdo: carga y controles -->
+          <div class="stu-col">
+            <div class="stu-card">
+              <div class="stu-card-title">Foto del espacio</div>
+              <div class="stu-drop" id="stu-drop">
+                <input type="file" id="stu-file" accept="image/*" hidden>
+                <input type="file" id="stu-file-cam" accept="image/*" capture="environment" hidden>
+                <div class="stu-drop-empty" id="stu-drop-empty">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+                  <span>Arrastra una foto o haz clic</span>
+                </div>
+                <img class="stu-drop-img" id="stu-drop-img" style="display:none" alt="">
+                <button type="button" class="pia-file-remove" id="stu-file-remove" style="display:none">Quitar / Cambiar</button>
+              </div>
+              <button type="button" class="pia-btn" id="stu-cam-btn" style="width:100%;margin-top:10px">
+                <svg class="gx-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7l1.2-2.2h4.6L15.5 7"/><circle cx="12" cy="13.5" r="3.2"/></svg>
+                <span>Tomar foto</span>
+              </button>
+            </div>
+
+            <div class="stu-card">
+              <div class="stu-card-title">Estilo</div>
+              <div class="stu-chips" id="stu-styles"></div>
+            </div>
+
+            <div class="stu-card">
+              <div class="stu-card-title">Materiales <span class="pia-hint">(elige uno o varios)</span></div>
+              <div class="stu-chips" id="stu-materials"></div>
+            </div>
+
+            <div class="stu-card">
+              <div class="stu-card-title">Indicaciones adicionales <span class="pia-hint">(opcional)</span></div>
+              <textarea class="stu-textarea" id="stu-notes" rows="3" placeholder="Ej: agrega una isla de cocina, tonos cálidos, más plantas…"></textarea>
+            </div>
+
+            <button type="button" class="pia-btn pia-btn-primary" id="stu-generate-btn" style="width:100%;min-height:50px;font-size:14.5px" disabled>
+              <svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg>
+              <span>Generar Render con IA</span>
+            </button>
+            <div class="pia-status" id="stu-status"></div>
+          </div>
+
+          <!-- Panel derecho: comparador antes/después -->
+          <div class="stu-col">
+            <div class="stu-card stu-viewer-card">
+              <div class="stu-card-title">Comparación</div>
+              <div class="stu-viewer" id="stu-viewer">
+                <div class="stu-viewer-empty" id="stu-viewer-empty">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 13l4.5-4.5a2 2 0 012.8 0L15 13"/><circle cx="16" cy="8" r="1.5"/></svg>
+                  <span>Sube una foto y genera un render para ver la comparación aquí</span>
+                </div>
+                <div class="stu-ba" id="stu-ba" style="display:none">
+                  <img class="stu-ba-before" id="stu-ba-before" alt="Antes">
+                  <div class="stu-ba-after" id="stu-ba-after"><img id="stu-ba-after-img" alt="Después"></div>
+                  <div class="stu-ba-handle" id="stu-ba-handle"><span class="stu-ba-grip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 6L2 12l6 6M16 6l6 6-6 6"/></svg></span></div>
+                  <span class="stu-ba-label stu-ba-label-l">Antes</span>
+                  <span class="stu-ba-label stu-ba-label-r">Después</span>
+                </div>
+              </div>
+              <div class="pia-actions-bottom" id="stu-result-actions" style="display:none">
+                <button type="button" class="pia-btn" id="stu-download-btn"><svg class="gx-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Descargar Render HD</span></button>
+                <button type="button" class="pia-btn pia-btn-primary" id="stu-save-btn"><svg class="gx-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>Guardar en Galería</span></button>
+              </div>
+            </div>
+
+            <div class="stu-card">
+              <div class="stu-card-title">Galería del proyecto <span class="gx-hint gx-sync" id="stu-sync"></span></div>
+              <div class="stu-gallery" id="stu-gallery"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pia-overlay" id="stu-overlay">
+          <div class="pia-overlay-box">
+            <div class="pia-spinner"></div>
+            <div class="pia-overlay-msg" id="stu-overlay-msg">Generando render…</div>
+            <div class="pia-overlay-sub">Puede tardar hasta un minuto</div>
+            <button type="button" class="pia-btn" id="stu-overlay-cancel" style="margin-top:16px">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <div class="vw" id="v-grp">
         <div class="vh"><div><h2>Grupos y rubros</h2><div class="sub"><span data-bm-count="grp">75</span> grupos · <span data-bm-count="apu">2.063</span> rubros con APU</div></div></div>
         <div id="ghome">
@@ -4263,6 +4413,7 @@ function go(v){
   else if(v==='grp')renderGG();
   else if(v==='gas'&&typeof renderGastos==='function')renderGastos();
   else if(v==='pia'&&typeof renderPiaModule==='function')renderPiaModule();
+  else if(v==='studio'&&typeof renderStudioModule==='function')renderStudioModule();
   else if(v==='admin'){
     // Si ya sabemos que es superadmin, mostrar el tab de presupuestos de inmediato (sin lag)
     if (_isSuperAdminUser) _showProjectsTab();
@@ -8607,6 +8758,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
     } else {
       try { if (typeof bmLibStop === 'function') bmLibStop(); } catch (e) {}
       try { if (typeof bmGastosStop === 'function') bmGastosStop(); } catch (e) {}
+      try { if (typeof bmStudioStop === 'function') bmStudioStop(); } catch (e) {}
       localStorage.removeItem('bm_auth');
       localStorage.removeItem('bm_user_email');
       localStorage.removeItem('bm_user_name');
@@ -8621,6 +8773,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
     // Biblioteca personal: onSnapshot sobre users/{uid}/insumos y users/{uid}/apus
     try { if (typeof bmLibStart === 'function') bmLibStart(user.uid); } catch (e) { console.warn('bmLibStart:', e); }
     try { if (typeof bmGastosStart === 'function') bmGastosStart(user.uid); } catch (e) { console.warn('bmGastosStart:', e); }
+    try { if (typeof bmStudioStart === 'function') bmStudioStart(user.uid); } catch (e) { console.warn('bmStudioStart:', e); }
     localStorage.setItem('bm_user_email', identifier);
     localStorage.setItem('bm_user_name', displayName);
     // Actualizar photoURL en Firestore en cada login
@@ -15359,6 +15512,491 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
   window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, state: PIA };
+})();
+</script>
+
+<script id="bm-studio">
+/* ═══════════════════════════════════════════════════════════════════════
+   BuildMatrix · Generación IA — Studio de Diseño
+   Sube una foto de un espacio, elige estilo/materiales, y Gemini genera un
+   render editado manteniendo la estructura del espacio. Comparador antes/
+   después interactivo. La galería se guarda por proyecto en la nube
+   (users/{uid}/renders), con el mismo patrón local-first que Gastos.
+
+   La clave de Gemini es la MISMA que configuras en Gastos y facturas
+   (botón "Clave API" de esa pestaña) — no hay que configurarla de nuevo.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var IMG_MODEL = 'gemini-2.5-flash-image';
+  var IMG_MODEL_FALLBACKS = ['gemini-3.1-flash-image'];
+
+  var STYLES = ['Japandi', 'Minimalista', 'Industrial', 'Biofílico', 'Nórdico', 'Lujo'];
+  var MATERIALS = ['Alistonado de madera', 'Microcemento', 'Hormigón visto', 'Mármol', 'Iluminación LED cálida'];
+
+  var STU = {
+    file: null,          // {name, size, mime, base64, url}
+    style: STYLES[0],
+    materials: {},        // set-like: {materialName: true}
+    result: null,         // {b64, mime, url}
+    tok: null,
+    busy: false,
+    gallery: [],           // [{id, proyecto, estilo, materiales, notas, thumb, creado, _s}]
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function say(m) { if (typeof toast === 'function') { try { toast(m); } catch (e) {} } }
+  function newId() { return 'st' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function fmtKB(b) { return (b / 1024).toFixed(1) + ' KB'; }
+
+  function getKey() {
+    try { return (localStorage.getItem('bm_gemini_key') || '').trim(); } catch (e) { return ''; }
+  }
+
+  /* ─────────────── Carga de la foto ─────────────── */
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(',')[1] || ''); };
+      fr.onerror = function () { reject({ code: 'READ' }); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(file) {
+    if (!file) return;
+    if (!/^image\//i.test(file.type || '')) { say('Solo se aceptan imágenes'); return; }
+    if (file.size > 15 * 1024 * 1024) { say('La foto pesa más de 15 MB. Usa una más liviana'); return; }
+    try {
+      var base64 = await fileToBase64(file);
+      if (STU.file && STU.file.url) URL.revokeObjectURL(STU.file.url);
+      STU.file = { name: file.name, size: file.size, mime: file.type || 'image/jpeg', base64: base64, url: URL.createObjectURL(file) };
+      clearResult();
+      renderDrop();
+      updateGenerateState();
+    } catch (e) { say('No se pudo leer la foto'); }
+  }
+
+  function renderDrop() {
+    var empty = $('stu-drop-empty'), img = $('stu-drop-img'), rm = $('stu-file-remove');
+    if (!empty || !img || !rm) return;
+    if (STU.file) {
+      empty.style.display = 'none'; img.style.display = ''; img.src = STU.file.url; rm.style.display = '';
+    } else {
+      empty.style.display = ''; img.style.display = 'none'; img.src = ''; rm.style.display = 'none';
+    }
+  }
+
+  function updateGenerateState() {
+    var btn = $('stu-generate-btn'); if (btn) btn.disabled = !STU.file || STU.busy;
+  }
+
+  function wireDrop() {
+    var zone = $('stu-drop'), input = $('stu-file'), cam = $('stu-file-cam'), rm = $('stu-file-remove'), camBtn = $('stu-cam-btn');
+    if (!zone) return;
+    zone.addEventListener('click', function (e) { if (!e.target.closest('#stu-file-remove')) input.click(); });
+    input.addEventListener('change', function () { var f = input.files && input.files[0]; input.value = ''; handleFile(f); });
+    cam.addEventListener('change', function () { var f = cam.files && cam.files[0]; cam.value = ''; handleFile(f); });
+    if (camBtn) camBtn.addEventListener('click', function () { cam.click(); });
+    zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('pia-dragover'); });
+    zone.addEventListener('dragleave', function () { zone.classList.remove('pia-dragover'); });
+    zone.addEventListener('drop', function (e) {
+      e.preventDefault(); zone.classList.remove('pia-dragover');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+    rm.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (STU.file && STU.file.url) URL.revokeObjectURL(STU.file.url);
+      STU.file = null; clearResult(); renderDrop(); updateGenerateState();
+    });
+  }
+
+  /* ─────────────── Chips de estilo / materiales ─────────────── */
+  function renderChips() {
+    var sBox = $('stu-styles'), mBox = $('stu-materials');
+    if (sBox) sBox.innerHTML = STYLES.map(function (s) {
+      return '<button type="button" class="stu-chip' + (s === STU.style ? ' active' : '') + '" data-style="' + esc(s) + '">' + esc(s) + '</button>';
+    }).join('');
+    if (mBox) mBox.innerHTML = MATERIALS.map(function (m) {
+      return '<button type="button" class="stu-chip stu-chip-mat' + (STU.materials[m] ? ' active' : '') + '" data-mat="' + esc(m) + '">' + esc(m) + '</button>';
+    }).join('');
+  }
+  function wireChips() {
+    var sBox = $('stu-styles'), mBox = $('stu-materials');
+    if (sBox) sBox.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-style]'); if (!b) return;
+      STU.style = b.getAttribute('data-style'); renderChips();
+    });
+    if (mBox) mBox.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-mat]'); if (!b) return;
+      var m = b.getAttribute('data-mat');
+      if (STU.materials[m]) delete STU.materials[m]; else STU.materials[m] = true;
+      renderChips();
+    });
+  }
+
+  /* ─────────────── Comparador antes/después ─────────────── */
+  function clearResult() {
+    if (STU.result && STU.result.url) URL.revokeObjectURL(STU.result.url);
+    STU.result = null;
+    var ba = $('stu-ba'), empty = $('stu-viewer-empty'), actions = $('stu-result-actions');
+    if (ba) ba.style.display = 'none';
+    if (empty) empty.style.display = '';
+    if (actions) actions.style.display = 'none';
+    setSlider(50);
+  }
+  function setSlider(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    var after = $('stu-ba-after'), handle = $('stu-ba-handle');
+    if (after) after.style.width = pct + '%';
+    if (handle) handle.style.left = pct + '%';
+  }
+  function wireSlider() {
+    var wrap = $('stu-ba'), handle = $('stu-ba-handle'); if (!wrap || !handle) return;
+    var dragging = false;
+    function posFromEvent(e) {
+      var rect = wrap.getBoundingClientRect();
+      var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      return Math.max(0, Math.min(100, (x / rect.width) * 100));
+    }
+    function start(e) { dragging = true; setSlider(posFromEvent(e)); e.preventDefault && e.preventDefault(); }
+    function move(e) { if (dragging) setSlider(posFromEvent(e)); }
+    function end() { dragging = false; }
+    handle.addEventListener('mousedown', start);
+    wrap.addEventListener('mousedown', start);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    handle.addEventListener('touchstart', start, { passive: false });
+    wrap.addEventListener('touchstart', start, { passive: false });
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', end);
+  }
+  function showResult() {
+    var before = $('stu-ba-before'), afterImg = $('stu-ba-after-img'), ba = $('stu-ba'), empty = $('stu-viewer-empty'), actions = $('stu-result-actions');
+    if (before) before.src = STU.file.url;
+    if (afterImg) afterImg.src = STU.result.url;
+    if (ba) ba.style.display = '';
+    if (empty) empty.style.display = 'none';
+    if (actions) actions.style.display = '';
+    setSlider(50);
+  }
+
+  /* ─────────────── Llamada a Gemini (generación/edición de imagen) ─────────────── */
+  function newTok() {
+    var t = { cancelled: false, cur: null };
+    t.cancel = function () { t.cancelled = true; if (t.cur) { try { t.cur.abort(); } catch (e) {} } };
+    return t;
+  }
+
+  function buildPrompt() {
+    var mats = Object.keys(STU.materials);
+    var notes = ($('stu-notes') && $('stu-notes').value.trim()) || '';
+    var p = 'Eres un renderizador de interiorismo/arquitectura fotorrealista. Toma la fotografía adjunta de un ' +
+      'espacio real y genera una nueva versión fotorrealista del MISMO espacio, conservando exactamente la misma ' +
+      'estructura arquitectónica, perspectiva, ángulo de cámara, ventanas, puertas y proporciones — NO inventes ' +
+      'un espacio distinto ni cambies el encuadre. Aplica el estilo "' + STU.style + '"';
+    if (mats.length) p += ' usando estos materiales/acabados: ' + mats.join(', ');
+    p += '. Actualiza mobiliario, texturas, colores, iluminación y decoración de forma coherente con ese estilo, ' +
+      'manteniendo un resultado realista y de alta calidad, como una visualización arquitectónica profesional.';
+    if (notes) p += ' Indicaciones adicionales del diseñador: ' + notes;
+    return p;
+  }
+
+  function extractImage(body) {
+    try {
+      var parts = body.candidates[0].content.parts || [];
+      var img = parts.filter(function (p) { return p && p.inlineData && /^image\//i.test(p.inlineData.mimeType || ''); })[0]
+             || parts.filter(function (p) { return p && p.inline_data && /^image\//i.test(p.inline_data.mimeType || p.inline_data.mime_type || ''); })[0];
+      if (!img) return null;
+      var d = img.inlineData || img.inline_data;
+      return { mime: d.mimeType || d.mime_type || 'image/png', b64: d.data };
+    } catch (e) { return null; }
+  }
+
+  async function sendOnce(model, key, tok) {
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (tok) tok.cur = ctrl;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 90000) : null;
+    var resp;
+    try {
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: buildPrompt() }, { inline_data: { mime_type: STU.file.mime, data: STU.file.base64 } }] }],
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
+        })
+      });
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      if (tok && tok.cancelled) throw { code: 'CANCEL' };
+      if (e && e.name === 'AbortError') return { timeout: true, resp: { ok: false, status: 0 } };
+      throw { code: 'NETWORK' };
+    }
+    if (timer) clearTimeout(timer);
+    var body = null; try { body = await resp.json(); } catch (e) {}
+    if (tok && tok.cancelled) throw { code: 'CANCEL' };
+    var msg = (body && body.error && body.error.message) || '';
+    var invalidKey = resp.status === 401 || resp.status === 403 || /API key not valid|API_KEY_INVALID|PERMISSION_DENIED/i.test(msg);
+    return { resp: resp, body: body, msg: msg, invalidKey: invalidKey };
+  }
+
+  async function callImageGeneration(tok, onRetry) {
+    var key = getKey();
+    if (!key) throw { code: 'NO_KEY' };
+    var models = [IMG_MODEL].concat(IMG_MODEL_FALLBACKS);
+    var lastErr = null;
+    for (var round = 0; round < 2; round++) {
+      for (var i = 0; i < models.length; i++) {
+        if (tok && tok.cancelled) throw { code: 'CANCEL' };
+        var r = await sendOnce(models[i], key, tok);
+        if (r.timeout) { lastErr = { code: 'TIMEOUT' }; continue; }
+        if (r.resp.ok) {
+          var img = extractImage(r.body);
+          if (!img) { lastErr = { code: 'EMPTY' }; continue; }
+          return img;
+        }
+        if (r.invalidKey) throw { code: 'BAD_KEY', msg: r.msg };
+        if (r.resp.status === 404) { lastErr = { code: 'NO_MODEL' }; continue; }
+        if (r.resp.status === 429) { lastErr = { code: 'QUOTA', msg: r.msg }; continue; }
+        if (r.resp.status >= 500) { lastErr = { code: 'SERVER', msg: r.msg }; continue; }
+        throw { code: 'HTTP', status: r.resp.status, msg: r.msg };
+      }
+      if (round === 0) { if (onRetry) { try { onRetry(); } catch (e) {} } await new Promise(function (r2) { setTimeout(r2, 3000); }); }
+    }
+    throw lastErr || { code: 'NO_MODEL' };
+  }
+
+  function friendly(e) {
+    var c = e && e.code;
+    if (c === 'NO_KEY') return 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).';
+    if (c === 'BAD_KEY') return 'Google rechazó la clave de API. Revísala en Gastos y facturas → "Clave API".';
+    if (c === 'QUOTA') return 'Se agotó la cuota gratuita de Gemini por ahora. Espera un momento e inténtalo de nuevo.';
+    if (c === 'SERVER') return 'Los servidores de Gemini están saturados. Reintenta en un momento.';
+    if (c === 'TIMEOUT') return 'La generación tardó demasiado. Inténtalo de nuevo.';
+    if (c === 'NETWORK') return 'No se pudo conectar con Google. Revisa tu conexión.';
+    if (c === 'CANCEL') return 'Cancelado.';
+    if (c === 'EMPTY') return 'La IA no devolvió una imagen. Prueba con otra foto o cambia el estilo/materiales.';
+    if (c === 'NO_MODEL') return 'Ningún modelo de generación de imágenes respondió.';
+    return 'No se pudo generar el render: ' + ((e && e.msg) || (e && e.message) || 'error desconocido');
+  }
+
+  function setStatus(type, msg, opts) {
+    var el = $('stu-status'); if (!el) return;
+    if (!type) { el.className = 'pia-status'; el.innerHTML = ''; return; }
+    el.className = 'pia-status on ' + type;
+    el.innerHTML = '<span>' + esc(msg) + '</span>' + (opts && opts.retry ? ' <button type="button" class="gx-mini" id="stu-retry-btn" style="margin-left:8px">Reintentar</button>' : '');
+    if (opts && opts.retry) { var b = $('stu-retry-btn'); if (b) b.addEventListener('click', generateRender); }
+  }
+
+  async function generateRender() {
+    if (!STU.file) { say('Sube una foto antes de generar'); return; }
+    if (STU.busy) return;
+    STU.busy = true; updateGenerateState();
+    var tok = newTok(); STU.tok = tok;
+    var overlay = $('stu-overlay'); if (overlay) overlay.classList.add('pia-show');
+    var msgEl = $('stu-overlay-msg'); if (msgEl) msgEl.textContent = 'Generando render…';
+    var cancelBtn = $('stu-overlay-cancel'); if (cancelBtn) cancelBtn.onclick = function () { tok.cancel(); };
+    setStatus('');
+    try {
+      var img = await callImageGeneration(tok, function () { if (msgEl) msgEl.textContent = 'Gemini está saturado: reintentando…'; });
+      var blob = b64ToBlob(img.b64, img.mime);
+      if (STU.result && STU.result.url) URL.revokeObjectURL(STU.result.url);
+      STU.result = { b64: img.b64, mime: img.mime, url: URL.createObjectURL(blob) };
+      showResult();
+      setStatus('ok', 'Render generado. Ajusta el comparador para ver el antes/después.');
+    } catch (e) {
+      if (e && e.code === 'CANCEL') setStatus('warn', 'Generación cancelada.');
+      else setStatus('err', friendly(e), { retry: e && e.code !== 'BAD_KEY' && e.code !== 'NO_KEY' });
+    } finally {
+      if (overlay) overlay.classList.remove('pia-show');
+      STU.busy = false; STU.tok = null; updateGenerateState();
+    }
+  }
+
+  function b64ToBlob(b64, mime) {
+    var byteChars = atob(b64), bytes = new Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    return new Blob([new Uint8Array(bytes)], { type: mime });
+  }
+
+  function downloadRender() {
+    if (!STU.result) return;
+    var blob = b64ToBlob(STU.result.b64, STU.result.mime);
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    var ext = /png/i.test(STU.result.mime) ? 'png' : 'jpg';
+    a.href = url; a.download = 'Render_' + (STU.style || 'IA').replace(/[^A-Za-z0-9]+/g, '_') + '_' + Date.now() + '.' + ext;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  /* ─────────────── Miniatura comprimida (para guardar en Firestore) ─────────────── */
+  function makeThumb(b64, mime, maxW) {
+    return new Promise(function (resolve) {
+      try {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, (maxW || 480) / img.naturalWidth);
+          var w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+          var c = document.createElement('canvas'); c.width = w; c.height = h;
+          var ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = function () { resolve('data:' + mime + ';base64,' + b64); };
+        img.src = 'data:' + mime + ';base64,' + b64;
+      } catch (e) { resolve('data:' + mime + ';base64,' + b64); }
+    });
+  }
+
+  /* ─────────────── Galería: nube (users/{uid}/renders) — local-first, con reintentos ─────────────── */
+  var CLOUD = { uid: null, unsub: null, got: false, err: '' };
+  function fdb() { return firebase.firestore(); }
+  function gcol() { return fdb().collection('users').doc(CLOUD.uid).collection('renders'); }
+  function uid() { try { var u = firebase.auth().currentUser; return u ? u.uid : 'local'; } catch (e) { return 'local'; } }
+  function galKey() { return 'bm_studio_gal_' + uid(); }
+  function loadGallery() { try { var a = JSON.parse(localStorage.getItem(galKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function saveGallery(list) { try { localStorage.setItem(galKey(), JSON.stringify(list)); return true; } catch (e) { say('⚠ No hay espacio para guardar en este dispositivo'); return false; } }
+  function tombKey() { return 'bm_studio_del_' + (CLOUD.uid || uid()); }
+  function readTombs() { try { return JSON.parse(localStorage.getItem(tombKey()) || '[]'); } catch (e) { return []; } }
+  function writeTombs(a) { try { localStorage.setItem(tombKey(), JSON.stringify(a)); } catch (e) {} }
+  function addTomb(id) { var a = readTombs(); if (a.indexOf(id) < 0) { a.push(id); writeTombs(a); } }
+  function clearTomb(id) { writeTombs(readTombs().filter(function (x) { return x !== id; })); }
+
+  function toDoc(r) { return { proyecto: String(r.proyecto || ''), estilo: String(r.estilo || ''), materiales: r.materiales || [], notas: String(r.notas || '').slice(0, 500), thumb: r.thumb || '', creado: Number(r.creado) || Date.now() }; }
+  function fromDoc(id, d) { return { id: id, proyecto: d.proyecto || '', estilo: d.estilo || '', materiales: d.materiales || [], notas: d.notas || '', thumb: d.thumb || '', creado: Number(d.creado) || 0, _s: 1 }; }
+
+  function renderSync() {
+    var el = $('stu-sync'); if (!el) return;
+    var txt = '', cls = '';
+    if (!CLOUD.uid) { txt = 'Solo en este dispositivo'; }
+    else if (CLOUD.err === 'perm') { txt = '⚠ Sin permisos (despliega firestore.rules)'; cls = 'err'; }
+    else if (!CLOUD.got) { txt = '☁ Sincronizando…'; cls = 'sync'; }
+    else { txt = '☁ Sincronizado en tu cuenta'; cls = 'ok'; }
+    el.textContent = txt; el.className = 'gx-hint gx-sync ' + cls;
+  }
+
+  function pushCloud(r) {
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    gcol().doc(r.id).set(Object.assign({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, toDoc(r)), { merge: true })
+      .then(function () { var list = loadGallery(); var g = list.filter(function (x) { return x.id === r.id; })[0]; if (g && !g._s) { g._s = 1; saveGallery(list); } CLOUD.err = ''; renderSync(); })
+      .catch(function (err) { if (err && err.code === 'permission-denied') { CLOUD.err = 'perm'; } renderSync(); });
+  }
+  function deleteCloud(id) {
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    gcol().doc(id).delete().then(function () { clearTomb(id); }).catch(function () {});
+  }
+
+  function onSnapshot(snap) {
+    var cloud = {};
+    snap.docs.forEach(function (d) { cloud[d.id] = fromDoc(d.id, d.data() || {}); });
+    var tomb = {}; readTombs().forEach(function (t) { tomb[t] = 1; });
+    var local = loadGallery(), out = [], seen = {};
+    local.forEach(function (g) {
+      if (tomb[g.id]) return;
+      if (cloud[g.id]) { seen[g.id] = 1; out.push(cloud[g.id]); }
+      else if (!g._s) out.push(g), pushCloud(g);
+    });
+    Object.keys(cloud).forEach(function (id) { if (!seen[id] && !tomb[id]) out.push(cloud[id]); });
+    CLOUD.got = true; CLOUD.err = '';
+    saveGallery(out);
+    STU.gallery = out;
+    renderGallery(); renderSync();
+  }
+
+  window.bmStudioStart = function (u) {
+    if (!u || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    if (CLOUD.uid === u && CLOUD.unsub) return;
+    window.bmStudioStop();
+    CLOUD.uid = u; CLOUD.got = false; CLOUD.err = '';
+    renderSync();
+    CLOUD.unsub = gcol().onSnapshot(onSnapshot, function (err) { if (err && err.code === 'permission-denied') CLOUD.err = 'perm'; renderSync(); });
+  };
+  window.bmStudioStop = function () {
+    if (CLOUD.unsub) { try { CLOUD.unsub(); } catch (e) {} CLOUD.unsub = null; }
+    CLOUD.uid = null; CLOUD.got = false; CLOUD.err = '';
+    STU.gallery = loadGallery(); renderGallery(); renderSync();
+  };
+
+  function galleryForProject() {
+    var proj = (typeof S !== 'undefined' && S.proj) || '';
+    return STU.gallery.filter(function (g) { return g.proyecto === proj; }).sort(function (a, b) { return b.creado - a.creado; });
+  }
+
+  function renderGallery() {
+    var box = $('stu-gallery'); if (!box) return;
+    var list = galleryForProject();
+    box.innerHTML = list.map(function (g) {
+      return '<div class="stu-git" data-id="' + esc(g.id) + '"><img src="' + g.thumb + '" alt="' + esc(g.estilo) + '">' +
+        '<div class="stu-git-cap">' + esc(g.estilo) + '</div>' +
+        '<button type="button" class="stu-git-del" data-gdel="' + esc(g.id) + '" title="Eliminar" aria-label="Eliminar">×</button></div>';
+    }).join('');
+  }
+
+  async function saveToGallery() {
+    if (!STU.result) { say('Genera un render antes de guardarlo'); return; }
+    if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto para guardar en su galería'); return; }
+    var thumb = await makeThumb(STU.result.b64, STU.result.mime, 480);
+    var rec = { id: newId(), proyecto: S.proj, estilo: STU.style, materiales: Object.keys(STU.materials), notas: ($('stu-notes') && $('stu-notes').value.trim()) || '', thumb: thumb, creado: Date.now() };
+    var list = loadGallery(); list.push(rec);
+    if (!saveGallery(list)) return;
+    STU.gallery = list;
+    pushCloud(rec);
+    renderGallery();
+    say('Render guardado en la galería de "' + S.proj + '"');
+  }
+
+  function deleteFromGallery(id) {
+    var list = loadGallery(), g = list.filter(function (x) { return x.id === id; })[0];
+    if (!g) return;
+    if (!confirm('¿Eliminar este render de la galería?')) return;
+    if (!saveGallery(list.filter(function (x) { return x.id !== id; }))) return;
+    STU.gallery = loadGallery();
+    if (CLOUD.uid) { addTomb(id); deleteCloud(id); }
+    renderGallery();
+    say('Render eliminado');
+  }
+
+  /* ─────────────── Banner de proyecto ─────────────── */
+  function renderProjBanner() {
+    var el = $('stu-proj-banner'); if (!el) return;
+    var has = typeof S !== 'undefined' && !!S.proj;
+    el.classList.toggle('has-project', has);
+    var active = $('stu-proj-active');
+    if (active) active.innerHTML = has
+      ? ('<span class="pia-proj-dot"></span>Proyecto activo: <b>' + esc(S.proj) + '</b> · los renders que guardes se agregan a su galería.')
+      : 'No tienes un proyecto abierto. Puedes generar renders igual, pero para guardarlos en una galería abre o crea un proyecto en "Mis proyectos".';
+  }
+
+  /* ─────────────── Inicialización ─────────────── */
+  var wired = false;
+  function init() {
+    renderProjBanner();
+    STU.gallery = loadGallery();
+    renderGallery();
+    renderSync();
+    if (wired || !$('stu-generate-btn')) return;
+    wired = true;
+    wireDrop(); wireChips(); wireSlider();
+    renderChips(); renderDrop();
+    $('stu-generate-btn').addEventListener('click', generateRender);
+    $('stu-download-btn').addEventListener('click', downloadRender);
+    $('stu-save-btn').addEventListener('click', saveToGallery);
+    $('stu-gallery').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-gdel]');
+      if (b) deleteFromGallery(b.getAttribute('data-gdel'));
+    });
+    updateGenerateState();
+  }
+
+  window.renderStudioModule = function () { init(); };
+  window.STUDIO_MODULE = {
+    state: STU, buildPrompt: buildPrompt, callImageGeneration: callImageGeneration, friendly: friendly,
+    saveToGallery: saveToGallery, deleteFromGallery: deleteFromGallery, loadGallery: loadGallery,
+    galleryForProject: galleryForProject, makeThumb: makeThumb, extractImage: extractImage
+  };
 })();
 </script>
 

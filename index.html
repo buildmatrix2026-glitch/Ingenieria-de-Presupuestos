@@ -12967,15 +12967,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
-    'Incluye también la clave "categoria" con UNO de estos valores exactos según los artículos o servicios facturados. ' +
-    'Lee con cuidado la descripción de cada categoría y elige la MÁS específica: ' +
-    '"Materiales": únicamente materiales de construcción directos (cemento, hierro, bloques, madera, pintura, tubería, cables, arena, ripio, cerámica, vidrio, etc.). ' +
-    '"Mano de Obra": servicios de trabajo humano directo en obra (albañilería, carpintería, plomería, electricidad, soldadura, instalaciones, etc.). ' +
-    '"Equipos y Maquinaria": alquiler o compra de equipos y maquinaria de construcción (retroexcavadora, concretera, andamios, herramientas, etc.). ' +
-    '"Subcontratos": contratación de empresas o personas externas para ejecutar una parte de la obra (subcontrato de estructura, acabados, etc.). ' +
-    '"Gastos Indirectos": todo lo que NO es material de construcción ni trabajo directo en obra; incluye combustible (gasolina, diesel, GLP), lubricantes, transporte, alimentación, hospedaje, agua, luz, teléfono, internet, papelería, limpieza, uniformes, seguridad, seguros, gastos de vehículo, etc. Si el proveedor es una gasolinera o estación de servicio, SIEMPRE usa esta categoría. ' +
-    '"Gastos Trámites": permisos municipales, tasas, impuestos, honorarios de abogado o contador, notaría, registros, asesoría técnica o legal, etc. ' +
-    'Si hay duda entre dos categorías, elige la más específica. Si el ítem principal es combustible o la estación de servicio es el emisor, usa SIEMPRE "Gastos Indirectos".';
+    'PASO FINAL — campo "categoria": lee los ítems de la factura que acabas de extraer y determina a cuál de estas 6 categorías pertenece el gasto. ' +
+    'Elige UNO de estos valores exactos (respeta mayúsculas y tildes): ' +
+    '"Materiales" → solo si los ítems son materiales físicos de construcción: cemento, hierro, varilla, bloque, madera, pintura, tubería PVC, cable eléctrico, arena, ripio, cerámica, vidrio, encofrado, mortero, impermeabilizante, etc. ' +
+    '"Mano de Obra" → solo si los ítems son servicios de trabajo humano en obra: albañilería, instalación eléctrica, plomería, carpintería, soldadura, acabados, etc. ' +
+    '"Equipos y Maquinaria" → solo si los ítems son alquiler o compra de maquinaria o herramientas: retroexcavadora, concretera, andamio, generador, bomba, taladro, etc. ' +
+    '"Subcontratos" → solo si se contrata a otra empresa para ejecutar una parte completa de la obra. ' +
+    '"Gastos Indirectos" → combustible de cualquier tipo (gasolina, diesel, GLP, gasoil), lubricantes, aceite de motor, llantas; también transporte de personas, alimentación, hospedaje, agua, luz, teléfono, internet, papelería, limpieza, uniformes, peajes, seguros. REGLA: si ves la palabra diesel, gasolina, combustible, fuel, galones, litros de combustible, o el emisor es una estación de servicio o gasolinera → categoria = "Gastos Indirectos" SIN EXCEPCIÓN. ' +
+    '"Gastos Trámites" → permisos, tasas municipales, impuestos, honorarios de abogado o contador, notaría, registros, asesoría. ' +
+    'Si la factura mezcla varios tipos, elige la categoría del ítem de mayor valor. No uses "Materiales" para combustible ni lubricantes nunca.';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
   function prepareImage(file) {
@@ -13016,11 +13016,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Imagen → se redimensiona/comprime; PDF → se envía tal cual (Gemini lee todas sus páginas)
   async function prepareFile(file) {
+    var result;
     if (isPdf(file)) {
       if (file.size > 15 * 1024 * 1024) throw { code: 'TOO_BIG' };
-      return readB64(file, 'application/pdf');
+      result = await readB64(file, 'application/pdf');
+    } else {
+      result = await prepareImage(file);
     }
-    return prepareImage(file);
+    result.fileName = (file && file.name) ? file.name : '';
+    return result;
   }
 
   function modelList() {

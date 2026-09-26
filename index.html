@@ -3565,18 +3565,12 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <input class="gx-file" type="file" id="gx-file-cam" accept="image/*" capture="environment">
               <input class="gx-file" type="file" id="gx-file-gal" accept="image/*,application/pdf,.pdf" multiple>
               <div style="margin-top:10px;margin-bottom:6px">
-                <label style="display:block;font-size:11.5px;font-weight:600;color:var(--gx-tx2);letter-spacing:.03em;margin-bottom:5px;text-transform:uppercase">Proyecto</label>
+                <label style="display:block;font-size:11.5px;font-weight:600;color:var(--gx-tx2);letter-spacing:.03em;margin-bottom:5px;text-transform:uppercase">Gastos Totales</label>
                 <select class="gx-in" id="gx-batch-proyecto" style="width:100%;min-height:42px;font-size:14px" aria-label="Proyecto para las facturas">
                   <option value="">— Selecciona proyecto —</option>
                 </select>
               </div>
-              <div style="margin-top:10px;margin-bottom:6px">
-                <label style="display:block;font-size:11.5px;font-weight:600;color:var(--gx-tx2);letter-spacing:.03em;margin-bottom:5px;text-transform:uppercase">Gastos Personales SRI</label>
-                <select class="gx-in" id="gx-personal-toggle" style="width:100%;min-height:42px;font-size:14px" aria-label="Activar gastos personales">
-                  <option value="">— Solo gastos de obra —</option>
-                  <option value="personal">📋 Registrar como Gasto Personal SRI</option>
-                </select>
-              </div>
+
               <div class="gx-row">
                 <label class="gx-btn" id="gx-gal" for="gx-file-gal"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Subir imágenes o PDF</span></label>
                 <button type="button" class="gx-btn" id="gx-key-btn"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Clave API</span></button>
@@ -13506,6 +13500,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (sel) {
       var pref = cur && names.indexOf(cur) >= 0 ? cur : names[0];
       sel.innerHTML = names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') +
+        '<option value="__personal__" style="color:#06B6D4;font-weight:600">— Gastos Personales —</option>' +
         '<option value="' + OTHER + '">＋ Otro proyecto…</option>';
       sel.value = pref;
       syncDropdownPanel('gx-proyecto-dd');
@@ -13513,9 +13508,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     // Sincronizar también el selector de proyecto del escáner de lote
     var bsel = $('gx-batch-proyecto'), bcur = bsel ? bsel.value : '';
     if (bsel) {
-      var bpref = bcur && names.indexOf(bcur) >= 0 ? bcur : '';
+      var bpref = bcur && (names.indexOf(bcur) >= 0 || bcur === '__personal__') ? bcur : '';
       bsel.innerHTML = '<option value="">— Selecciona proyecto —</option>' +
-        names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+        names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') +
+        '<option value="__personal__" style="color:#06B6D4;font-weight:600">— Gastos Personales —</option>';
       if (bpref) bsel.value = bpref;
     }
   }
@@ -13820,6 +13816,24 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function saveGasto() {
     var proyecto = val('gx-proyecto');
     if (!proyecto || proyecto === OTHER) { say('Selecciona un proyecto'); return; }
+    if (proyecto === '__personal__') {
+      var pdata2 = Object.assign({}, {
+        proveedor: val('gx-proveedor').trim(), ruc: val('gx-ruc').replace(/[^\d]/g,''),
+        numero: val('gx-numero').trim(), fecha: normDate(val('gx-fecha')),
+        subtotal: round2(Math.max(0,toNum(val('gx-subtotal')))),
+        iva: round2(Math.max(0,toNum(val('gx-iva')))),
+        total: round2(Math.max(0,toNum(val('gx-total')))),
+        items: st.items.slice(),
+        categoria_personal: (st._lastAIData && st._lastAIData.categoria_personal) || 'Alimentación'
+      });
+      if (!pdata2.proveedor) { say('Ingresa el proveedor'); return; }
+      if (!(pdata2.total > 0)) { say('El monto total debe ser mayor a 0'); return; }
+      savePersonalGasto(pdata2);
+      var fromDraft2 = st.editing; resetForm();
+      if (fromDraft2) removeDraft(fromDraft2);
+      closeManualModal(); render();
+      return;
+    }
     var g = {
       id: 'gx' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       proyecto: proyecto,
@@ -15071,6 +15085,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (st.batchBusy) return;
     var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
     if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
+    // Si eligió Gastos Personales, redirigir al storage personal
+    if (proyecto === '__personal__') {
+      var ok2 = st.drafts.filter(function(d){ return d.status === 'ok'; });
+      if (!ok2.length) { say('No hay facturas listas para guardar'); return; }
+      var plist = loadPersonal();
+      ok2.forEach(function(d) {
+        var pd = Object.assign({}, d.data, { categoria_personal: d.data.categoria_personal || 'Alimentación' });
+        plist.push(gastoPersonalFromData(pd));
+      });
+      savePersonal(plist);
+      renderPersonalSummary();
+      say(ok2.length + ' gasto' + (ok2.length===1?'':'s') + ' personal' + (ok2.length===1?'':'es') + ' guardado' + (ok2.length===1?'':'s') + ' ✓');
+      st.drafts = []; renderBatch();
+      return;
+    }
     var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0 };
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
@@ -15122,7 +15151,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!sel || !panel || !valEl) return;
     var opts = Array.prototype.slice.call(sel.options);
     panel.innerHTML = opts.map(function (o) {
-      return '<div class="gx-dd-opt' + (o.value === sel.value ? ' sel' : '') + '" data-v="' + esc(o.value) + '" role="option">' + esc(o.textContent) + '</div>';
+      var isPersonal = o.value === '__personal__';
+      var style = isPersonal ? ' style="color:#06B6D4;font-weight:600;border-top:1px solid var(--gx-br);margin-top:4px;padding-top:8px"' : '';
+      return '<div class="gx-dd-opt' + (o.value === sel.value ? ' sel' : '') + '" data-v="' + esc(o.value) + '" role="option"' + style + '>' + esc(o.textContent) + '</div>';
     }).join('');
     var cur = opts.filter(function (o) { return o.value === sel.value; })[0];
     valEl.textContent = cur ? cur.textContent : '';

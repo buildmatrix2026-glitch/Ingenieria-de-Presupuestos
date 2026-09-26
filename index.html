@@ -1284,32 +1284,31 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 /* Móvil: ventana flotante con margen lateral, sin ocupar toda la pantalla */
 @media(max-width:640px){
-  .mb{padding:0 0 0 0;align-items:flex-end}
+  /* Espacio simétrico arriba y abajo: 70px cada lado */
+  .mb{padding:70px 0;align-items:center;box-sizing:border-box}
 
-  /* Modal base y registro de gasto: bottom-sheet con espacio arriba */
+  /* Todos los modales: altura que respeta espacio simétrico arriba y abajo */
   .mo,.mo.mo-w-sm,.mo.mo-w-sm2{
     width:100%;
     max-width:100%;
-    height:calc(100dvh - 90px);
-    max-height:calc(100dvh - 90px);
-    border-radius:18px 18px 0 0;
+    height:calc(100dvh - 140px);
+    max-height:calc(100dvh - 140px);
+    border-radius:18px;
     border-left:none;
     border-right:none;
-    border-bottom:none;
-    box-shadow:0 -8px 40px rgba(0,0,0,.45);
+    box-shadow:0 8px 40px rgba(0,0,0,.45);
   }
-  /* Modal grande de facturas (gx-pm2): altura fija siempre, no se encoge al cambiar categoría */
+  /* Modal grande facturas: altura fija, no se encoge al cambiar categoría */
   .mo.mo-w-lg,.mo.mo-tall{
     width:100%;
     max-width:100%;
-    height:calc(100dvh - 90px);
-    max-height:calc(100dvh - 90px);
-    min-height:calc(100dvh - 90px);
-    border-radius:18px 18px 0 0;
+    height:calc(100dvh - 140px);
+    max-height:calc(100dvh - 140px);
+    min-height:calc(100dvh - 140px);
+    border-radius:18px;
     border-left:none;
     border-right:none;
-    border-bottom:none;
-    box-shadow:0 -8px 40px rgba(0,0,0,.45);
+    box-shadow:0 8px 40px rgba(0,0,0,.45);
   }
   /* Handle bar visual */
   .mo::before{
@@ -1320,8 +1319,6 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
   }
   /* Padding al header para no solaparse con el handle */
   .mo .drh{padding-top:4px}
-  /* Fix backdrop padding para que el difuminado llegue hasta el navbar */
-  .mb{padding:0}
 }
 
 /* toast */

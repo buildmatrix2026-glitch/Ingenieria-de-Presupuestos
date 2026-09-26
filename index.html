@@ -2052,11 +2052,11 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
-#v-gas .gx-cattabs{display:flex;align-items:center;flex-wrap:nowrap;gap:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+#v-gas .gx-cattabs{display:flex;align-items:center;flex-wrap:nowrap;gap:0;overflow:hidden}
 #v-gas .gx-cattab{
-  display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border:none;border-right:1px solid var(--gx-br);
-  background:transparent;color:var(--gx-tx2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
-  transition:color .15s;border-radius:0;
+  display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border:none;border-right:1px solid var(--gx-br);
+  background:transparent;color:var(--gx-tx2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:color .15s;border-radius:0;flex:0 1 auto;min-width:0;
 }
 #v-gas .gx-cattab:first-child{padding-left:0}
 #v-gas .gx-cattab:last-child{border-right:none}
@@ -3672,7 +3672,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo" style="width:min(1060px,97vw);height:min(76vh,720px);min-height:min(76vh,720px);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(1180px,98vw);height:min(76vh,720px);min-height:min(76vh,720px);display:flex;flex-direction:column">
           <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px">
             <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
             <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>

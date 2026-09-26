@@ -1273,15 +1273,15 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 
 /* modal */
 .mb{position:fixed;inset:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
+.mb.op{display:flex;animation:fi .22s}
+@keyframes fi{from{opacity:0}}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84svh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+@keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 @media(max-width:640px){
   .mb{align-items:flex-start;padding:14px 12px}
   .mb.op{overflow-y:auto}
   .mo{max-height:calc(100svh - 28px)}
 }
-.mb.op{display:flex;animation:fi .22s}
-@keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84svh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
-@keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 
 /* toast */
 #tsts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:500;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none}
@@ -14984,6 +14984,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
     var pmMod = $('gx-pm');
+    if (pmMod && document.body && pmMod.parentNode !== document.body) document.body.appendChild(pmMod);   // escapar del contenedor con zoom (#app)
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);
     $('gx-pm-list').addEventListener('click', function (e) {
@@ -14991,6 +14992,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (row) openProjectDetailModal(row.getAttribute('data-proj'));
     });
     var pm2Mod = $('gx-pm2');
+    if (pm2Mod && document.body && pm2Mod.parentNode !== document.body) document.body.appendChild(pm2Mod);   // escapar del contenedor con zoom (#app)
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gx-pm2-x').addEventListener('click', closeProjectDetailModal);
     $('gx-pm2-back').addEventListener('click', function () { closeProjectDetailModal(); openProjectsModal(); });
@@ -15007,6 +15009,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
     $('gx-manual-open-btn').addEventListener('click', openManualModal);
     var manMod = $('gx-manual-modal');
+    if (manMod && document.body && manMod.parentNode !== document.body) document.body.appendChild(manMod);   // escapar del contenedor con zoom (#app) para que position:fixed funcione en móvil
     if (manMod) manMod.addEventListener('click', function (e) { if (e.target === manMod) closeManualModal(); });
     $('gx-manual-x').addEventListener('click', closeManualModal);
     var mod = $('gx-exb');

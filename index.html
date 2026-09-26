@@ -1914,11 +1914,15 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-cap{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 #v-gas .gx-sub{font-size:11.5px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;margin-top:5px}
 #v-gas .gx-bars{display:flex;flex-direction:column;gap:11px}
-#v-gas .gx-bar .h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:5px}
+#v-gas .gx-bar .h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;margin-bottom:5px}
+#v-gas .gx-bar .h span{display:flex;align-items:center;gap:7px;font-weight:600}
 #v-gas .gx-bar .h b{font-family:'JetBrains Mono',monospace;font-weight:600}
 #v-gas .gx-bar .t{height:7px;border-radius:99px;background:var(--gx-card2);overflow:hidden}
 #v-gas .gx-bar .t i{display:block;height:100%;border-radius:99px;transition:width .4s}
 #v-gas .gx-bar .p{font-size:10.5px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace}
+#v-gas .gx-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+#v-gas .gx-bar.is-zero{opacity:.42}
+#v-gas .gx-bar.is-zero .h b{color:var(--gx-tx2)}
 
 /* Lista */
 #v-gas .gx-list{display:flex;flex-direction:column}
@@ -2046,6 +2050,27 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3{display:flex;gap:8px}
 #v-gas .gx-row-3 .gx-btn{flex:1 1 0;min-width:0;padding-left:10px;padding-right:10px}
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
+#v-gas .gx-cattabs{display:flex;gap:7px;flex-wrap:wrap}
+#v-gas .gx-cattab{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--gx-br);
+  background:var(--gx-card2);color:var(--gx-tx2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:border-color .15s,background .15s,color .15s;
+}
+#v-gas .gx-cattab:hover{border-color:var(--gx-pri);color:var(--gx-tx)}
+#v-gas .gx-cattab.sel{background:var(--gx-pri);border-color:var(--gx-pri);color:#fff}
+#v-gas .gx-cattab i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+#v-gas .gx-daterange{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#v-gas .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+#v-gas .gx-date-in{
+  background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;color-scheme:dark;
+}
+#v-gas .gx-date-in:focus{outline:none;border-color:var(--gx-pri)}
+#v-gas .gx-daterange-sep{color:var(--gx-tx2);font-size:12px}
+#v-gas .gx-date-clear{background:transparent;border:1px solid var(--gx-br);color:var(--gx-tx2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:12px;transition:border-color .15s,color .15s}
+#v-gas .gx-date-clear:hover{border-color:var(--gx-err);color:var(--gx-err)}
 
 /* Ventana flotante "Proyectos" */
 #v-gas .gx-pm-row{
@@ -3644,7 +3669,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo" style="width:min(760px,97vw);max-height:min(85vh,780px);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(860px,97vw);max-height:min(88vh,820px);display:flex;flex-direction:column">
           <div class="drh">
             <div style="display:flex;align-items:center;gap:10px;min-width:0">
               <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -3653,6 +3678,14 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <div id="gx-pm2-summary" style="padding:16px 20px 0"></div>
+          <div class="gx-cattabs" id="gx-cattabs" style="padding:12px 20px 0"></div>
+          <div class="gx-daterange" style="padding:12px 20px 0">
+            <span class="gx-daterange-lbl">Rango de fechas</span>
+            <input type="date" id="gx-date-from" class="gx-date-in" aria-label="Desde">
+            <span class="gx-daterange-sep">→</span>
+            <input type="date" id="gx-date-to" class="gx-date-in" aria-label="Hasta">
+            <button type="button" class="gx-date-clear" id="gx-date-clear" title="Quitar filtro de fechas">✕</button>
+          </div>
           <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto">
             <div class="gx-hint" id="gx-count" style="margin-bottom:8px;text-align:right"></div>
             <div class="gx-list" id="gx-list"></div>
@@ -12734,7 +12767,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' };
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
 
-  var st = { busy: false, totalTouched: false, filter: ALL, shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
+  var st = { busy: false, totalTouched: false, filter: ALL, catFilter: ALL, dateFrom: '', dateTo: '', shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
 
   /* ─────────────── utilidades ─────────────── */
   function $(id) { return document.getElementById(id); }
@@ -13353,7 +13386,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
-  function filtered(list) { return st.filter === ALL ? list : list.filter(function (g) { return g.proyecto === st.filter; }); }
+  function filtered(list) {
+    var r = st.filter === ALL ? list : list.filter(function (g) { return g.proyecto === st.filter; });
+    if (st.catFilter && st.catFilter !== ALL) r = r.filter(function (g) { return g.categoria === st.catFilter; });
+    if (st.dateFrom) r = r.filter(function (g) { return (g.fecha || '') >= st.dateFrom; });
+    if (st.dateTo) r = r.filter(function (g) { return (g.fecha || '') <= st.dateTo; });
+    return r;
+  }
+
+  function renderCatTabs() {
+    var el = $('gx-cattabs'); if (!el) return;
+    var list = st.filter === ALL ? load() : load().filter(function (g) { return g.proyecto === st.filter; });
+    var counts = {}; CATS.forEach(function (c) { counts[c] = 0; });
+    list.forEach(function (g) { if (counts[g.categoria] != null) counts[g.categoria]++; });
+    var tabs = [{ id: ALL, label: 'Todas', n: list.length, col: 'var(--gx-tx2)' }]
+      .concat(CATS.map(function (c) { return { id: c, label: c, n: counts[c], col: CAT_COLORS[c] || '#0052FF' }; }));
+    el.innerHTML = tabs.map(function (t) {
+      return '<button type="button" class="gx-cattab' + (st.catFilter === t.id ? ' sel' : '') + '" data-cat="' + esc(t.id) + '">' +
+        (t.id === ALL ? '' : '<i style="background:' + t.col + '"></i>') + esc(t.label) + ' (' + t.n + ')</button>';
+    }).join('');
+  }
 
   function summarize(list) {
     var r = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {} };
@@ -13375,17 +13427,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function renderSummary() {
     var el = $('gx-sum'); if (!el) return;
     var list = load(), s = summarize(list);   // el resumen principal siempre es GLOBAL: navegar por proyecto ahora se hace en "Proyectos"
-    var cats = Object.keys(s.byCat).filter(function (c) { return s.byCat[c] > 0; }).sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });
-    var max = cats.length ? s.byCat[cats[0]] : 1;
+    var cats = CATS.slice().sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });   // TODAS las categorías, incluso en $0
+    var max = Math.max.apply(null, cats.map(function (c) { return s.byCat[c]; }).concat([1]));
     var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
       '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div></div>' +
       '<div class="gx-hint gx-mono">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div></div>';
-    if (!cats.length) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
+    if (!s.count) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
     else {
       html += '<div class="gx-bars">' + cats.map(function (c) {
-        var pct = s.total ? (s.byCat[c] / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
-        return '<div class="gx-bar"><div class="h"><span>' + esc(c) + '</span><b>' + money(s.byCat[c]) + '</b></div>' +
-          '<div class="t"><i style="width:' + (s.byCat[c] / max * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
+        var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
+        return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }
@@ -14540,10 +14592,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       ? (s.count + ' comprobante' + (s.count === 1 ? '' : 's') + ' · Total <b class="gx-mono">' + money(s.total) + '</b> · Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva))
       : 'Sin comprobantes en esta selección.';
     updateDeleteAllLabel(list);
+    renderCatTabs();
   }
 
   function openProjectDetailModal(name) {
-    st.filter = name; st.shown = 15;
+    st.filter = name; st.shown = 15; st.catFilter = ALL; st.dateFrom = ''; st.dateTo = '';
+    var df = $('gx-date-from'), dt = $('gx-date-to'); if (df) df.value = ''; if (dt) dt.value = '';
     closeProjectsModal();
     refreshProjectDetailHeader();
     renderList();
@@ -14906,6 +14960,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gx-pm2-x').addEventListener('click', closeProjectDetailModal);
     $('gx-pm2-back').addEventListener('click', function () { closeProjectDetailModal(); openProjectsModal(); });
+    $('gx-cattabs').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-cat]') : null; if (!b) return;
+      st.catFilter = b.getAttribute('data-cat'); st.shown = 15;
+      refreshProjectDetailHeader(); renderList();
+    });
+    $('gx-date-from').addEventListener('change', function () { st.dateFrom = this.value; st.shown = 15; refreshProjectDetailHeader(); renderList(); });
+    $('gx-date-to').addEventListener('change', function () { st.dateTo = this.value; st.shown = 15; refreshProjectDetailHeader(); renderList(); });
+    $('gx-date-clear').addEventListener('click', function () {
+      st.dateFrom = ''; st.dateTo = ''; $('gx-date-from').value = ''; $('gx-date-to').value = '';
+      refreshProjectDetailHeader(); renderList();
+    });
     $('gx-manual-open-btn').addEventListener('click', openManualModal);
     var manMod = $('gx-manual-modal');
     if (manMod) manMod.addEventListener('click', function (e) { if (e.target === manMod) closeManualModal(); });

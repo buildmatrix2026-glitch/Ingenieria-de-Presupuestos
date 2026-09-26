@@ -1894,6 +1894,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-f{display:flex;flex-direction:column;gap:5px;min-width:0}
 #v-gas .gx-f.full{grid-column:1/-1}
 #v-gas .gx-f label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gx-tx2);display:flex;align-items:center;justify-content:space-between;gap:6px}
+@media(max-width:480px){ #v-gas .gx-form{grid-template-columns:1fr} #v-gas .gx-f{grid-column:1/-1} }
 #v-gas .gx-in{
   width:100%;min-height:44px;padding:10px 12px;background:var(--gx-bg);color:var(--gx-tx);
   border:1px solid var(--gx-br);border-radius:10px;font-size:16px;font-family:'Outfit',sans-serif;outline:none;
@@ -2053,6 +2054,13 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
 #v-gas .gx-sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:0;font-size:14px;color:var(--gx-tx)}
 #v-gas .gx-sumcell{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){
+  #v-gas .gx-sumgrid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}
+  #v-gas .gx-sumcell{font-size:12.5px;justify-content:flex-start;text-align:left;padding:0 6px;white-space:normal}
+  #v-gas .gx-cattabs{grid-template-columns:repeat(4,minmax(0,1fr))!important;row-gap:8px}
+  #v-gas .gx-cattab{font-size:10px;padding:6px 4px;white-space:normal;line-height:1.25;border-right:none;border-bottom:1px solid var(--gx-br);overflow:visible;text-overflow:clip;min-height:34px}
+  #v-gas .gx-cattab:nth-child(4n){border-right:none}
+}
 
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
 #v-gas .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0}
@@ -3564,14 +3572,13 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
-        <div class="mo" style="width:min(560px,96vw);max-height:min(90vh,820px);overflow-y:auto">
+        <div class="mo" style="width:min(560px,96vw);max-height:min(90vh,820px);display:flex;flex-direction:column">
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div style="padding:20px">
+          <div style="padding:20px;overflow-y:auto;flex:1 1 auto">
             <div class="gx-hint" style="margin-bottom:14px">Revisa los datos antes de guardar</div>
             <div class="gx-card" style="background:transparent;border:none;padding:0">
-              <div class="gx-title"><span>Registro del gasto</span><span class="gx-hint">Revisa los datos antes de guardar</span></div>
               <div class="gx-form">
                 <div class="gx-f full">
                   <label for="gx-proyecto">Proyecto</label>

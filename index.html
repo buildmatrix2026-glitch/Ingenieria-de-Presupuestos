@@ -813,6 +813,7 @@ footer {
 
 
 :root{
+  --gx-vh:100vh;
   --ds:#060B14;--s2:#0A111E;--s3:#0D1626;--s4:#111C30;--sp2:#0D1421;
   --mb:#0052FF;--mbd:#0047D9;--cy:#00D4FF;
   --sl:#8B9CBD;--sld:#5A6B8C;
@@ -1272,14 +1273,14 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .gdet-tr.gdet-found{animation:gdetFoundFlash 2.4s ease-out}
 
 /* modal */
-.mb{position:fixed;inset:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
+.mb{position:fixed;inset:0;height:var(--gx-vh,100vh);background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
 .mb.op{display:flex;animation:fi .22s}
 @keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;max-height:calc(var(--gx-vh,100vh) * 0.84);display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 @media(max-width:640px){
   .mb{padding:10px}
-  .mo{max-height:calc(100vh - 20px)}
+  .mo{max-height:calc(100vh - 20px);max-height:calc(var(--gx-vh,100vh) - 20px)}
 }
 
 /* toast */
@@ -3589,7 +3590,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
-        <div class="mo" style="width:min(560px,96vw);max-height:min(88vh,820px);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(560px,96vw);max-height:min(calc(var(--gx-vh, 100vh) * 0.88),820px);display:flex;flex-direction:column">
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
@@ -3688,7 +3689,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 1: Proyectos — lista de proyectos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-pm">
-        <div class="mo" style="width:min(480px,100%);max-height:min(600px,85vh);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(480px,100%);max-height:min(600px,calc(var(--gx-vh, 100vh) * 0.85));display:flex;flex-direction:column">
           <div class="drh">
             <h3>Proyectos</h3>
             <button type="button" class="ib" id="gx-pm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -3699,7 +3700,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo" style="width:min(1180px,98vw);height:min(76vh,720px);min-height:min(76vh,720px);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(1180px,98vw);height:min(calc(var(--gx-vh, 100vh) * 0.76),720px);min-height:min(calc(var(--gx-vh, 100vh) * 0.76),720px);display:flex;flex-direction:column">
           <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px">
             <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
             <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>
@@ -14605,12 +14606,53 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       projs.map(function (p) { return row(p.name, p.name, p.count, p.total); }).join('');
   }
 
+  // ── Corrección para móvil (Safari/Chrome iOS): cuando la barra de direcciones
+  // se oculta o aparece, los elementos "position:fixed" pueden desalinearse y
+  // recortarse. Dos medidas: (1) altura real visible calculada por JS en vez de
+  // confiar en unidades vh, guardada en --gx-vh; (2) bloquear el scroll del body
+  // mientras alguna de estas ventanas flotantes está abierta, para que la barra
+  // del navegador no cambie de estado (que es lo que dispara el desfase).
+  function _gxSetVH() {
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    document.documentElement.style.setProperty('--gx-vh', h + 'px');
+  }
+  _gxSetVH();
+  window.addEventListener('resize', _gxSetVH);
+  window.addEventListener('orientationchange', function () { setTimeout(_gxSetVH, 60); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', _gxSetVH);
+
+  var _gxScrollLockY = 0, _gxScrollLocked = false;
+  function _gxAnyModalOpen() {
+    return !!(document.querySelector('#gx-manual-modal.op, #gx-pm.op, #gx-pm2.op'));
+  }
+  function _gxSyncScrollLock() {
+    var shouldLock = _gxAnyModalOpen();
+    if (shouldLock && !_gxScrollLocked) {
+      _gxScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.body.style.position = 'fixed';
+      document.body.style.top = (-_gxScrollLockY) + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      _gxScrollLocked = true;
+    } else if (!shouldLock && _gxScrollLocked) {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _gxScrollLockY);
+      _gxScrollLocked = false;
+    }
+  }
+
   function openProjectsModal() {
     var m = $('gx-pm'); if (!m) return;
     renderProjectsList();
     m.classList.add('op');
+    _gxSetVH(); _gxSyncScrollLock();
   }
-  function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); }
+  function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
 
   function refreshProjectDetailHeader() {
     var name = st.filter, list = filtered(load()), s = summarize(list);
@@ -14631,16 +14673,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function openProjectDetailModal(name) {
     st.filter = name; st.shown = 15; st.catFilter = ALL; st.dateFrom = ''; st.dateTo = '';
     var df = $('gx-date-from'), dt = $('gx-date-to'); if (df) df.value = ''; if (dt) dt.value = '';
-    closeProjectsModal();
+    var m = $('gx-pm2'); if (m) m.classList.add('op');
+    var pmm = $('gx-pm'); if (pmm) pmm.classList.remove('op');
     refreshProjectDetailHeader();
     renderList();
-    var m = $('gx-pm2'); if (m) m.classList.add('op');
+    _gxSetVH(); _gxSyncScrollLock();
   }
-  function closeProjectDetailModal() { var m = $('gx-pm2'); if (m) m.classList.remove('op'); }
+  function closeProjectDetailModal() { var m = $('gx-pm2'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
 
   // Ventana "Registro del gasto": el mismo formulario de siempre, ahora en una ventana flotante.
-  function openManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.add('op'); }
-  function closeManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.remove('op'); }
+  function openManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.add('op'); _gxSetVH(); _gxSyncScrollLock(); }
+  function closeManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
 
   /* ─────────────── Modal "Exportar" (PDF o Excel) ─────────────── */
   function openExportModal() {

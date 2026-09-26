@@ -2052,20 +2052,22 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
-#v-gas .gx-cattabs{display:flex;gap:7px;flex-wrap:wrap}
+#v-gas .gx-cattabs{display:flex;align-items:center;flex-wrap:wrap;gap:0}
 #v-gas .gx-cattab{
-  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--gx-br);
-  background:var(--gx-card2);color:var(--gx-tx2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
-  transition:border-color .15s,background .15s,color .15s;
+  display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border:none;border-right:1px solid var(--gx-br);
+  background:transparent;color:var(--gx-tx2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:color .15s;border-radius:0;
 }
-#v-gas .gx-cattab:hover{border-color:var(--gx-pri);color:var(--gx-tx)}
-#v-gas .gx-cattab.sel{background:var(--gx-pri);border-color:var(--gx-pri);color:#fff}
+#v-gas .gx-cattab:first-child{padding-left:0}
+#v-gas .gx-cattab:last-child{border-right:none}
+#v-gas .gx-cattab:hover{color:var(--gx-tx)}
+#v-gas .gx-cattab.sel{color:var(--cy,#00D4FF);font-weight:700}
 #v-gas .gx-cattab i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
 #v-gas .gx-daterange{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #v-gas .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
 #v-gas .gx-date-in{
   background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;
-  font-family:'JetBrains Mono',monospace;font-size:12.5px;color-scheme:dark;
+  font-family:inherit;font-size:12.5px;color-scheme:dark;
 }
 #v-gas .gx-date-in:focus{outline:none;border-color:var(--gx-pri)}
 #v-gas .gx-daterange-sep{color:var(--gx-tx2);font-size:12px}
@@ -3669,13 +3671,11 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo" style="width:min(860px,97vw);max-height:min(88vh,820px);display:flex;flex-direction:column">
-          <div class="drh">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0">
-              <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-              <h3 id="gx-pm2-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Proyecto</h3>
-            </div>
-            <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="mo" style="width:min(860px,97vw);height:min(88vh,820px);min-height:min(88vh,820px);display:flex;flex-direction:column">
+          <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px">
+            <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>
+            <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="justify-self:end"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <div id="gx-pm2-summary" style="padding:16px 20px 0"></div>
           <div class="gx-cattabs" id="gx-cattabs" style="padding:12px 20px 0"></div>

@@ -1275,12 +1275,11 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .mb{position:fixed;inset:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
 .mb.op{display:flex;animation:fi .22s}
 @keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84svh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 @media(max-width:640px){
-  .mb{align-items:flex-start;padding:14px 12px}
-  .mb.op{overflow-y:auto}
-  .mo{max-height:calc(100svh - 28px)}
+  .mb{padding:10px}
+  .mo{max-height:calc(100vh - 20px)}
 }
 
 /* toast */
@@ -3590,7 +3589,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
-        <div class="mo" style="width:min(560px,96vw);max-height:min(90svh,820px);display:flex;flex-direction:column">
+        <div class="mo" style="width:min(560px,96vw);max-height:min(88vh,820px);display:flex;flex-direction:column">
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>

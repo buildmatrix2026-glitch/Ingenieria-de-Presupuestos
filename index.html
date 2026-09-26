@@ -2051,6 +2051,9 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3 .gx-btn{flex:1 1 0;min-width:0;padding-left:10px;padding-right:10px}
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+#v-gas .gx-sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:0;font-size:14px;color:var(--gx-tx)}
+#v-gas .gx-sumcell{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
 #v-gas .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0}
 #v-gas .gx-cattab{
@@ -14590,7 +14593,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var titleEl = $('gx-pm2-title'), sumEl = $('gx-pm2-summary');
     if (titleEl) titleEl.textContent = name === ALL ? 'Todos los proyectos' : name;
     if (sumEl) sumEl.innerHTML = s.count
-      ? (s.count + ' comprobante' + (s.count === 1 ? '' : 's') + ' · Total <b class="gx-mono">' + money(s.total) + '</b> · Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva))
+      ? ('<div class="gx-sumgrid">' +
+          '<div class="gx-sumcell">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div>' +
+          '<div class="gx-sumcell">Total <b class="gx-mono">' + money(s.total) + '</b></div>' +
+          '<div class="gx-sumcell">Subtotal ' + money(s.subtotal) + '</div>' +
+          '<div class="gx-sumcell">IVA ' + money(s.iva) + '</div>' +
+        '</div>')
       : 'Sin comprobantes en esta selección.';
     updateDeleteAllLabel(list);
     renderCatTabs();

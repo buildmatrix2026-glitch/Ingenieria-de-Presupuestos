@@ -3624,6 +3624,10 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div class="gx-title"><span>Resumen de gastos</span><span class="gx-hint gx-sync" id="gx-sync"></span></div>
               <div id="gx-sum"></div>
               <div class="gx-row" style="margin-top:16px">
+                <button type="button" class="gx-btn" id="gx-personal-btn" style="width:100%;min-height:44px;font-size:13.5px;margin-bottom:8px;color:var(--brc);border-color:var(--brc)">
+                  <svg class="gx-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span>Gastos Personales SRI</span>
+                </button>
                 <button type="button" class="gx-btn primary" id="gx-projects-btn" style="width:100%;min-height:50px;font-size:14.5px">
                   <svg class="gx-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
                   <span>Proyectos</span>
@@ -3790,6 +3794,23 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       </div>
 
+      <!-- Modal: Gastos Personales SRI — lista de facturas personales -->
+      <div class="mb" id="gx-ppm">
+        <div class="mo mo-w-sm2" style="display:flex;flex-direction:column">
+          <div class="drh">
+            <h3>Gastos Personales SRI</h3>
+            <button type="button" class="ib" id="gx-ppm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div id="gx-ppm-summary" style="padding:14px 16px 0;flex-shrink:0"></div>
+          <div id="gx-ppm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto;min-height:0"></div>
+          <div class="gx-row" style="padding:14px 16px;border-top:1px solid var(--gx-br);flex-shrink:0">
+            <button type="button" class="gx-btn gx-btn-danger" id="gx-ppm-clear" style="flex:1;min-height:44px">
+              <svg class="gx-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+              <span>Vaciar gastos personales</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Modal: exportar gastos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-exb">
@@ -14809,7 +14830,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   var _gxScrollLockY = 0, _gxScrollLocked = false;
   function _gxAnyModalOpen() {
-    return !!(document.querySelector('#gx-manual-modal.op, #gx-pm.op, #gx-pm2.op'));
+    return !!(document.querySelector('#gx-manual-modal.op, #gx-pm.op, #gx-pm2.op, #gx-ppm.op'));
   }
   function _gxSyncScrollLock() {
     var shouldLock = _gxAnyModalOpen();
@@ -14839,6 +14860,67 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     _gxSetVH(); _gxSyncScrollLock();
   }
   function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+
+  /* ─── Modal Gastos Personales SRI ─── */
+  function openPersonalModal() {
+    var m = $('gx-ppm'); if (!m) return;
+    renderPersonalModal();
+    m.classList.add('op');
+    _gxSetVH(); _gxSyncScrollLock();
+  }
+  function closePersonalModal() { var m = $('gx-ppm'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+
+  function renderPersonalModal() {
+    var list = loadPersonal();
+    var sumEl = $('gx-ppm-summary');
+    var box = $('gx-ppm-list');
+    if (!box) return;
+
+    // Resumen total
+    var s = summarizePersonal(list);
+    if (sumEl) {
+      sumEl.innerHTML = '<div class="gx-sumgrid">' +
+        '<div class="gx-sumcell">' + s.count + ' comprobante' + (s.count===1?'':'s') + '</div>' +
+        '<div class="gx-sumcell">Total <b class="gx-mono">' + money(s.total) + '</b></div>' +
+        '<div class="gx-sumcell">Subtotal ' + money(s.subtotal) + '</div>' +
+        '<div class="gx-sumcell">IVA ' + money(s.iva) + '</div>' +
+      '</div>';
+    }
+
+    if (!list.length) {
+      box.innerHTML = '<div class="gx-empty">Aún no hay gastos personales registrados.<br>Selecciona "— Gastos Personales —" al subir facturas.</div>';
+      return;
+    }
+
+    // Agrupar por categoría
+    var byCat = {};
+    PCATS.forEach(function(c){ byCat[c] = []; });
+    list.forEach(function(g){ (byCat[g.categoria] || (byCat['Alimentación'] = byCat['Alimentación']||[])).push(g); });
+
+    var html = '';
+    PCATS.forEach(function(cat) {
+      var items = byCat[cat] || [];
+      if (!items.length) return;
+      var col = PCAT_COLORS[cat] || '#06B6D4';
+      var catTotal = items.reduce(function(a,g){ return a + (g.total||0); }, 0);
+      html += '<div style="margin-bottom:18px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<span style="font-size:12px;font-weight:600;color:' + col + ';text-transform:uppercase;letter-spacing:.04em">' + esc(cat) + '</span>' +
+          '<span class="gx-mono" style="font-size:13px;font-weight:600">' + money(catTotal) + '</span>' +
+        '</div>';
+      items.forEach(function(g) {
+        html += '<div class="gx-dr" style="margin-bottom:4px">' +
+          '<div style="min-width:0">' +
+            '<div class="n">' + esc(g.proveedor || '—') + '</div>' +
+            '<div class="d">' + (g.fecha ? fmtDateEs(g.fecha) : '') + (g.numero ? ' · N° ' + esc(g.numero) : '') + '</div>' +
+          '</div>' +
+          '<div class="v">' + money(g.total) + '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    });
+    box.innerHTML = html;
+  }
 
   function refreshProjectDetailHeader() {
     var name = st.filter, list = filtered(load()), s = summarize(list);
@@ -14955,13 +15037,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d"><span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
+      var batchProy = val('gx-batch-proyecto');
+      var isPersonal = batchProy === '__personal__';
+      var activeCats = isPersonal ? PCATS : CATS;
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
-          (canEdit ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+          (canEdit ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + activeCats.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
           (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
           '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
@@ -15201,6 +15286,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (id) { var d = draftById(id); if (d) d.cat = t.value; }
     });
     $('gx-batch-applycat').addEventListener('click', function () { var c = val('gx-batch-cat'); st.drafts.forEach(function (d) { d.cat = c; }); renderBatch(); say('Categoría "' + c + '" aplicada a todas'); });
+    // Actualizar opciones del select de categoría global al cambiar proyecto
+    var batchProyEl = $('gx-batch-proyecto');
+    function syncBatchCatOptions() {
+      var sel = $('gx-batch-cat'); if (!sel) return;
+      var isP = val('gx-batch-proyecto') === '__personal__';
+      var cats = isP ? PCATS : CATS;
+      var cur = sel.value;
+      sel.innerHTML = cats.map(function(c){ return '<option value="' + esc(c) + '"' + (c===cur?' selected':'') + '>' + esc(c) + '</option>'; }).join('');
+      if (!cats.includes(sel.value)) sel.value = cats[0];
+    }
+    if (batchProyEl) batchProyEl.addEventListener('change', function() { syncBatchCatOptions(); renderBatch(); });
     $('gx-batch-save').addEventListener('click', saveAllDrafts);
     $('gx-batch-stop').addEventListener('click', function () {
       st.batchCancel = true;
@@ -15241,6 +15337,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-export').addEventListener('click', openExportModal);
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
+    // Modal gastos personales
+    var ppmBtn = $('gx-personal-btn'); if (ppmBtn) ppmBtn.addEventListener('click', openPersonalModal);
+    var ppmX = $('gx-ppm-x'); if (ppmX) ppmX.addEventListener('click', closePersonalModal);
+    var ppmClear = $('gx-ppm-clear');
+    if (ppmClear) ppmClear.addEventListener('click', function() {
+      if (!confirm('¿Vaciar todos los gastos personales SRI? Esta acción no se puede deshacer.')) return;
+      savePersonal([]); renderPersonalSummary(); renderPersonalModal(); say('Gastos personales eliminados');
+    });
+    // Cerrar modal personal al hacer click fuera
+    var ppmModal = $('gx-ppm');
+    if (ppmModal) ppmModal.addEventListener('click', function(e) { if (e.target === ppmModal) closePersonalModal(); });
     var pmMod = $('gx-pm');
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);

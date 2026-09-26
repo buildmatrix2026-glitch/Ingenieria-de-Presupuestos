@@ -1226,7 +1226,7 @@ tr.added{animation:sla .45s var(--es)}
 .db.op{opacity:1;pointer-events:auto}
 .dr{position:fixed;top:0;right:0;bottom:0;width:min(500px,93vw);background:var(--s2);border-left:1px solid var(--br);z-index:301;transform:translateX(104%);transition:transform .42s var(--es);display:flex;flex-direction:column}
 .db.op .dr{transform:none}
-.drh{padding:16px 20px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:11px}
+.drh{padding:16px 20px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:11px;flex-shrink:0}
 .drh h3{font-size:16px;font-weight:700;flex:1}
 .drt{padding:12px 20px;display:flex;flex-direction:column;gap:11px;border-bottom:1px solid var(--br)}
 .drl{flex:1;overflow-y:auto;padding:6px}
@@ -3593,7 +3593,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div style="padding:20px;overflow-y:auto;flex:1 1 auto">
+          <div style="padding:20px;overflow-y:auto;flex:1 1 auto;min-height:0">
             <div class="gx-hint" style="margin-bottom:14px">Revisa los datos antes de guardar</div>
             <div class="gx-card" style="background:transparent;border:none;padding:0">
               <div class="gx-form">
@@ -3693,7 +3693,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             <h3>Proyectos</h3>
             <button type="button" class="ib" id="gx-pm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div id="gx-pm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto"></div>
+          <div id="gx-pm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto;min-height:0"></div>
         </div>
       </div>
 
@@ -3705,21 +3705,21 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>
             <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="justify-self:end"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div id="gx-pm2-summary" style="padding:16px 20px 0"></div>
-          <div class="gx-cattabs" id="gx-cattabs" style="padding:12px 14px 0"></div>
-          <div class="gx-daterange" style="padding:12px 20px 0">
+          <div id="gx-pm2-summary" style="padding:16px 20px 0;flex-shrink:0"></div>
+          <div class="gx-cattabs" id="gx-cattabs" style="padding:12px 14px 0;flex-shrink:0"></div>
+          <div class="gx-daterange" style="padding:12px 20px 0;flex-shrink:0">
             <span class="gx-daterange-lbl">Rango de fechas</span>
             <input type="date" id="gx-date-from" class="gx-date-in" aria-label="Desde">
             <span class="gx-daterange-sep">→</span>
             <input type="date" id="gx-date-to" class="gx-date-in" aria-label="Hasta">
             <button type="button" class="gx-date-clear" id="gx-date-clear" title="Quitar filtro de fechas">✕</button>
           </div>
-          <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto">
+          <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto;min-height:0">
             <div class="gx-hint" id="gx-count" style="margin-bottom:8px;text-align:right"></div>
             <div class="gx-list" id="gx-list"></div>
             <div class="gx-row" id="gx-more-wrap" style="display:none"><button type="button" class="gx-btn" id="gx-more">Mostrar más</button></div>
           </div>
-          <div class="gx-row" style="padding:16px 20px;border-top:1px solid var(--gx-br)">
+          <div class="gx-row" style="padding:16px 20px;border-top:1px solid var(--gx-br);flex-shrink:0">
             <button type="button" class="gx-btn primary" id="gx-export" style="flex:1;min-height:46px"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exportar</span></button>
             <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="flex:1;min-height:46px"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
           </div>

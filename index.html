@@ -3570,6 +3570,13 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                   <option value="">— Selecciona proyecto —</option>
                 </select>
               </div>
+              <div style="margin-top:10px;margin-bottom:6px">
+                <label style="display:block;font-size:11.5px;font-weight:600;color:var(--gx-tx2);letter-spacing:.03em;margin-bottom:5px;text-transform:uppercase">Gastos Personales SRI</label>
+                <select class="gx-in" id="gx-personal-toggle" style="width:100%;min-height:42px;font-size:14px" aria-label="Activar gastos personales">
+                  <option value="">— Solo gastos de obra —</option>
+                  <option value="personal">📋 Registrar como Gasto Personal SRI</option>
+                </select>
+              </div>
               <div class="gx-row">
                 <label class="gx-btn" id="gx-gal" for="gx-file-gal"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Subir imágenes o PDF</span></label>
                 <button type="button" class="gx-btn" id="gx-key-btn"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Clave API</span></button>
@@ -3626,6 +3633,22 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                 <button type="button" class="gx-btn primary" id="gx-projects-btn" style="width:100%;min-height:50px;font-size:14.5px">
                   <svg class="gx-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
                   <span>Proyectos</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ RESUMEN GASTOS PERSONALES SRI ══ -->
+        <div class="gx-cols" style="margin-top:18px">
+          <div class="gx-col" style="grid-column:1/-1">
+            <div class="gx-card" id="gx-personal-card">
+              <div class="gx-title"><span>Gastos Personales SRI</span><span class="gx-hint" id="gx-personal-sync" style="margin-left:8px"></span></div>
+              <div id="gx-personal-sum"></div>
+              <div class="gx-row" style="margin-top:16px">
+                <button type="button" class="gx-btn" id="gx-personal-clear-btn" style="width:100%;min-height:44px;font-size:13.5px;color:var(--gx-tx2)">
+                  <svg class="gx-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  <span>Vaciar gastos personales</span>
                 </button>
               </div>
             </div>
@@ -12837,6 +12860,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   'use strict';
 
   var CATS = ['Materiales', 'Mano de Obra', 'Equipos y Maquinaria', 'Subcontratos', 'Gastos Indirectos', 'Gastos Trámites'];
+  // ── Gastos Personales SRI ──
+  var PCATS = ['Alimentación', 'Vestimenta', 'Vivienda', 'Salud', 'Educación', 'Arte y Cultura', 'Turismo'];
+  var PCAT_COLORS = { 'Alimentación': '#F97316', 'Vestimenta': '#8B5CF6', 'Vivienda': '#0EA5E9', 'Salud': '#10B981', 'Educación': '#F59E0B', 'Arte y Cultura': '#EC4899', 'Turismo': '#06B6D4' };
+  function pkey() { return 'bm_gastos_personal_v1_' + uid(); }
+  function loadPersonal() { try { var a = JSON.parse(localStorage.getItem(pkey())); return Array.isArray(a) ? a : []; } catch(e) { return []; } }
+  function savePersonal(list) { try { localStorage.setItem(pkey(), JSON.stringify(list)); return true; } catch(e) { say('⚠ Sin espacio para guardar gasto personal'); return false; } }
   var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' };
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
 
@@ -12982,7 +13011,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '"Subcontratos" → solo si se contrata a otra empresa para ejecutar una parte completa de la obra. ' +
     '"Gastos Indirectos" → combustible de cualquier tipo (gasolina, diesel, GLP, gasoil), lubricantes, aceite de motor, llantas; también transporte de personas, alimentación, hospedaje, agua, luz, teléfono, internet, papelería, limpieza, uniformes, peajes, seguros. REGLA: si ves la palabra diesel, gasolina, combustible, fuel, galones, litros de combustible, o el emisor es una estación de servicio o gasolinera → categoria = "Gastos Indirectos" SIN EXCEPCIÓN. ' +
     '"Gastos Trámites" → permisos, tasas municipales, impuestos, honorarios de abogado o contador, notaría, registros, asesoría. ' +
-    'Si la factura mezcla varios tipos, elige la categoría del ítem de mayor valor. No uses "Materiales" para combustible ni lubricantes nunca.';
+    'Si la factura mezcla varios tipos, elige la categoría del ítem de mayor valor. No uses "Materiales" para combustible ni lubricantes nunca. ' +
+    'Incluye también la clave "categoria_personal" con UNO de estos valores exactos según las categorías SRI de gastos personales deducibles del Ecuador: ' +
+    '"Alimentación" → restaurantes, supermercados, alimentos, bebidas, comida. ' +
+    '"Vestimenta" → ropa, calzado, accesorios de vestir, telas, confección. ' +
+    '"Vivienda" → arriendo, servicios básicos (agua, luz, gas), mantenimiento hogar, internet, telefonía fija, muebles, electrodomésticos para el hogar. ' +
+    '"Salud" → medicamentos, consultas médicas, hospitales, clínicas, ópticas, dentistas, seguros médicos, exámenes de laboratorio. ' +
+    '"Educación" → colegiaturas, matrículas, libros, útiles escolares, cursos, capacitaciones, uniformes escolares, pensiones educativas. ' +
+    '"Arte y Cultura" → entradas a museos, teatro, cine, conciertos, libros de cultura, artesanías, actividades culturales. ' +
+    '"Turismo" → hoteles, hospedaje, agencias de viaje, transporte turístico, tours, actividades recreativas y turísticas. ' +
+    'Si la factura corresponde a un gasto de obra o empresa (no personal), igualmente incluye la clave con la categoría SRI más cercana al tipo de gasto.';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
   function prepareImage(file) {
@@ -13255,6 +13293,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }).filter(function (d) { return d.base || d.iva; }),
       items: (Array.isArray(j.items) ? j.items : []).map(normItem).filter(function (it) { return it.desc || it.cod || it.total > 0; }),
       categoria: String(j.categoria || '').trim(),
+      categoria_personal: String(j.categoria_personal || '').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -13539,6 +13578,64 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     el.innerHTML = html;
   }
 
+  /* ─── Gastos Personales SRI ─── */
+  function summarizePersonal(list) {
+    var r = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {} };
+    PCATS.forEach(function(c) { r.byCat[c] = 0; });
+    list.forEach(function(g) {
+      r.total += g.total; r.subtotal += (g.subtotal || 0); r.iva += (g.iva || 0);
+      r.byCat[g.categoria] = (r.byCat[g.categoria] || 0) + g.total;
+    });
+    r.total = round2(r.total); r.subtotal = round2(r.subtotal); r.iva = round2(r.iva);
+    return r;
+  }
+
+  function renderPersonalSummary() {
+    var el = $('gx-personal-sum'); if (!el) return;
+    var list = loadPersonal(), s = summarizePersonal(list);
+    var cats = PCATS.slice().sort(function(a,b){ return s.byCat[b] - s.byCat[a]; });
+    var max = Math.max.apply(null, cats.map(function(c){ return s.byCat[c]; }).concat([1]));
+    var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastos personales</div><div class="gx-big">' + money(s.total) + '</div>' +
+      '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div></div>' +
+      '<div class="gx-hint gx-mono">' + s.count + ' comprobante' + (s.count===1?'':'s') + '</div></div>';
+    if (!s.count) {
+      html += '<div class="gx-empty">Aún no hay gastos personales. Selecciona "Gastos Personales SRI" al subir facturas.</div>';
+    } else {
+      html += '<div class="gx-bars">' + cats.map(function(c) {
+        var v = s.byCat[c]||0, pct = s.total ? (v/s.total*100) : 0, col = PCAT_COLORS[c]||'#0052FF';
+        return '<div class="gx-bar' + (v?'':' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
+          '<div class="t"><i style="width:' + (v/max*100).toFixed(1) + '%;background:' + col + '"></i></div>' +
+          '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
+      }).join('') + '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function gastoPersonalFromData(data) {
+    var cat = (data.categoria_personal && PCATS.indexOf(data.categoria_personal) >= 0) ? data.categoria_personal : 'Alimentación';
+    return {
+      id: 'gxp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      proveedor: data.proveedor || '', ruc: data.ruc || '', numero: data.numero || '',
+      fecha: data.fecha || '', subtotal: data.subtotal || 0, iva: data.iva || 0,
+      total: data.total || 0, categoria: cat, items: data.items || [],
+      guardadoEn: new Date().toISOString()
+    };
+  }
+
+  function savePersonalGasto(data) {
+    var list = loadPersonal();
+    list.push(gastoPersonalFromData(data));
+    if (savePersonal(list)) { renderPersonalSummary(); say('Gasto personal guardado ✓'); }
+  }
+
+  function initPersonalEvents() {
+    var clearBtn = $('gx-personal-clear-btn');
+    if (clearBtn) clearBtn.addEventListener('click', function() {
+      if (!confirm('¿Vaciar todos los gastos personales SRI? Esta acción no se puede deshacer.')) return;
+      savePersonal([]); renderPersonalSummary(); say('Gastos personales eliminados');
+    });
+  }
+
   function fmtPU(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 6 }); }
 
   function detailHtml(g) {
@@ -13590,7 +13687,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function render() {
     wire();
     ensureCloud();
-    renderProjects(); renderSummary(); renderList(); renderKeyInfo(); renderItems(); renderDesglose(); renderSync(); renderBatch();
+    renderProjects(); renderSummary(); renderList(); renderKeyInfo(); renderItems(); renderDesglose(); renderSync(); renderBatch(); renderPersonalSummary(); initPersonalEvents();
     var pm2 = $('gx-pm2'); if (pm2 && pm2.classList.contains('op')) refreshProjectDetailHeader();   // por si cambia algo mientras está abierta
     var f = $('gx-fecha'); if (f && !f.value) f.value = todayISO();
   }
@@ -13693,6 +13790,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     setVal('gx-cliente-id', o.clienteId || '', !!o.clienteId);
     setVal('gx-fpago', o.formaPago || '', !!o.formaPago);
     st.totalTouched = o.total > 0;
+    st._lastAIData = o; // guarda data IA completa para categoria_personal
     if (o.categoria && CATS.indexOf(o.categoria) >= 0) { setVal('gx-cat', o.categoria, false); var elCat = $('gx-cat'); if (elCat) elCat.classList.add('gx-ai'); }
     st.items = (o.items || []).map(function (it) { var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; }); c._t = true; return c; });
     st.extra = { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 };
@@ -13758,6 +13856,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     list.push(g);
     if (!save(list)) return;
     pushCloud(g);
+    // Si el toggle de gastos personales está activo, guardar también en personal
+    var toggleEl = document.getElementById('gx-personal-toggle');
+    if (toggleEl && toggleEl.value === 'personal') {
+      var pdata = Object.assign({}, g, { categoria_personal: (st._lastAIData && st._lastAIData.categoria_personal) || 'Alimentación' });
+      savePersonalGasto(pdata);
+    }
     var fromDraft = st.editing;
     resetForm();
     if (fromDraft) removeDraft(fromDraft);
@@ -14984,7 +15088,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     lines.push('¿Continuar?');
     if (!confirm(lines.join('\n'))) return;
     var list = saved.slice(), created = [];
-    ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Materiales'); list.push(g); created.push(g); });
+    var personalToggle = document.getElementById('gx-personal-toggle');
+    ok.forEach(function (d) {
+      var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Materiales');
+      list.push(g); created.push(g);
+      if (personalToggle && personalToggle.value === 'personal') {
+        var pd = Object.assign({}, d.data, { categoria_personal: d.data.categoria_personal || 'Alimentación' });
+        var plist = loadPersonal(); plist.push(gastoPersonalFromData(pd)); savePersonal(plist);
+      }
+    });
     if (!save(list)) return;
     created.forEach(pushCloud);
     var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; });

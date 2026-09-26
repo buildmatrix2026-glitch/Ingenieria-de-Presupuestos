@@ -1273,25 +1273,42 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .gdet-tr.gdet-found{animation:gdetFoundFlash 2.4s ease-out}
 
 /* modal */
-.mb{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
+.mb{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
 .mb.op{display:flex;animation:fi .22s}
 @keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
-.mo.mo-w-sm{width:min(560px,96vw)}
-.mo.mo-w-sm2{width:min(480px,96vw)}
-.mo.mo-w-lg{width:min(1180px,98vw)}
-.mo.mo-tall{max-height:min(76vh,720px)}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:min(84vh,calc(100dvh - 32px));display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+.mo.mo-w-sm{width:min(560px,calc(100vw - 32px))}
+.mo.mo-w-sm2{width:min(480px,calc(100vw - 32px))}
+.mo.mo-w-lg{width:min(1180px,calc(100vw - 32px))}
+.mo.mo-tall{max-height:min(80vh,calc(100dvh - 32px))}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
-/* En móvil, la "ventana flotante" pasa a ser pantalla completa: sin esto, cualquier
-   cálculo de alto (vh) queda a merced de la barra de direcciones del navegador,
-   que cambia de tamaño en cualquier momento y puede recortar el contenido. Al ocupar
-   el 100% real del contenedor .mb (que ya sabemos que sí cubre la pantalla completa
-   de forma fiable), no queda ningún cálculo que pueda salir mal. */
+/* Móvil: ventana flotante con margen lateral, sin ocupar toda la pantalla */
 @media(max-width:640px){
-  .mb{padding:0}
-  .mo,.mo.mo-w-sm,.mo.mo-w-sm2,.mo.mo-w-lg,.mo.mo-tall{
-    width:100%;max-width:100%;height:100%;max-height:100%;
-    border-radius:0;border-left:none;border-right:none;box-shadow:none;
+  .mb{padding:12px 10px;align-items:flex-end}
+  .mo,.mo.mo-w-sm,.mo.mo-w-sm2{
+    width:100%;
+    max-width:100%;
+    max-height:calc(100dvh - 80px);
+    border-radius:18px 18px 12px 12px;
+    border-left:1px solid var(--br);
+    border-right:1px solid var(--br);
+    box-shadow:0 -8px 40px rgba(0,0,0,.45);
+  }
+  .mo.mo-w-lg,.mo.mo-tall{
+    width:100%;
+    max-width:100%;
+    max-height:calc(100dvh - 56px);
+    border-radius:18px 18px 12px 12px;
+    border-left:1px solid var(--br);
+    border-right:1px solid var(--br);
+    box-shadow:0 -8px 40px rgba(0,0,0,.45);
+  }
+  /* Handle bar visual en modales móvil */
+  .mo::before{
+    content:'';display:block;flex-shrink:0;
+    width:40px;height:4px;border-radius:2px;
+    background:rgba(139,156,189,.3);
+    margin:10px auto 0;
   }
 }
 

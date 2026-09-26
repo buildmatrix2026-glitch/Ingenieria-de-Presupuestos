@@ -1273,14 +1273,18 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .gdet-tr.gdet-found{animation:gdetFoundFlash 2.4s ease-out}
 
 /* modal */
-.mb{position:fixed;inset:0;height:var(--gx-vh,100vh);background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
+.mb{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
 .mb.op{display:flex;animation:fi .22s}
 @keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;max-height:calc(var(--gx-vh,100vh) * 0.84);display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
+.mo.mo-w-sm{width:min(560px,96vw)}
+.mo.mo-w-sm2{width:min(480px,96vw)}
+.mo.mo-w-lg{width:min(1180px,98vw)}
+.mo.mo-tall{max-height:min(76vh,720px)}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 @media(max-width:640px){
   .mb{padding:10px}
-  .mo{max-height:calc(100vh - 20px);max-height:calc(var(--gx-vh,100vh) - 20px)}
+  .mo,.mo.mo-tall{max-height:calc(100vh - 20px)}
 }
 
 /* toast */
@@ -3590,7 +3594,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
-        <div class="mo" style="width:min(560px,96vw);max-height:min(calc(var(--gx-vh, 100vh) * 0.88),820px);display:flex;flex-direction:column">
+        <div class="mo mo-w-sm" style="display:flex;flex-direction:column">
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
@@ -3689,7 +3693,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 1: Proyectos — lista de proyectos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-pm">
-        <div class="mo" style="width:min(480px,100%);max-height:min(600px,calc(var(--gx-vh, 100vh) * 0.85));display:flex;flex-direction:column">
+        <div class="mo mo-w-sm2" style="display:flex;flex-direction:column">
           <div class="drh">
             <h3>Proyectos</h3>
             <button type="button" class="ib" id="gx-pm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -3700,7 +3704,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo" style="width:min(1180px,98vw);height:min(calc(var(--gx-vh, 100vh) * 0.76),720px);min-height:min(calc(var(--gx-vh, 100vh) * 0.76),720px);display:flex;flex-direction:column">
+        <div class="mo mo-w-lg mo-tall" style="display:flex;flex-direction:column">
           <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px">
             <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
             <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>

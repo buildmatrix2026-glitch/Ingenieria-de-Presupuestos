@@ -1288,27 +1288,24 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
      .mb empieza desde top:0 (toda la pantalla), así que:
        - padding-top = navbar(90px) + margen(70px) = 160px
        - padding-bottom = margen(70px) = 70px                */
-  .mb{padding:160px 16px 70px;align-items:flex-start;box-sizing:border-box}
+  .mb{padding:16px;align-items:center;box-sizing:border-box}
 
-  /* Todos los modales: altura = pantalla - navbar(90) - margen_arriba(70) - margen_abajo(70) */
+  /* Todos los modales: se adaptan al contenido respetando el padding del .mb */
   .mo,.mo.mo-w-sm,.mo.mo-w-sm2{
     width:100%;
     max-width:100%;
-    height:calc(100dvh - 230px);
-    max-height:calc(100dvh - 230px);
+    height:auto;
+    max-height:calc(100dvh - 32px);
     border-radius:18px;
-    
     box-shadow:0 8px 40px rgba(0,0,0,.45);
   }
-  /* Modal grande facturas: altura fija, no se encoge al cambiar categoría */
+  /* Modal grande facturas */
   .mo.mo-w-lg,.mo.mo-tall{
     width:100%;
     max-width:100%;
-    height:calc(100dvh - 230px);
-    max-height:calc(100dvh - 230px);
-    min-height:calc(100dvh - 230px);
+    height:auto;
+    max-height:calc(100dvh - 32px);
     border-radius:18px;
-    
     box-shadow:0 8px 40px rgba(0,0,0,.45);
   }
   /* Handle bar visual */

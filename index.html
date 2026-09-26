@@ -2013,6 +2013,35 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-btn-danger:hover{background:rgba(248,113,113,.14);border-color:var(--gx-err);box-shadow:0 8px 24px rgba(248,113,113,.14)}
 #v-gas .gx-row .gx-btn{flex:1 1 0}
 
+/* Tarjeta unificada: Resumen de gastos + Últimos comprobantes en un solo cuadro */
+#v-gas .gx-card-unified{display:flex;flex-direction:column}
+#v-gas .gx-divider{height:1px;background:var(--gx-br);margin:18px 0 14px;border:none}
+
+/* Selector "ventana flotante" (reemplaza visualmente al <select> nativo, sin cambiar su lógica) */
+#v-gas .gx-dd{position:relative}
+#v-gas .gx-dd-native{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden}
+#v-gas .gx-dd-trigger{
+  width:100%;min-height:44px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:10px;cursor:pointer;
+  font-family:'Outfit',sans-serif;font-size:15px;text-align:left;transition:border-color .15s,box-shadow .15s;
+}
+#v-gas .gx-dd-trigger:hover{border-color:var(--gx-pri)}
+#v-gas .gx-dd.open .gx-dd-trigger{border-color:var(--gx-pri);box-shadow:0 0 0 3px rgba(0,82,255,.18)}
+#v-gas .gx-dd-trigger svg{flex:0 0 auto;color:var(--gx-tx2);transition:transform .15s}
+#v-gas .gx-dd.open .gx-dd-trigger svg{transform:rotate(180deg)}
+#v-gas .gx-dd-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-gas .gx-dd-panel{
+  display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;max-height:260px;overflow-y:auto;
+  background:var(--gx-card2);border:1px solid var(--gx-br);border-radius:12px;padding:6px;
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+}
+#v-gas .gx-dd.open .gx-dd-panel{display:block}
+#v-gas .gx-dd-opt{
+  padding:10px 12px;border-radius:8px;font-size:14px;color:var(--gx-tx);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#v-gas .gx-dd-opt:hover{background:rgba(0,82,255,.14)}
+#v-gas .gx-dd-opt.sel{background:var(--gx-pri);color:#fff;font-weight:600}
+
 /* ═══════════ PRESUPUESTO AVANZADO CON IA (#v-pia) ═══════════ */
 #v-pia{font-family:var(--f-ui);color:var(--ow)}
 #v-pia *{box-sizing:border-box}
@@ -3439,6 +3468,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                   <option value="Equipos y Maquinaria">Equipos y Maquinaria</option>
                   <option value="Subcontratos">Subcontratos</option>
                   <option value="Gastos Indirectos">Gastos Indirectos</option>
+                    <option value="Gastos Trámites">Gastos Trámites</option>
                 </select>
                 <button type="button" class="gx-btn" id="gx-batch-applycat" style="flex:1 1 150px">Categoría a todas</button>
               </div>
@@ -3458,7 +3488,14 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div class="gx-form">
                 <div class="gx-f full">
                   <label for="gx-proyecto">Proyecto</label>
-                  <select class="gx-in" id="gx-proyecto"></select>
+                  <div class="gx-dd" id="gx-proyecto-dd">
+                    <select class="gx-in gx-dd-native" id="gx-proyecto"></select>
+                    <button type="button" class="gx-dd-trigger" id="gx-proyecto-trigger" aria-haspopup="listbox">
+                      <span class="gx-dd-val" id="gx-proyecto-val"></span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <div class="gx-dd-panel" id="gx-proyecto-panel" role="listbox"></div>
+                  </div>
                 </div>
                 <div class="gx-f full">
                   <label for="gx-proveedor">Proveedor</label>
@@ -3484,6 +3521,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                     <option value="Equipos y Maquinaria">Equipos y Maquinaria</option>
                     <option value="Subcontratos">Subcontratos</option>
                     <option value="Gastos Indirectos">Gastos Indirectos</option>
+                    <option value="Gastos Trámites">Gastos Trámites</option>
                   </select>
                 </div>
                 <div class="gx-f">
@@ -3535,23 +3573,28 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             </div>
           </div>
 
-          <!-- Columna derecha: resumen + lista -->
+          <!-- Columna derecha: TODO el resumen y la lista, en un solo cuadro -->
           <div class="gx-col">
-            <div class="gx-card">
+            <div class="gx-card gx-card-unified">
               <div class="gx-title"><span>Resumen de gastos</span><span class="gx-hint gx-sync" id="gx-sync"></span></div>
               <div class="gx-f" style="margin-bottom:14px">
                 <label for="gx-filtro">Ver</label>
-                <select class="gx-in" id="gx-filtro"></select>
+                <div class="gx-dd" id="gx-filtro-dd">
+                  <select class="gx-in gx-dd-native" id="gx-filtro"></select>
+                  <button type="button" class="gx-dd-trigger" id="gx-filtro-trigger" aria-haspopup="listbox">
+                    <span class="gx-dd-val" id="gx-filtro-val"></span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <div class="gx-dd-panel" id="gx-filtro-panel" role="listbox"></div>
+                </div>
               </div>
               <div id="gx-sum"></div>
               <div class="gx-row" style="margin-top:14px">
                 <button type="button" class="gx-btn primary" id="gx-export" style="min-height:46px;letter-spacing:.06em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>EXPORTAR</span></button>
                 <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="min-height:46px;letter-spacing:.02em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
               </div>
-            </div>
-
-            <div class="gx-card">
-              <div class="gx-title"><span>Últimos comprobantes</span><span class="gx-hint" id="gx-count"></span></div>
+              <div class="gx-divider"></div>
+              <div class="gx-title" style="margin-top:2px"><span>Últimos comprobantes</span><span class="gx-hint" id="gx-count"></span></div>
               <div class="gx-list" id="gx-list"></div>
               <div class="gx-row" id="gx-more-wrap" style="display:none"><button type="button" class="gx-btn" id="gx-more">Mostrar más</button></div>
             </div>
@@ -12621,8 +12664,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 (function () {
   'use strict';
 
-  var CATS = ['Materiales', 'Mano de Obra', 'Equipos y Maquinaria', 'Subcontratos', 'Gastos Indirectos'];
-  var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899' };
+  var CATS = ['Materiales', 'Mano de Obra', 'Equipos y Maquinaria', 'Subcontratos', 'Gastos Indirectos', 'Gastos Trámites'];
+  var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' };
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
 
   var st = { busy: false, totalTouched: false, filter: ALL, shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
@@ -13240,6 +13283,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       sel.innerHTML = names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') +
         '<option value="' + OTHER + '">＋ Otro proyecto…</option>';
       sel.value = pref;
+      syncDropdownPanel('gx-proyecto-dd');
     }
     var f = $('gx-filtro');
     if (f) {
@@ -13249,6 +13293,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         fnames.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
       if (fcur !== ALL && fnames.indexOf(fcur) < 0) fcur = ALL;
       st.filter = fcur; f.value = fcur;
+      syncDropdownPanel('gx-filtro-dd');
     }
   }
 
@@ -14638,6 +14683,39 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     st.drafts = []; st.editing = null; setBatchMsg(''); renderBatch();
   }
 
+  /* ─────────────── Selector "ventana flotante" (Proyecto / Ver) ─────────────── */
+  function syncDropdownPanel(ddId) {
+    var dd = $(ddId); if (!dd) return;
+    var sel = dd.querySelector('.gx-dd-native'), panel = dd.querySelector('.gx-dd-panel'), valEl = dd.querySelector('.gx-dd-val');
+    if (!sel || !panel || !valEl) return;
+    var opts = Array.prototype.slice.call(sel.options);
+    panel.innerHTML = opts.map(function (o) {
+      return '<div class="gx-dd-opt' + (o.value === sel.value ? ' sel' : '') + '" data-v="' + esc(o.value) + '" role="option">' + esc(o.textContent) + '</div>';
+    }).join('');
+    var cur = opts.filter(function (o) { return o.value === sel.value; })[0];
+    valEl.textContent = cur ? cur.textContent : '';
+  }
+  function closeAllDropdowns() { document.querySelectorAll('.gx-dd.open').forEach(function (d) { d.classList.remove('open'); }); }
+  function wireDropdown(ddId) {
+    var dd = $(ddId); if (!dd || dd.dataset.ddWired) return;
+    dd.dataset.ddWired = '1';
+    var sel = dd.querySelector('.gx-dd-native'), trigger = dd.querySelector('.gx-dd-trigger'), panel = dd.querySelector('.gx-dd-panel');
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      closeAllDropdowns();
+      if (willOpen) { syncDropdownPanel(ddId); dd.classList.add('open'); }
+    });
+    panel.addEventListener('click', function (e) {
+      var opt = e.target.closest('.gx-dd-opt'); if (!opt) return;
+      sel.value = opt.getAttribute('data-v');
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      syncDropdownPanel(ddId);
+      closeAllDropdowns();
+    });
+    syncDropdownPanel(ddId);
+  }
+
   /* ─────────────── eventos ─────────────── */
   function wire() {
     if (st.wired || !$('gx-save')) return;
@@ -14686,6 +14764,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     ['gx-subtotal', 'gx-iva'].forEach(function (id) { $(id).addEventListener('input', function () { this.classList.remove('gx-ai'); autoTotal(); }); });
     $('gx-total').addEventListener('input', function () { this.classList.remove('gx-ai'); st.totalTouched = this.value.trim() !== ''; updateItemsSum(); });
     ['gx-proveedor', 'gx-ruc', 'gx-numero', 'gx-fecha'].forEach(function (id) { $(id).addEventListener('input', function () { this.classList.remove('gx-ai'); }); });
+    wireDropdown('gx-proyecto-dd'); wireDropdown('gx-filtro-dd');
+    document.addEventListener('click', closeAllDropdowns);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAllDropdowns(); });
     $('gx-proyecto').addEventListener('change', function () {
       if (this.value !== OTHER) return;
       var n = prompt('Nombre del proyecto:', '');

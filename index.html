@@ -13801,6 +13801,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         setStatus('loading', base + ' ' + Math.round((Date.now() - t0) / 1000) + ' s', { cancel: true });   // sin esperar al temporizador
       });
       var data = parseAI(res.text);
+      console.log('[BuildMatrix] categoria IA (individual):', data.categoria, '| proveedor:', data.proveedor);
       var took = ' Leída en ' + secs(Date.now() - t0) + '.';
       fillForm(data);
       var faltan = [], nIt = data.items.length;
@@ -14760,7 +14761,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var img = await prepareFile(file);
         var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
         if (d) d.retry = 0;
-        return { data: parseAI(r.text), model: r.model, ms: r.ms };
+        var parsed = parseAI(r.text);
+        console.log('[BuildMatrix] categoria IA:', parsed.categoria, '| proveedor:', parsed.proveedor);
+        return { data: parsed, model: r.model, ms: r.ms };
       } catch (e) {
         var c = e && e.code;
         if (c === 'CANCEL' || (tok && tok.cancelled)) throw { code: 'CANCEL' };
@@ -14864,7 +14867,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
         try {
           var r = await extractOne(d.file, d.tok, d);
-          d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = d.cat || 'Materiales';
+          d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Materiales');
           d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated) ? 'warn' : 'ok';
         } catch (e) {
           if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
@@ -14917,7 +14920,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function reviewDraft(id) {
     var d = draftById(id); if (!d || !d.data) return;
     fillForm(d.data);
-    setVal('gx-cat', d.cat || 'Materiales', false);
+    var catToUse = (d.data && d.data.categoria && CATS.indexOf(d.data.categoria) >= 0) ? d.data.categoria : (d.cat || 'Materiales');
+    setVal('gx-cat', catToUse, false);
     st.editing = id;
     setStatus(d.status === 'warn' ? 'warn' : 'ok', 'Revisando "' + d.name + '". Corrige lo necesario y pulsa "Guardar Gasto" (saldrá de la lista).');
     openManualModal();

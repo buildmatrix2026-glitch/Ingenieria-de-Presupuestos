@@ -3530,8 +3530,6 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             </div>
           </div>
         </div>
-      </div>
-
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
@@ -3666,6 +3664,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           </div>
         </div>
       </div>
+
+      </div>
+
 
       <!-- Modal: exportar gastos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-exb">
@@ -14895,7 +14896,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
     var pmMod = $('gx-pm');
-    if (pmMod && document.body && pmMod.parentNode !== document.body) document.body.appendChild(pmMod);
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);
     $('gx-pm-list').addEventListener('click', function (e) {
@@ -14903,13 +14903,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (row) openProjectDetailModal(row.getAttribute('data-proj'));
     });
     var pm2Mod = $('gx-pm2');
-    if (pm2Mod && document.body && pm2Mod.parentNode !== document.body) document.body.appendChild(pm2Mod);
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gx-pm2-x').addEventListener('click', closeProjectDetailModal);
     $('gx-pm2-back').addEventListener('click', function () { closeProjectDetailModal(); openProjectsModal(); });
     $('gx-manual-open-btn').addEventListener('click', openManualModal);
     var manMod = $('gx-manual-modal');
-    if (manMod && document.body && manMod.parentNode !== document.body) document.body.appendChild(manMod);
     if (manMod) manMod.addEventListener('click', function (e) { if (e.target === manMod) closeManualModal(); });
     $('gx-manual-x').addEventListener('click', closeManualModal);
     var mod = $('gx-exb');

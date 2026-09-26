@@ -12966,7 +12966,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'cantidad numérica (puede ser decimal); descripcion completa (une las líneas en que se parta el texto); detalle_adicional si existe; ' +
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
-    'Si un dato no se lee con claridad usa "" o 0; no inventes valores.';
+    'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
+    'Incluye también la clave "categoria" con UNO de estos valores exactos según los artículos o servicios facturados: ' +
+    '"Materiales" (materiales de construcción, insumos, productos físicos), ' +
+    '"Mano de Obra" (servicios de mano de obra, instalación, trabajo humano), ' +
+    '"Equipos y Maquinaria" (alquiler o compra de equipos, maquinaria, herramientas), ' +
+    '"Subcontratos" (subcontratación de trabajos o servicios especializados a terceros), ' +
+    '"Gastos Indirectos" (servicios generales: agua, luz, internet, transporte, alimentación, papelería, etc.), ' +
+    '"Gastos Trámites" (trámites, permisos, impuestos, honorarios profesionales, notaría, etc.). ' +
+    'Si no puedes determinarlo con certeza, usa "Gastos Indirectos".';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
   function prepareImage(file) {
@@ -13234,6 +13242,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         return { tarifa: String(d.tarifa == null ? '' : d.tarifa).trim(), base: m(d.base), iva: m(d.iva) };
       }).filter(function (d) { return d.base || d.iva; }),
       items: (Array.isArray(j.items) ? j.items : []).map(normItem).filter(function (it) { return it.desc || it.cod || it.total > 0; }),
+      categoria: String(j.categoria || '').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -13664,6 +13673,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     setVal('gx-cliente-id', o.clienteId || '', !!o.clienteId);
     setVal('gx-fpago', o.formaPago || '', !!o.formaPago);
     st.totalTouched = o.total > 0;
+    if (o.categoria && CATS.indexOf(o.categoria) >= 0) { setVal('gx-cat', o.categoria, false); var elCat = $('gx-cat'); if (elCat) elCat.classList.add('gx-ai'); }
     st.items = (o.items || []).map(function (it) { var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; }); c._t = true; return c; });
     st.extra = { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 };
     renderItems(); renderDesglose();

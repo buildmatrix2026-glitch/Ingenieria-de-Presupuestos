@@ -813,7 +813,6 @@ footer {
 
 
 :root{
-  --gx-vh:100vh;
   --ds:#060B14;--s2:#0A111E;--s3:#0D1626;--s4:#111C30;--sp2:#0D1421;
   --mb:#0052FF;--mbd:#0047D9;--cy:#00D4FF;
   --sl:#8B9CBD;--sld:#5A6B8C;
@@ -1227,7 +1226,7 @@ tr.added{animation:sla .45s var(--es)}
 .db.op{opacity:1;pointer-events:auto}
 .dr{position:fixed;top:0;right:0;bottom:0;width:min(500px,93vw);background:var(--s2);border-left:1px solid var(--br);z-index:301;transform:translateX(104%);transition:transform .42s var(--es);display:flex;flex-direction:column}
 .db.op .dr{transform:none}
-.drh{padding:16px 20px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:11px;flex-shrink:0}
+.drh{padding:16px 20px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:11px}
 .drh h3{font-size:16px;font-weight:700;flex:1}
 .drt{padding:12px 20px;display:flex;flex-direction:column;gap:11px;border-bottom:1px solid var(--br)}
 .drl{flex:1;overflow-y:auto;padding:6px}
@@ -1273,27 +1272,11 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .gdet-tr.gdet-found{animation:gdetFoundFlash 2.4s ease-out}
 
 /* modal */
-.mb{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
+.mb{position:fixed;inset:0;background:rgba(3,6,12,.64);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:400;display:none;align-items:center;justify-content:center;padding:18px}
 .mb.op{display:flex;animation:fi .22s}
 @keyframes fi{from{opacity:0}}
-.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
-.mo.mo-w-sm{width:min(560px,96vw)}
-.mo.mo-w-sm2{width:min(480px,96vw)}
-.mo.mo-w-lg{width:min(1180px,98vw)}
-.mo.mo-tall{max-height:min(76vh,720px)}
+.mo{background:var(--s2);border:1px solid var(--br);border-radius:var(--r4);width:min(660px,100%);max-height:84svh;display:flex;flex-direction:column;overflow:hidden;animation:mi .38s var(--es);box-shadow:0 28px 80px rgba(0,0,0,.58)}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
-/* En móvil, la "ventana flotante" pasa a ser pantalla completa: sin esto, cualquier
-   cálculo de alto (vh) queda a merced de la barra de direcciones del navegador,
-   que cambia de tamaño en cualquier momento y puede recortar el contenido. Al ocupar
-   el 100% real del contenedor .mb (que ya sabemos que sí cubre la pantalla completa
-   de forma fiable), no queda ningún cálculo que pueda salir mal. */
-@media(max-width:640px){
-  .mb{padding:0}
-  .mo,.mo.mo-w-sm,.mo.mo-w-sm2,.mo.mo-w-lg,.mo.mo-tall{
-    width:100%;max-width:100%;height:100%;max-height:100%;
-    border-radius:0;border-left:none;border-right:none;box-shadow:none;
-  }
-}
 
 /* toast */
 #tsts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:500;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none}
@@ -1426,8 +1409,8 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 /* Header: en móvil ocultamos "Proyecto + nombre" junto al logo — se cruza con el nombre largo del proyecto */
 @media(max-width:600px){.tp{display:none!important}}
 /* App-wide font bump (+1px over body) */
-@media(min-width:601px){ #app { zoom: 1.18; } }
-@media(max-width:600px){ body.ia #app { height: 100svh; } }
+#app { zoom: 1.18; }
+@media(max-width:600px){ #app { zoom: 1.0; } body.ia #app { height: 100svh; } }
 @media(max-width:860px){
   body.ia { overflow: auto; height: auto; }
   body.ia #app { height: auto; min-height: 100svh; overflow: visible; }
@@ -1911,7 +1894,6 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-f{display:flex;flex-direction:column;gap:5px;min-width:0}
 #v-gas .gx-f.full{grid-column:1/-1}
 #v-gas .gx-f label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gx-tx2);display:flex;align-items:center;justify-content:space-between;gap:6px}
-@media(max-width:480px){ #v-gas .gx-form{grid-template-columns:1fr} #v-gas .gx-f{grid-column:1/-1} }
 #v-gas .gx-in{
   width:100%;min-height:44px;padding:10px 12px;background:var(--gx-bg);color:var(--gx-tx);
   border:1px solid var(--gx-br);border-radius:10px;font-size:16px;font-family:'Outfit',sans-serif;outline:none;
@@ -1932,15 +1914,11 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-cap{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 #v-gas .gx-sub{font-size:11.5px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;margin-top:5px}
 #v-gas .gx-bars{display:flex;flex-direction:column;gap:11px}
-#v-gas .gx-bar .h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;margin-bottom:5px}
-#v-gas .gx-bar .h span{display:flex;align-items:center;gap:7px;font-weight:600}
+#v-gas .gx-bar .h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:5px}
 #v-gas .gx-bar .h b{font-family:'JetBrains Mono',monospace;font-weight:600}
 #v-gas .gx-bar .t{height:7px;border-radius:99px;background:var(--gx-card2);overflow:hidden}
 #v-gas .gx-bar .t i{display:block;height:100%;border-radius:99px;transition:width .4s}
 #v-gas .gx-bar .p{font-size:10.5px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace}
-#v-gas .gx-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.06)}
-#v-gas .gx-bar.is-zero{opacity:.42}
-#v-gas .gx-bar.is-zero .h b{color:var(--gx-tx2)}
 
 /* Lista */
 #v-gas .gx-list{display:flex;flex-direction:column}
@@ -2068,53 +2046,6 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3{display:flex;gap:8px}
 #v-gas .gx-row-3 .gx-btn{flex:1 1 0;min-width:0;padding-left:10px;padding-right:10px}
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-#v-gas .gx-sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:0;font-size:14px;color:var(--gx-tx)}
-#v-gas .gx-sumcell{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
-#v-gas .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0}
-#v-gas .gx-cattab{
-  display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:5px 7px;border:none;border-right:1px solid var(--gx-br);
-  background:transparent;color:var(--gx-tx2);font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;transition:color .15s;border-radius:0;min-width:0;
-}
-#v-gas .gx-cattab:first-child{padding-left:7px}
-#v-gas .gx-cattab:last-child{border-right:none}
-#v-gas .gx-cattab:hover{color:var(--gx-tx)}
-#v-gas .gx-cattab.sel{color:var(--cy,#00D4FF)}
-#v-gas .gx-cattab i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
-#v-gas .gx-cattab,#v-gas .gx-cattab *{flex-shrink:0}
-#v-gas .gx-daterange{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
-#v-gas .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
-#v-gas .gx-date-in{
-  background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;
-  font-family:inherit;font-size:12.5px;color-scheme:dark;
-}
-#v-gas .gx-date-in:focus{outline:none;border-color:var(--gx-pri)}
-#v-gas .gx-daterange-sep{color:var(--gx-tx2);font-size:12px}
-
-@media(max-width:700px){
-  #v-gas .gx-sumgrid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}
-  #v-gas .gx-sumcell{font-size:12.5px;justify-content:flex-start;text-align:left;padding:0 6px;white-space:normal}
-
-  #v-gas .gx-cattabs{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:0}
-  #v-gas .gx-cattab{
-    font-size:10.5px;padding:8px 5px;white-space:normal;line-height:1.3;text-align:center;
-    overflow:visible;text-overflow:clip;min-height:38px;border-right:1px solid var(--gx-br);border-bottom:1px solid var(--gx-br);
-  }
-  #v-gas .gx-cattab:first-child{padding-left:5px}
-  #v-gas .gx-cattab:nth-child(3n){border-right:none}
-  #v-gas .gx-cattab:nth-last-child(-n+3){border-bottom:none}
-  #v-gas .gx-cattab i{width:6px;height:6px}
-
-  #v-gas .gx-daterange{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
-  #v-gas .gx-daterange-lbl{display:none}
-  #v-gas .gx-date-in{padding:6px 6px;font-size:11.5px;min-width:0;flex:1 1 0}
-  #v-gas .gx-date-clear{flex:0 0 auto}
-}
-#v-gas .gx-date-clear{background:transparent;border:1px solid var(--gx-br);color:var(--gx-tx2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:12px;transition:border-color .15s,color .15s}
-#v-gas .gx-date-clear:hover{border-color:var(--gx-err);color:var(--gx-err)}
 
 /* Ventana flotante "Proyectos" */
 #v-gas .gx-pm-row{
@@ -3602,13 +3533,14 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal: Registro del gasto (manual o revisión de un escaneo) — se mueve a <body> al iniciar -->
       <div class="mb" id="gx-manual-modal">
-        <div class="mo mo-w-sm" style="display:flex;flex-direction:column">
+        <div class="mo" style="width:min(560px,96vw);max-height:min(90vh,820px);overflow-y:auto">
           <div class="drh"><h3>Registro del gasto</h3>
             <button type="button" class="ib" id="gx-manual-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div style="padding:20px;overflow-y:auto;flex:1 1 auto;min-height:0">
+          <div style="padding:20px">
             <div class="gx-hint" style="margin-bottom:14px">Revisa los datos antes de guardar</div>
             <div class="gx-card" style="background:transparent;border:none;padding:0">
+              <div class="gx-title"><span>Registro del gasto</span><span class="gx-hint">Revisa los datos antes de guardar</span></div>
               <div class="gx-form">
                 <div class="gx-f full">
                   <label for="gx-proyecto">Proyecto</label>
@@ -3701,38 +3633,32 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Modal 1: Proyectos — lista de proyectos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-pm">
-        <div class="mo mo-w-sm2" style="display:flex;flex-direction:column">
+        <div class="mo" style="width:min(480px,100%);max-height:min(600px,85vh);display:flex;flex-direction:column">
           <div class="drh">
             <h3>Proyectos</h3>
             <button type="button" class="ib" id="gx-pm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div id="gx-pm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto;min-height:0"></div>
+          <div id="gx-pm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto"></div>
         </div>
       </div>
 
       <!-- Modal 2: detalle grande de un proyecto — todas sus facturas, con Exportar y Eliminar todas aquí dentro -->
       <div class="mb" id="gx-pm2">
-        <div class="mo mo-w-lg mo-tall" style="display:flex;flex-direction:column">
-          <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px">
-            <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-            <h3 id="gx-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Proyecto</h3>
-            <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="justify-self:end"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="mo" style="width:min(760px,97vw);max-height:min(85vh,780px);display:flex;flex-direction:column">
+          <div class="drh">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0">
+              <button type="button" class="ib" id="gx-pm2-back" aria-label="Volver a proyectos" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <h3 id="gx-pm2-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Proyecto</h3>
+            </div>
+            <button type="button" class="ib" id="gx-pm2-x" aria-label="Cerrar" style="flex:0 0 auto"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <div id="gx-pm2-summary" style="padding:16px 20px 0;flex-shrink:0"></div>
-          <div class="gx-cattabs" id="gx-cattabs" style="padding:12px 14px 0;flex-shrink:0"></div>
-          <div class="gx-daterange" style="padding:12px 20px 0;flex-shrink:0">
-            <span class="gx-daterange-lbl">Rango de fechas</span>
-            <input type="date" id="gx-date-from" class="gx-date-in" aria-label="Desde">
-            <span class="gx-daterange-sep">→</span>
-            <input type="date" id="gx-date-to" class="gx-date-in" aria-label="Hasta">
-            <button type="button" class="gx-date-clear" id="gx-date-clear" title="Quitar filtro de fechas">✕</button>
-          </div>
-          <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto;min-height:0">
+          <div id="gx-pm2-summary" style="padding:16px 20px 0"></div>
+          <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto">
             <div class="gx-hint" id="gx-count" style="margin-bottom:8px;text-align:right"></div>
             <div class="gx-list" id="gx-list"></div>
             <div class="gx-row" id="gx-more-wrap" style="display:none"><button type="button" class="gx-btn" id="gx-more">Mostrar más</button></div>
           </div>
-          <div class="gx-row" style="padding:16px 20px;border-top:1px solid var(--gx-br);flex-shrink:0">
+          <div class="gx-row" style="padding:16px 20px;border-top:1px solid var(--gx-br)">
             <button type="button" class="gx-btn primary" id="gx-export" style="flex:1;min-height:46px"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exportar</span></button>
             <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="flex:1;min-height:46px"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
           </div>
@@ -12808,7 +12734,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' };
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
 
-  var st = { busy: false, totalTouched: false, filter: ALL, catFilter: ALL, dateFrom: '', dateTo: '', shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
+  var st = { busy: false, totalTouched: false, filter: ALL, shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
 
   /* ─────────────── utilidades ─────────────── */
   function $(id) { return document.getElementById(id); }
@@ -13427,26 +13353,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
-  function filtered(list) {
-    var r = st.filter === ALL ? list : list.filter(function (g) { return g.proyecto === st.filter; });
-    if (st.catFilter && st.catFilter !== ALL) r = r.filter(function (g) { return g.categoria === st.catFilter; });
-    if (st.dateFrom) r = r.filter(function (g) { return (g.fecha || '') >= st.dateFrom; });
-    if (st.dateTo) r = r.filter(function (g) { return (g.fecha || '') <= st.dateTo; });
-    return r;
-  }
-
-  function renderCatTabs() {
-    var el = $('gx-cattabs'); if (!el) return;
-    var list = st.filter === ALL ? load() : load().filter(function (g) { return g.proyecto === st.filter; });
-    var counts = {}; CATS.forEach(function (c) { counts[c] = 0; });
-    list.forEach(function (g) { if (counts[g.categoria] != null) counts[g.categoria]++; });
-    var tabs = [{ id: ALL, label: 'Todas', n: list.length, col: 'var(--gx-tx2)' }]
-      .concat(CATS.map(function (c) { return { id: c, label: c, n: counts[c], col: CAT_COLORS[c] || '#0052FF' }; }));
-    el.innerHTML = tabs.map(function (t) {
-      return '<button type="button" class="gx-cattab' + (st.catFilter === t.id ? ' sel' : '') + '" data-cat="' + esc(t.id) + '">' +
-        (t.id === ALL ? '' : '<i style="background:' + t.col + '"></i>') + esc(t.label) + ' (' + t.n + ')</button>';
-    }).join('');
-  }
+  function filtered(list) { return st.filter === ALL ? list : list.filter(function (g) { return g.proyecto === st.filter; }); }
 
   function summarize(list) {
     var r = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {} };
@@ -13468,17 +13375,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function renderSummary() {
     var el = $('gx-sum'); if (!el) return;
     var list = load(), s = summarize(list);   // el resumen principal siempre es GLOBAL: navegar por proyecto ahora se hace en "Proyectos"
-    var cats = CATS.slice().sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });   // TODAS las categorías, incluso en $0
-    var max = Math.max.apply(null, cats.map(function (c) { return s.byCat[c]; }).concat([1]));
+    var cats = Object.keys(s.byCat).filter(function (c) { return s.byCat[c] > 0; }).sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });
+    var max = cats.length ? s.byCat[cats[0]] : 1;
     var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
       '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div></div>' +
       '<div class="gx-hint gx-mono">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div></div>';
-    if (!s.count) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
+    if (!cats.length) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
     else {
       html += '<div class="gx-bars">' + cats.map(function (c) {
-        var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
-        return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
-          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
+        var pct = s.total ? (s.byCat[c] / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
+        return '<div class="gx-bar"><div class="h"><span>' + esc(c) + '</span><b>' + money(s.byCat[c]) + '</b></div>' +
+          '<div class="t"><i style="width:' + (s.byCat[c] / max * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }
@@ -14618,84 +14525,35 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       projs.map(function (p) { return row(p.name, p.name, p.count, p.total); }).join('');
   }
 
-  // ── Corrección para móvil (Safari/Chrome iOS): cuando la barra de direcciones
-  // se oculta o aparece, los elementos "position:fixed" pueden desalinearse y
-  // recortarse. Dos medidas: (1) altura real visible calculada por JS en vez de
-  // confiar en unidades vh, guardada en --gx-vh; (2) bloquear el scroll del body
-  // mientras alguna de estas ventanas flotantes está abierta, para que la barra
-  // del navegador no cambie de estado (que es lo que dispara el desfase).
-  function _gxSetVH() {
-    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    document.documentElement.style.setProperty('--gx-vh', h + 'px');
-  }
-  _gxSetVH();
-  window.addEventListener('resize', _gxSetVH);
-  window.addEventListener('orientationchange', function () { setTimeout(_gxSetVH, 60); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', _gxSetVH);
-
-  var _gxScrollLockY = 0, _gxScrollLocked = false;
-  function _gxAnyModalOpen() {
-    return !!(document.querySelector('#gx-manual-modal.op, #gx-pm.op, #gx-pm2.op'));
-  }
-  function _gxSyncScrollLock() {
-    var shouldLock = _gxAnyModalOpen();
-    if (shouldLock && !_gxScrollLocked) {
-      _gxScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.body.style.position = 'fixed';
-      document.body.style.top = (-_gxScrollLockY) + 'px';
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
-      _gxScrollLocked = true;
-    } else if (!shouldLock && _gxScrollLocked) {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      window.scrollTo(0, _gxScrollLockY);
-      _gxScrollLocked = false;
-    }
-  }
-
   function openProjectsModal() {
     var m = $('gx-pm'); if (!m) return;
     renderProjectsList();
     m.classList.add('op');
-    _gxSetVH(); _gxSyncScrollLock();
   }
-  function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+  function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); }
 
   function refreshProjectDetailHeader() {
     var name = st.filter, list = filtered(load()), s = summarize(list);
     var titleEl = $('gx-pm2-title'), sumEl = $('gx-pm2-summary');
     if (titleEl) titleEl.textContent = name === ALL ? 'Todos los proyectos' : name;
     if (sumEl) sumEl.innerHTML = s.count
-      ? ('<div class="gx-sumgrid">' +
-          '<div class="gx-sumcell">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div>' +
-          '<div class="gx-sumcell">Total <b class="gx-mono">' + money(s.total) + '</b></div>' +
-          '<div class="gx-sumcell">Subtotal ' + money(s.subtotal) + '</div>' +
-          '<div class="gx-sumcell">IVA ' + money(s.iva) + '</div>' +
-        '</div>')
+      ? (s.count + ' comprobante' + (s.count === 1 ? '' : 's') + ' · Total <b class="gx-mono">' + money(s.total) + '</b> · Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva))
       : 'Sin comprobantes en esta selección.';
     updateDeleteAllLabel(list);
-    renderCatTabs();
   }
 
   function openProjectDetailModal(name) {
-    st.filter = name; st.shown = 15; st.catFilter = ALL; st.dateFrom = ''; st.dateTo = '';
-    var df = $('gx-date-from'), dt = $('gx-date-to'); if (df) df.value = ''; if (dt) dt.value = '';
-    var m = $('gx-pm2'); if (m) m.classList.add('op');
-    var pmm = $('gx-pm'); if (pmm) pmm.classList.remove('op');
+    st.filter = name; st.shown = 15;
+    closeProjectsModal();
     refreshProjectDetailHeader();
     renderList();
-    _gxSetVH(); _gxSyncScrollLock();
+    var m = $('gx-pm2'); if (m) m.classList.add('op');
   }
-  function closeProjectDetailModal() { var m = $('gx-pm2'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+  function closeProjectDetailModal() { var m = $('gx-pm2'); if (m) m.classList.remove('op'); }
 
   // Ventana "Registro del gasto": el mismo formulario de siempre, ahora en una ventana flotante.
-  function openManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.add('op'); _gxSetVH(); _gxSyncScrollLock(); }
-  function closeManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+  function openManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.add('op'); }
+  function closeManualModal() { var m = $('gx-manual-modal'); if (m) m.classList.remove('op'); }
 
   /* ─────────────── Modal "Exportar" (PDF o Excel) ─────────────── */
   function openExportModal() {
@@ -15048,17 +14906,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gx-pm2-x').addEventListener('click', closeProjectDetailModal);
     $('gx-pm2-back').addEventListener('click', function () { closeProjectDetailModal(); openProjectsModal(); });
-    $('gx-cattabs').addEventListener('click', function (e) {
-      var b = e.target.closest ? e.target.closest('[data-cat]') : null; if (!b) return;
-      st.catFilter = b.getAttribute('data-cat'); st.shown = 15;
-      refreshProjectDetailHeader(); renderList();
-    });
-    $('gx-date-from').addEventListener('change', function () { st.dateFrom = this.value; st.shown = 15; refreshProjectDetailHeader(); renderList(); });
-    $('gx-date-to').addEventListener('change', function () { st.dateTo = this.value; st.shown = 15; refreshProjectDetailHeader(); renderList(); });
-    $('gx-date-clear').addEventListener('click', function () {
-      st.dateFrom = ''; st.dateTo = ''; $('gx-date-from').value = ''; $('gx-date-to').value = '';
-      refreshProjectDetailHeader(); renderList();
-    });
     $('gx-manual-open-btn').addEventListener('click', openManualModal);
     var manMod = $('gx-manual-modal');
     if (manMod) manMod.addEventListener('click', function (e) { if (e.target === manMod) closeManualModal(); });

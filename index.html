@@ -1414,8 +1414,8 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 /* Header: en móvil ocultamos "Proyecto + nombre" junto al logo — se cruza con el nombre largo del proyecto */
 @media(max-width:600px){.tp{display:none!important}}
 /* App-wide font bump (+1px over body) */
-#app { zoom: 1.18; }
-@media(max-width:600px){ #app { zoom: 1.0; } body.ia #app { height: 100svh; } }
+@media(min-width:601px){ #app { zoom: 1.18; } }
+@media(max-width:600px){ body.ia #app { height: 100svh; } }
 @media(max-width:860px){
   body.ia { overflow: auto; height: auto; }
   body.ia #app { height: auto; min-height: 100svh; overflow: visible; }
@@ -14984,7 +14984,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
     var pmMod = $('gx-pm');
-    if (pmMod && document.body && pmMod.parentNode !== document.body) document.body.appendChild(pmMod);   // escapar del contenedor con zoom (#app)
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);
     $('gx-pm-list').addEventListener('click', function (e) {
@@ -14992,7 +14991,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (row) openProjectDetailModal(row.getAttribute('data-proj'));
     });
     var pm2Mod = $('gx-pm2');
-    if (pm2Mod && document.body && pm2Mod.parentNode !== document.body) document.body.appendChild(pm2Mod);   // escapar del contenedor con zoom (#app)
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gx-pm2-x').addEventListener('click', closeProjectDetailModal);
     $('gx-pm2-back').addEventListener('click', function () { closeProjectDetailModal(); openProjectsModal(); });
@@ -15009,7 +15007,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
     $('gx-manual-open-btn').addEventListener('click', openManualModal);
     var manMod = $('gx-manual-modal');
-    if (manMod && document.body && manMod.parentNode !== document.body) document.body.appendChild(manMod);   // escapar del contenedor con zoom (#app) para que position:fixed funcione en móvil
     if (manMod) manMod.addEventListener('click', function (e) { if (e.target === manMod) closeManualModal(); });
     $('gx-manual-x').addEventListener('click', closeManualModal);
     var mod = $('gx-exb');

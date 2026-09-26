@@ -1284,21 +1284,26 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 /* Móvil: ventana flotante con margen lateral, sin ocupar toda la pantalla */
 @media(max-width:640px){
+  /* Fix 3: Proyectos (gx-pm) centrado; el resto bottom-sheet */
   .mb{padding:12px 10px;align-items:flex-end}
+  .mb:has(#gx-pm.op){align-items:center}
+
+  /* Fix 1 y 2: más espacio arriba (100px libre) para respirar */
   .mo,.mo.mo-w-sm,.mo.mo-w-sm2{
     width:100%;
     max-width:100%;
-    max-height:calc(100dvh - 80px);
-    border-radius:18px 18px 12px 12px;
+    max-height:calc(100dvh - 100px);
+    border-radius:18px 18px 14px 14px;
     border-left:1px solid var(--br);
     border-right:1px solid var(--br);
     box-shadow:0 -8px 40px rgba(0,0,0,.45);
   }
+  /* Fix 2: modal grande de facturas — mismo espacio arriba y abajo */
   .mo.mo-w-lg,.mo.mo-tall{
     width:100%;
     max-width:100%;
-    max-height:calc(100dvh - 56px);
-    border-radius:18px 18px 12px 12px;
+    max-height:calc(100dvh - 100px);
+    border-radius:18px 18px 14px 14px;
     border-left:1px solid var(--br);
     border-right:1px solid var(--br);
     box-shadow:0 -8px 40px rgba(0,0,0,.45);
@@ -1308,8 +1313,10 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
     content:'';display:block;flex-shrink:0;
     width:40px;height:4px;border-radius:2px;
     background:rgba(139,156,189,.3);
-    margin:10px auto 0;
+    margin:10px auto 4px;
   }
+  /* Fix 2: padding-top al header para no solaparse con el handle */
+  .mo .drh{padding-top:6px}
 }
 
 /* toast */

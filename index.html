@@ -2042,6 +2042,29 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-dd-opt:hover{background:rgba(0,82,255,.14)}
 #v-gas .gx-dd-opt.sel{background:var(--gx-pri);color:#fff;font-weight:600}
 
+/* Fila de 3 botones (Exportar · Proyectos · Eliminar todas), estilizados y ordenados */
+#v-gas .gx-row-3{display:flex;gap:8px}
+#v-gas .gx-row-3 .gx-btn{flex:1 1 0;min-width:0;padding-left:10px;padding-right:10px}
+#v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Ventana flotante "Proyectos" */
+#v-gas .gx-pm-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-radius:12px;
+  border:1px solid var(--gx-br);background:var(--gx-card2);cursor:pointer;margin-bottom:8px;transition:border-color .15s,background .15s;
+}
+#v-gas .gx-pm-row:hover{border-color:var(--gx-pri);background:rgba(0,82,255,.08)}
+#v-gas .gx-pm-row .n{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-gas .gx-pm-row .d{font-size:11.5px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;margin-top:3px}
+#v-gas .gx-pm-row .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;white-space:nowrap;flex:0 0 auto}
+#v-gas .gx-pm-row svg{flex:0 0 auto;color:var(--gx-tx2)}
+#v-gas .gx-pm-inv{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 4px;border-top:1px solid var(--gx-br)}
+#v-gas .gx-pm-inv:first-child{border-top:none}
+#v-gas .gx-pm-inv .n{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-gas .gx-pm-inv .d{font-size:11px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+#v-gas .gx-pm-inv .v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;white-space:nowrap;flex:0 0 auto}
+#v-gas .gx-pm-summary{font-size:12px;color:var(--gx-tx2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gx-br)}
+#v-gas .gx-pm-summary b{color:var(--gx-tx);font-family:'JetBrains Mono',monospace}
+
 /* ═══════════ PRESUPUESTO AVANZADO CON IA (#v-pia) ═══════════ */
 #v-pia{font-family:var(--f-ui);color:var(--ow)}
 #v-pia *{box-sizing:border-box}
@@ -3589,8 +3612,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                 </div>
               </div>
               <div id="gx-sum"></div>
-              <div class="gx-row" style="margin-top:14px">
-                <button type="button" class="gx-btn primary" id="gx-export" style="min-height:46px;letter-spacing:.06em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>EXPORTAR</span></button>
+              <div class="gx-row gx-row-3" style="margin-top:14px">
+                <button type="button" class="gx-btn primary" id="gx-export" style="min-height:46px;letter-spacing:.03em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exportar</span></button>
+                <button type="button" class="gx-btn" id="gx-projects-btn" style="min-height:46px;letter-spacing:.02em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg><span>Proyectos</span></button>
                 <button type="button" class="gx-btn gx-btn-danger" id="gx-delete-all" style="min-height:46px;letter-spacing:.02em"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="gx-delete-all-label">Eliminar todas</span></button>
               </div>
               <div class="gx-divider"></div>
@@ -3599,6 +3623,21 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div class="gx-row" id="gx-more-wrap" style="display:none"><button type="button" class="gx-btn" id="gx-more">Mostrar más</button></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Modal: Proyectos — lista de proyectos, y al elegir uno, sus facturas con scroll (se mueve a <body> al iniciar) -->
+      <div class="mb" id="gx-pm">
+        <div class="mo" style="width:min(560px,100%);max-height:min(640px,85vh);display:flex;flex-direction:column">
+          <div class="drh">
+            <h3 id="gx-pm-title">Proyectos</h3>
+            <div style="display:flex;align-items:center;gap:4px">
+              <button type="button" class="ib" id="gx-pm-back" style="display:none" aria-label="Volver a proyectos"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <button type="button" class="ib" id="gx-pm-x" aria-label="Cerrar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+          </div>
+          <div id="gx-pm-list" style="padding:12px;overflow-y:auto;flex:1 1 auto"></div>
+          <div id="gx-pm-invoices" style="padding:12px;overflow-y:auto;flex:1 1 auto;display:none"></div>
         </div>
       </div>
 
@@ -14438,6 +14477,66 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
   }
 
+  /* ─────────────── Ventana flotante "Proyectos" (navegar sin tocar el filtro "Ver") ───────────────
+     Lista todos los proyectos con gastos; al elegir uno, muestra sus facturas con scroll dentro de
+     la misma ventana, sin alterar el filtro "Ver" del resumen principal. */
+  function projectsWithSpend() {
+    var list = load(), byProj = {};
+    list.forEach(function (g) { (byProj[g.proyecto] = byProj[g.proyecto] || []).push(g); });
+    return Object.keys(byProj).map(function (name) {
+      var s = summarize(byProj[name]);
+      return { name: name, count: s.count, total: s.total };
+    }).sort(function (a, b) { return b.total - a.total; });
+  }
+
+  function renderProjectsList() {
+    var box = $('gx-pm-list'); if (!box) return;
+    var projs = projectsWithSpend();
+    box.innerHTML = projs.length ? projs.map(function (p) {
+      return '<div class="gx-pm-row" data-proj="' + esc(p.name) + '">' +
+        '<div style="min-width:0"><div class="n">' + esc(p.name) + '</div><div class="d">' + p.count + ' comprobante' + (p.count === 1 ? '' : 's') + '</div></div>' +
+        '<div class="v">' + money(p.total) + '</div>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>';
+    }).join('') : '<div class="gx-empty">Aún no hay gastos registrados en ningún proyecto.</div>';
+  }
+
+  function renderProjectInvoices(name) {
+    var box = $('gx-pm-invoices'); if (!box) return;
+    var list = load().filter(function (g) { return g.proyecto === name; })
+      .sort(function (a, b) { return (b.fecha || '').localeCompare(a.fecha || '') || (b.creado || 0) - (a.creado || 0); });
+    var s = summarize(list);
+    var html = '<div class="gx-pm-summary">' + list.length + ' comprobante' + (list.length === 1 ? '' : 's') + ' · Total <b>' + money(s.total) + '</b></div>';
+    html += list.length ? list.map(function (g) {
+      var col = CAT_COLORS[g.categoria] || '#0052FF';
+      return '<div class="gx-pm-inv"><div style="min-width:0"><div class="n">' + esc(g.proveedor) + '</div>' +
+        '<div class="d"><span>' + esc(g.fecha) + '</span>' + (g.numero ? '<span>N° ' + esc(g.numero) + '</span>' : '') +
+        '<span class="gx-chip" style="border-color:' + col + '">' + esc(g.categoria) + '</span></div></div>' +
+        '<div class="v">' + money(g.total) + '</div></div>';
+    }).join('') : '<div class="gx-empty">Este proyecto no tiene comprobantes.</div>';
+    box.innerHTML = html;
+  }
+
+  function showProjectsRoot() {
+    $('gx-pm-title').textContent = 'Proyectos';
+    $('gx-pm-back').style.display = 'none';
+    $('gx-pm-list').style.display = '';
+    $('gx-pm-invoices').style.display = 'none';
+    renderProjectsList();
+  }
+  function showProjectInvoicesView(name) {
+    $('gx-pm-title').textContent = name;
+    $('gx-pm-back').style.display = '';
+    $('gx-pm-list').style.display = 'none';
+    $('gx-pm-invoices').style.display = '';
+    renderProjectInvoices(name);
+  }
+  function openProjectsModal() {
+    var m = $('gx-pm'); if (!m) return;
+    showProjectsRoot();
+    m.classList.add('op');
+  }
+  function closeProjectsModal() { var m = $('gx-pm'); if (m) m.classList.remove('op'); }
+
   /* ─────────────── Modal "Exportar" (PDF o Excel) ─────────────── */
   function openExportModal() {
     var list = filtered(load());
@@ -14777,6 +14876,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-filtro').addEventListener('change', function () { st.filter = this.value; st.shown = 15; renderSummary(); renderList(); });
     $('gx-export').addEventListener('click', openExportModal);
     $('gx-delete-all').addEventListener('click', deleteAllFiltered);
+    $('gx-projects-btn').addEventListener('click', openProjectsModal);
+    var pmMod = $('gx-pm');
+    if (pmMod && document.body && pmMod.parentNode !== document.body) document.body.appendChild(pmMod);
+    if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
+    $('gx-pm-x').addEventListener('click', closeProjectsModal);
+    $('gx-pm-back').addEventListener('click', showProjectsRoot);
+    $('gx-pm-list').addEventListener('click', function (e) {
+      var row = e.target.closest ? e.target.closest('[data-proj]') : null;
+      if (row) showProjectInvoicesView(row.getAttribute('data-proj'));
+    });
     var mod = $('gx-exb');
     if (mod && document.body && mod.parentNode !== document.body) document.body.appendChild(mod);   // por encima de todo
     if (mod) mod.addEventListener('click', function (e) { if (e.target === mod) closeExportModal(); });
@@ -14825,7 +14934,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     render: render, toNum: toNum, normDate: normDate, parseAI: parseAI, summarize: summarize,
     cfg: CFG, callGeminiFull: callGeminiFull, drafts: function () { return st.drafts; }, batchBusy: function () { return st.batchBusy; }, addFilesToBatch: addFilesToBatch,
     buildWorkbook: buildWorkbook, buildPdf: buildPdf, exportPdf: exportPdf, exportXlsx: exportXlsx, load: load, save: save, callGemini: callGemini, friendly: friendly, modelList: modelList,
-    cloudState: cloudState
+    cloudState: cloudState, projectsWithSpend: projectsWithSpend, openProjectsModal: openProjectsModal, closeProjectsModal: closeProjectsModal, showProjectInvoicesView: showProjectInvoicesView, showProjectsRoot: showProjectsRoot
   };
   window.bmGastosStart = cloudStart;
   window.bmGastosStop = cloudStop;

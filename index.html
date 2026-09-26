@@ -2052,7 +2052,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-row-3 .gx-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
-#v-gas .gx-cattabs{display:flex;align-items:center;flex-wrap:wrap;gap:0;overflow:visible}
+#v-gas .gx-cattabs{display:flex;align-items:center;flex-wrap:nowrap;gap:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 #v-gas .gx-cattab{
   display:inline-flex;align-items:center;gap:3px;padding:5px 7px;border:none;border-right:1px solid var(--gx-br);
   background:transparent;color:var(--gx-tx2);font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;
@@ -2061,7 +2061,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-cattab:first-child{padding-left:0}
 #v-gas .gx-cattab:last-child{border-right:none}
 #v-gas .gx-cattab:hover{color:var(--gx-tx)}
-#v-gas .gx-cattab.sel{color:var(--cy,#00D4FF);font-weight:700}
+#v-gas .gx-cattab.sel{color:var(--cy,#00D4FF)}
 #v-gas .gx-cattab i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
 #v-gas .gx-cattab,#v-gas .gx-cattab *{flex-shrink:0}
 #v-gas .gx-daterange{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}

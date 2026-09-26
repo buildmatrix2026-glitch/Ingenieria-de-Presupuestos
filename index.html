@@ -3563,6 +3563,12 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <label class="gx-scan" id="gx-scan" for="gx-file-cam"><svg class="gx-ico" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7l1.2-2.2h4.6L15.5 7"/><circle cx="12" cy="13.5" r="3.2"/></svg><span>Escanear Factura con IA</span></label>
               <input class="gx-file" type="file" id="gx-file-cam" accept="image/*" capture="environment">
               <input class="gx-file" type="file" id="gx-file-gal" accept="image/*,application/pdf,.pdf" multiple>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--gx-tx2)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <select class="gx-in" id="gx-batch-proyecto" style="flex:1;min-height:40px;font-size:14px" aria-label="Proyecto para las facturas">
+                  <option value="">— Selecciona proyecto —</option>
+                </select>
+              </div>
               <div class="gx-row">
                 <label class="gx-btn" id="gx-gal" for="gx-file-gal"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Subir imágenes o PDF</span></label>
                 <button type="button" class="gx-btn" id="gx-key-btn"><svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Clave API</span></button>
@@ -13464,6 +13470,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       sel.value = pref;
       syncDropdownPanel('gx-proyecto-dd');
     }
+    // Sincronizar también el selector de proyecto del escáner de lote
+    var bsel = $('gx-batch-proyecto'), bcur = bsel ? bsel.value : '';
+    if (bsel) {
+      var bpref = bcur && names.indexOf(bcur) >= 0 ? bcur : '';
+      bsel.innerHTML = '<option value="">— Selecciona proyecto —</option>' +
+        names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+      if (bpref) bsel.value = bpref;
+    }
   }
 
   function filtered(list) {
@@ -14844,7 +14858,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-batch-stop').style.display = st.batchBusy ? '' : 'none';
     $('gx-batch-resume').style.display = (!st.batchBusy && pending) ? '' : 'none';
     var note = $('gx-batch-note');
-    if (note) note.textContent = 'Se guardan en "' + (proyecto && proyecto !== OTHER ? proyecto : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas o con error no se guardan.';
+    var bproy = val('gx-batch-proyecto') || val('gx-proyecto');
+    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas o con error no se guardan.';
   }
 
   function setBatchMsg(type, msg) {
@@ -14949,8 +14964,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function saveAllDrafts() {
     if (st.batchBusy) return;
-    var proyecto = val('gx-proyecto');
-    if (!proyecto || proyecto === OTHER) { say('Selecciona un proyecto en "Registro del gasto"'); return; }
+    var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
+    if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
     var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0 };
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
@@ -15051,6 +15066,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-batch-resume').addEventListener('click', runBatch);
     $('gx-batch-clear').addEventListener('click', clearBatch);
     $('gx-proyecto').addEventListener('change', renderBatch);
+    var bpEl = $('gx-batch-proyecto'); if (bpEl) bpEl.addEventListener('change', renderBatch);
     $('gx-key-btn').addEventListener('click', askKey);
     $('gx-status').addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-cancel]') : null;

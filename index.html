@@ -3629,6 +3629,18 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                 </button>
               </div>
             </div>
+
+            <!-- ── Gastos Personales SRI ── -->
+            <div class="gx-card" style="margin-top:18px">
+              <div class="gx-title"><span>Gastos Personales SRI</span><span class="gx-hint gx-sync" id="gx-sri-sync"></span></div>
+              <div id="gx-sri-sum"></div>
+              <div class="gx-row" style="margin-top:16px">
+                <button type="button" class="gx-btn primary" id="gx-sri-projects-btn" style="width:100%;min-height:50px;font-size:14.5px">
+                  <svg class="gx-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                  <span>Proyectos</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -12838,6 +12850,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   var CATS = ['Materiales', 'Mano de Obra', 'Equipos y Maquinaria', 'Subcontratos', 'Gastos Indirectos', 'Gastos Trámites'];
   var CAT_COLORS = { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' };
+  // ── Gastos Personales SRI ──
+  var SRI_CATS = ['Alimentacion', 'Vestimenta', 'Vivienda', 'Salud', 'Educación, Arte y Cultura', 'Turismo'];
+  var SRI_CAT_COLORS = { 'Alimentacion': '#0052FF', 'Vestimenta': '#10B981', 'Vivienda': '#F59E0B', 'Salud': '#8B5CF6', 'Educación, Arte y Cultura': '#EC4899', 'Turismo': '#06B6D4' };
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
 
   var st = { busy: false, totalTouched: false, filter: ALL, catFilter: ALL, dateFrom: '', dateTo: '', shown: 15, wired: false, items: [], extra: {}, open: {}, drafts: [], batchBusy: false, batchCancel: false, editing: null };
@@ -13410,7 +13425,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     toPush.forEach(pushCloud);
     toDel.forEach(deleteCloud);
     renderSync();
-    if (changed) { var v = $('v-gas'); if (v && v.classList.contains('ac')) { renderProjects(); renderSummary(); renderList(); } }
+    if (changed) { var v = $('v-gas'); if (v && v.classList.contains('ac')) { renderProjects(); renderSummary(); renderSummarySRI(); renderList(); } }
   }
 
   function retryPending() {
@@ -13539,6 +13554,41 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     el.innerHTML = html;
   }
 
+  // ── Gastos Personales SRI ──
+  function summarizeSRI(list) {
+    var s = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {} };
+    SRI_CATS.forEach(function (c) { s.byCat[c] = 0; });
+    list.forEach(function (g) {
+      s.total    += g.total    || 0;
+      s.subtotal += g.subtotal || 0;
+      s.iva      += g.iva      || 0;
+      // mapea la categoría del gasto a la categoria SRI correspondiente, o usa la primera
+      var cat = (SRI_CATS.indexOf(g.categoriaSRI) >= 0) ? g.categoriaSRI : SRI_CATS[0];
+      s.byCat[cat] = (s.byCat[cat] || 0) + (g.total || 0);
+    });
+    return s;
+  }
+  function renderSummarySRI() {
+    var el = $('gx-sri-sum'); if (!el) return;
+    var list = load();
+    var s = summarizeSRI(list);
+    var cats = SRI_CATS.slice().sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });
+    var max = Math.max.apply(null, cats.map(function (c) { return s.byCat[c]; }).concat([1]));
+    var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
+      '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div></div>' +
+      '<div class="gx-hint gx-mono">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div></div>';
+    if (!s.count) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
+    else {
+      html += '<div class="gx-bars">' + cats.map(function (c) {
+        var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = SRI_CAT_COLORS[c] || '#0052FF';
+        return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
+          '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
+      }).join('') + '</div>';
+    }
+    el.innerHTML = html;
+  }
+
   function fmtPU(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 6 }); }
 
   function detailHtml(g) {
@@ -13590,7 +13640,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function render() {
     wire();
     ensureCloud();
-    renderProjects(); renderSummary(); renderList(); renderKeyInfo(); renderItems(); renderDesglose(); renderSync(); renderBatch();
+    renderProjects(); renderSummary(); renderSummarySRI(); renderList(); renderKeyInfo(); renderItems(); renderDesglose(); renderSync(); renderBatch();
     var pm2 = $('gx-pm2'); if (pm2 && pm2.classList.contains('op')) refreshProjectDetailHeader();   // por si cambia algo mientras está abierta
     var f = $('gx-fecha'); if (f && !f.value) f.value = todayISO();
   }
@@ -15098,6 +15148,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-export').addEventListener('click', openExportModal);
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
+    if ($('gx-sri-projects-btn')) $('gx-sri-projects-btn').addEventListener('click', openProjectsModal);
     var pmMod = $('gx-pm');
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);

@@ -1288,14 +1288,14 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
      .mb empieza desde top:0 (toda la pantalla), así que:
        - padding-top = navbar(90px) + margen(70px) = 160px
        - padding-bottom = margen(70px) = 70px                */
-  .mb{padding:16px;align-items:center;box-sizing:border-box}
+  .mb{top:calc(60px + env(safe-area-inset-top, 0px));padding:16px;align-items:center;box-sizing:border-box}
 
   /* Todos los modales: se adaptan al contenido respetando el padding del .mb */
   .mo,.mo.mo-w-sm,.mo.mo-w-sm2{
     width:100%;
     max-width:100%;
     height:auto;
-    max-height:calc(100dvh - 32px);
+    max-height:calc(100dvh - 60px - env(safe-area-inset-top, 0px) - 32px);
     border-radius:18px;
     box-shadow:0 8px 40px rgba(0,0,0,.45);
   }
@@ -1304,7 +1304,7 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
     width:100%;
     max-width:100%;
     height:auto;
-    max-height:calc(100dvh - 32px);
+    max-height:calc(100dvh - 60px - env(safe-area-inset-top, 0px) - 32px);
     border-radius:18px;
     box-shadow:0 8px 40px rgba(0,0,0,.45);
   }

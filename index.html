@@ -2098,63 +2098,6 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-gas .gx-sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:0;font-size:14px;color:var(--gx-tx)}
 #v-gas .gx-sumcell{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── Gastos Personales SRI modal: replica estilos de #v-gas para funcionar fuera de ese contenedor ── */
-#gx-sri-modal .gx-mono{font-family:'JetBrains Mono',monospace}
-#gx-sri-modal .gx-hint{font-size:11.5px;color:var(--gx-tx2);line-height:1.5}
-#gx-sri-modal .gx-sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:0;font-size:14px;color:var(--gx-tx)}
-#gx-sri-modal .gx-sumcell{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#gx-sri-modal .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0;background:var(--s2);position:relative;z-index:2}
-#gx-sri-modal .gx-cattab{display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:5px 7px;border:none;border-right:1px solid var(--gx-br);background:transparent;color:var(--gx-tx2);font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s;border-radius:0;min-width:0;font-family:inherit}
-#gx-sri-modal .gx-cattab:first-child{padding-left:7px}
-#gx-sri-modal .gx-cattab:last-child{border-right:none}
-#gx-sri-modal .gx-cattab:hover{color:var(--gx-tx)}
-#gx-sri-modal .gx-cattab.ac{color:var(--cy,#00D4FF)}
-#gx-sri-modal .gx-cattab i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
-#gx-sri-modal .gx-cattab,#gx-sri-modal .gx-cattab *{flex-shrink:0}
-#gx-sri-modal .gx-daterange{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:var(--s2);position:relative;z-index:2;padding-bottom:10px;border-bottom:1px solid var(--gx-br)}
-#gx-sri-modal .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
-#gx-sri-modal .gx-date-in{background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12.5px;color-scheme:dark}
-#gx-sri-modal .gx-date-in:focus{outline:none;border-color:var(--gx-pri)}
-#gx-sri-modal .gx-daterange-sep{color:var(--gx-tx2);font-size:12px}
-#gx-sri-modal .gx-date-clear{background:transparent;border:1px solid var(--gx-br);color:var(--gx-tx2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:12px;transition:border-color .15s,color .15s}
-#gx-sri-modal .gx-date-clear:hover{border-color:var(--gx-err);color:var(--gx-err)}
-#gx-sri-modal .gx-list{display:flex;flex-direction:column}
-#gx-sri-modal .gx-item{display:grid;grid-template-columns:minmax(0,1fr) auto 40px;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--gx-br)}
-#gx-sri-modal .gx-item:first-child{border-top:0}
-#gx-sri-modal .gx-item .a{min-width:0;cursor:pointer}
-#gx-sri-modal .gx-item .n{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#gx-sri-modal .gx-item .d{font-size:11px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
-#gx-sri-modal .gx-chip{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--gx-br);color:var(--gx-tx)}
-#gx-sri-modal .gx-item .v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:right;white-space:nowrap}
-#gx-sri-modal .gx-del{width:40px;height:40px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--gx-err);font-size:26px;font-weight:400;cursor:pointer;line-height:1;padding:0}
-#gx-sri-modal .gx-del:hover{border-color:var(--gx-err);background:rgba(248,113,113,.08)}
-#gx-sri-modal .gx-empty{padding:22px 8px;text-align:center;color:var(--gx-tx2);font-size:13px;line-height:1.6}
-#gx-sri-modal .gx-row{display:flex;gap:10px;align-items:center}
-#gx-sri-modal .gx-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border:1px solid var(--gx-br);background:transparent;color:var(--gx-tx);border-radius:11px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:inherit;transition:border-color .15s,background .15s;white-space:nowrap}
-#gx-sri-modal .gx-btn:hover{border-color:var(--brc);background:var(--gx-hover)}
-#gx-sri-modal .gx-btn.primary{border-color:var(--gx-pri);color:var(--gx-pri)}
-#gx-sri-modal .gx-btn.primary:hover{background:rgba(0,82,255,.1)}
-#gx-sri-modal .gx-ico{flex-shrink:0}
-#gx-sri-modal .gx-det{grid-column:1/-1;padding:10px 0 4px}
-#gx-sri-modal .gx-dm{display:flex;flex-direction:column;gap:4px;font-size:12px}
-#gx-sri-modal .gx-dm div{display:flex;gap:6px}
-#gx-sri-modal .gx-dm span{color:var(--gx-tx2);flex-shrink:0}
-#gx-sri-modal .gx-dm b{font-family:'JetBrains Mono',monospace}
-@media(max-width:700px){
-  #gx-sri-modal .gx-sumgrid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}
-  #gx-sri-modal .gx-sumcell{font-size:12.5px;justify-content:flex-start;text-align:left;padding:0 6px;white-space:normal}
-  #gx-sri-modal .gx-cattabs{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:0}
-  #gx-sri-modal .gx-cattab{font-size:10.5px;padding:8px 5px;white-space:normal;line-height:1.3;text-align:center;overflow:visible;text-overflow:clip;min-height:38px;border-right:1px solid var(--gx-br);border-bottom:1px solid var(--gx-br)}
-  #gx-sri-modal .gx-cattab:first-child{padding-left:5px}
-  #gx-sri-modal .gx-cattab:nth-child(3n){border-right:none}
-  #gx-sri-modal .gx-cattab:nth-last-child(-n+3){border-bottom:none}
-  #gx-sri-modal .gx-cattab i{width:6px;height:6px}
-  #gx-sri-modal .gx-daterange{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
-  #gx-sri-modal .gx-daterange-lbl{display:none}
-  #gx-sri-modal .gx-date-in{padding:6px 6px;font-size:11.5px;min-width:0;flex:1 1 0}
-  #gx-sri-modal .gx-date-clear{flex:0 0 auto}
-}
-
 /* Tabs de categoría del modal original: también aplica fuera de #v-gas (modal gx-pm2 se mueve al body) */
 #v-gas .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0;background:var(--s2);position:relative;z-index:2}
 #v-gas .gx-cattab{
@@ -15249,13 +15192,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     function renderSriCatTabs() {
       var box = $('gx-sri-cattabs'); if (!box) return;
-      var all = ['__ALL__'].concat(SRI_CATS);
-      box.innerHTML = all.map(function (c) {
-        var lbl = c === '__ALL__' ? 'Todas' : c;
-        var active = sriSt.catFilter === c;
-        return '<button type="button" class="gx-cattab' + (active ? ' ac' : '') + '" data-sricat="' + esc(c) + '" style="' +
-          (active ? 'border-color:' + (SRI_CAT_COLORS[c] || 'var(--gx-pri)') + ';color:' + (SRI_CAT_COLORS[c] || 'var(--gx-pri)') + ';' : '') +
-          '">' + esc(lbl) + '</button>';
+      var list = sriFiltered(load());
+      var counts = {}; SRI_CATS.forEach(function (c) { counts[c] = 0; });
+      load().forEach(function (g) { var cat = g.categoriaSRI || SRI_CATS[0]; if (counts[cat] != null) counts[cat]++; });
+      var fullList = load();
+      var tabs = [{ id: '__ALL__', label: 'Todas', n: fullList.length, col: 'var(--gx-tx2)' }]
+        .concat(SRI_CATS.map(function (c) { return { id: c, label: c, n: counts[c] || 0, col: SRI_CAT_COLORS[c] || '#0052FF' }; }));
+      box.innerHTML = tabs.map(function (t) {
+        return '<button type="button" class="gx-cattab' + (sriSt.catFilter === t.id ? ' sel' : '') + '" data-sricat="' + esc(t.id) + '">' +
+          (t.id === '__ALL__' ? '' : '<i style="background:' + t.col + '"></i>') + esc(t.label) + ' (' + t.n + ')</button>';
       }).join('');
     }
 
@@ -15313,8 +15258,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     function closeSriModal() { var m = $('gx-sri-modal'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
 
-    // mover el modal al body
-    (function() { var m = $('gx-sri-modal'); if (m && m.parentNode !== document.body) document.body.appendChild(m); })();
+    // modal SRI permanece dentro de #v-gas para heredar todos sus estilos (igual que gx-pm y gx-pm2)
 
     if ($('gx-sri-projects-btn')) $('gx-sri-projects-btn').addEventListener('click', openSriModal);
     var sriMod = $('gx-sri-modal');

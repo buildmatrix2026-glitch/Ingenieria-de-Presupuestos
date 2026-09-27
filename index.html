@@ -13654,7 +13654,19 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     CLOUD.uid = u; CLOUD.got = false; CLOUD.pending = 0; CLOUD.err = ''; CLOUD.warned = false;
     try { localStorage.setItem('bm_gx_uid', u); } catch (e) {}
     renderSync();
+    syncKeyFromCloud();
     CLOUD.unsub = gcol().onSnapshot(onCloudSnapshot, cloudError);
+
+  // La clave de Gemini viaja con la cuenta (no solo con el dispositivo): se guarda en
+  // el documento del usuario en Firestore, protegida por las mismas reglas que ya
+  // protegen el resto de tu cuenta (solo tú puedes leerla o escribirla).
+  function syncKeyFromCloud() {
+    if (!CLOUD.uid) return;
+    fdb().collection('users').doc(CLOUD.uid).get().then(function (doc) {
+      var data = doc.data() || {};
+      if (data.geminiKey) { try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {} renderKeyInfo(); }
+    }).catch(function () {});
+  }
   }
   function cloudStop() {
     if (CLOUD.unsub) { try { CLOUD.unsub(); } catch (e) {} CLOUD.unsub = null; }
@@ -13684,7 +13696,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var s = keySource();
     el.className = 'gx-keyinfo' + (s === 'none' ? ' bad' : '');
     el.textContent = s === 'const' ? 'Clave de Gemini: configurada en el código.'
-      : s === 'local' ? 'Clave de Gemini: guardada en este dispositivo.'
+      : s === 'local' ? (CLOUD.uid ? 'Clave de Gemini: guardada en tu cuenta, sincronizada en todos tus dispositivos.' : 'Clave de Gemini: guardada en este dispositivo.')
       : 'Clave de Gemini no configurada: pulsa "Clave API" para activar el escaneo con IA (el ingreso manual funciona igual).';
   }
 
@@ -14066,13 +14078,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function askKey() {
     var cur = ''; try { cur = localStorage.getItem('bm_gemini_key') || ''; } catch (e) {}
-    var v = prompt('Pega tu clave gratuita de Google AI Studio (aistudio.google.com/apikey).\nSe guarda solo en este dispositivo. Deja vacío para borrarla.', cur);
+    var v = prompt('Pega tu clave gratuita de Google AI Studio (aistudio.google.com/apikey).\nSe guarda de forma privada en tu cuenta y se sincroniza en todos tus dispositivos (PC, iPhone, iPad). Deja vacío para borrarla.', cur);
     if (v === null) return;
     v = v.trim();
     try { if (v) localStorage.setItem('bm_gemini_key', v); else localStorage.removeItem('bm_gemini_key'); } catch (e) {}
     try { localStorage.removeItem('bm_gemini_model_ok'); localStorage.removeItem('bm_gemini_auth'); } catch (e) {}
+    if (CLOUD.uid) {
+      try {
+        fdb().collection('users').doc(CLOUD.uid).set(
+          { geminiKey: v ? v : firebase.firestore.FieldValue.delete() }, { merge: true }
+        ).catch(function () {});
+      } catch (e) {}
+    }
     renderKeyInfo();
-    say(v ? 'Clave de Gemini guardada en este dispositivo' : 'Clave de Gemini eliminada');
+    say(v ? 'Clave de Gemini guardada y sincronizada en tu cuenta' : 'Clave de Gemini eliminada');
   }
 
   /* ─────────────── Exportar a Excel (ExcelJS) ─────────────── */
@@ -16048,7 +16067,19 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     CLOUD.uid = u; CLOUD.got = false; CLOUD.pending = 0; CLOUD.err = ''; CLOUD.warned = false;
     try { localStorage.setItem('bm_gx_uid', u); } catch (e) {}
     renderSync();
+    syncKeyFromCloud();
     CLOUD.unsub = gcol().onSnapshot(onCloudSnapshot, cloudError);
+
+  // La clave de Gemini viaja con la cuenta (no solo con el dispositivo): se guarda en
+  // el documento del usuario en Firestore, protegida por las mismas reglas que ya
+  // protegen el resto de tu cuenta (solo tú puedes leerla o escribirla).
+  function syncKeyFromCloud() {
+    if (!CLOUD.uid) return;
+    fdb().collection('users').doc(CLOUD.uid).get().then(function (doc) {
+      var data = doc.data() || {};
+      if (data.geminiKey) { try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {} renderKeyInfo(); }
+    }).catch(function () {});
+  }
   }
   function cloudStop() {
     if (CLOUD.unsub) { try { CLOUD.unsub(); } catch (e) {} CLOUD.unsub = null; }
@@ -16078,7 +16109,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var s = keySource();
     el.className = 'gx-keyinfo' + (s === 'none' ? ' bad' : '');
     el.textContent = s === 'const' ? 'Clave de Gemini: configurada en el código.'
-      : s === 'local' ? 'Clave de Gemini: guardada en este dispositivo.'
+      : s === 'local' ? (CLOUD.uid ? 'Clave de Gemini: guardada en tu cuenta, sincronizada en todos tus dispositivos.' : 'Clave de Gemini: guardada en este dispositivo.')
       : 'Clave de Gemini no configurada: pulsa "Clave API" para activar el escaneo con IA (el ingreso manual funciona igual).';
   }
 
@@ -16467,13 +16498,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function askKey() {
     var cur = ''; try { cur = localStorage.getItem('bm_gemini_key') || ''; } catch (e) {}
-    var v = prompt('Pega tu clave gratuita de Google AI Studio (aistudio.google.com/apikey).\nSe guarda solo en este dispositivo. Deja vacío para borrarla.', cur);
+    var v = prompt('Pega tu clave gratuita de Google AI Studio (aistudio.google.com/apikey).\nSe guarda de forma privada en tu cuenta y se sincroniza en todos tus dispositivos (PC, iPhone, iPad). Deja vacío para borrarla.', cur);
     if (v === null) return;
     v = v.trim();
     try { if (v) localStorage.setItem('bm_gemini_key', v); else localStorage.removeItem('bm_gemini_key'); } catch (e) {}
     try { localStorage.removeItem('bm_gemini_model_ok'); localStorage.removeItem('bm_gemini_auth'); } catch (e) {}
+    if (CLOUD.uid) {
+      try {
+        fdb().collection('users').doc(CLOUD.uid).set(
+          { geminiKey: v ? v : firebase.firestore.FieldValue.delete() }, { merge: true }
+        ).catch(function () {});
+      } catch (e) {}
+    }
     renderKeyInfo();
-    say(v ? 'Clave de Gemini guardada en este dispositivo' : 'Clave de Gemini eliminada');
+    say(v ? 'Clave de Gemini guardada y sincronizada en tu cuenta' : 'Clave de Gemini eliminada');
   }
 
   /* ─────────────── Exportar a Excel (ExcelJS) ─────────────── */

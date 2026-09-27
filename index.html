@@ -3636,8 +3636,8 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div id="gx-sri-sum"></div>
               <div class="gx-row" style="margin-top:16px">
                 <button type="button" class="gx-btn primary" id="gx-sri-projects-btn" style="width:100%;min-height:50px;font-size:14.5px">
-                  <svg class="gx-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-                  <span>Proyectos</span>
+                  <svg class="gx-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="1.8"><path d="M9 14l2 2 4-4"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+                  <span>Gastos Personales SRI</span>
                 </button>
               </div>
             </div>
@@ -3785,6 +3785,36 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       </div>
 
+      <!-- Modal SRI: Gastos Personales SRI — categorías SRI con filtro por categoría y rango de fechas -->
+      <div class="mb" id="gx-sri-modal">
+        <div class="mo mo-w-lg mo-tall" style="display:flex;flex-direction:column">
+          <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px;position:relative;z-index:2">
+            <div style="width:40px"></div>
+            <h3 style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px">Gastos Personales SRI</h3>
+            <button type="button" class="ib" id="gx-sri-x" aria-label="Cerrar" style="justify-self:end"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div id="gx-sri-modal-summary" style="padding:16px 20px 0;flex-shrink:0;position:relative;z-index:2"></div>
+          <div class="gx-cattabs" id="gx-sri-cattabs" style="padding:12px 14px 0;flex-shrink:0;position:relative;z-index:2;background:var(--s2)"></div>
+          <div class="gx-daterange" style="padding:12px 20px 12px;flex-shrink:0;position:relative;z-index:2;background:var(--s2);border-bottom:1px solid var(--gx-br)">
+            <span class="gx-daterange-lbl">Rango de fechas</span>
+            <input type="date" id="gx-sri-date-from" class="gx-date-in" aria-label="Desde">
+            <span class="gx-daterange-sep">→</span>
+            <input type="date" id="gx-sri-date-to" class="gx-date-in" aria-label="Hasta">
+            <button type="button" class="gx-date-clear" id="gx-sri-date-clear" title="Quitar filtro de fechas">✕</button>
+          </div>
+          <div style="padding:14px 20px;overflow-y:auto;flex:1 1 auto;min-height:0">
+            <div class="gx-hint" id="gx-sri-count" style="margin-bottom:8px;text-align:right"></div>
+            <div class="gx-list" id="gx-sri-list"></div>
+            <div class="gx-row" id="gx-sri-more-wrap" style="display:none"><button type="button" class="gx-btn" id="gx-sri-more">Mostrar más</button></div>
+          </div>
+          <div class="gx-row" style="padding:16px 20px;border-top:1px solid var(--gx-br);flex-shrink:0">
+            <button type="button" class="gx-btn primary" id="gx-sri-export" style="flex:1;min-height:46px">
+              <svg class="gx-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+              <span>Exportar</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Modal: exportar gastos (se mueve a <body> al iniciar) -->
       <div class="mb" id="gx-exb">
@@ -15148,7 +15178,98 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-export').addEventListener('click', openExportModal);
     $('gx-delete-all').addEventListener('click', function () { deleteAllFiltered(); refreshProjectDetailHeader(); });
     $('gx-projects-btn').addEventListener('click', openProjectsModal);
-    if ($('gx-sri-projects-btn')) $('gx-sri-projects-btn').addEventListener('click', openProjectsModal);
+    // ── Modal Gastos Personales SRI ──────────────────────────────────
+    var sriSt = { catFilter: '__ALL__', dateFrom: '', dateTo: '', shown: 15 };
+
+    function sriFiltered(list) {
+      return list.filter(function (g) {
+        if (sriSt.catFilter !== '__ALL__' && g.categoriaSRI !== sriSt.catFilter) return false;
+        if (sriSt.dateFrom && g.fecha < sriSt.dateFrom) return false;
+        if (sriSt.dateTo   && g.fecha > sriSt.dateTo)   return false;
+        return true;
+      });
+    }
+
+    function renderSriCatTabs() {
+      var box = $('gx-sri-cattabs'); if (!box) return;
+      var all = ['__ALL__'].concat(SRI_CATS);
+      box.innerHTML = all.map(function (c) {
+        var lbl = c === '__ALL__' ? 'Todas' : c;
+        var active = sriSt.catFilter === c;
+        return '<button type="button" class="gx-cattab' + (active ? ' ac' : '') + '" data-sricat="' + esc(c) + '" style="' +
+          (active ? 'border-color:' + (SRI_CAT_COLORS[c] || 'var(--gx-pri)') + ';color:' + (SRI_CAT_COLORS[c] || 'var(--gx-pri)') + ';' : '') +
+          '">' + esc(lbl) + '</button>';
+      }).join('');
+    }
+
+    function refreshSriHeader() {
+      var list = sriFiltered(load()), s = summarize(list);
+      var sumEl = $('gx-sri-modal-summary');
+      if (sumEl) sumEl.innerHTML = s.count
+        ? ('<div class="gx-sumgrid">' +
+            '<div class="gx-sumcell">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div>' +
+            '<div class="gx-sumcell">Total <b class="gx-mono">' + money(s.total) + '</b></div>' +
+            '<div class="gx-sumcell">Subtotal ' + money(s.subtotal) + '</div>' +
+            '<div class="gx-sumcell">IVA ' + money(s.iva) + '</div>' +
+          '</div>')
+        : '<div class="gx-empty" style="padding:10px 0">Sin comprobantes en esta selección.</div>';
+      renderSriCatTabs();
+    }
+
+    function renderSriList() {
+      var el = $('gx-sri-list'); if (!el) return;
+      var list = sriFiltered(load()).slice().sort(function (a, b) {
+        return (b.fecha || '').localeCompare(a.fecha || '') || (b.creado || 0) - (a.creado || 0);
+      });
+      var show = list.slice(0, sriSt.shown);
+      var cnt = $('gx-sri-count'); if (cnt) cnt.textContent = list.length ? 'Mostrando ' + show.length + ' de ' + list.length : '';
+      if (!list.length) { el.innerHTML = '<div class="gx-empty">Sin comprobantes en esta selección.</div>'; }
+      else {
+        el.innerHTML = show.map(function (g) {
+          var cat = g.categoriaSRI || SRI_CATS[0];
+          var col = SRI_CAT_COLORS[cat] || '#0052FF';
+          return '<div class="gx-item">' +
+            '<div class="a"><div class="n">' + esc(g.proveedor) + '</div>' +
+            '<div class="d"><span>' + esc(g.fecha) + '</span>' +
+            (g.numero ? '<span>N° ' + esc(g.numero) + '</span>' : '') +
+            '<span class="gx-chip" style="border-color:' + col + '">' + esc(cat) + '</span></div></div>' +
+            '<div class="v">' + money(g.total) + '</div></div>';
+        }).join('');
+      }
+      var mw = $('gx-sri-more-wrap'); if (mw) mw.style.display = list.length > show.length ? '' : 'none';
+    }
+
+    function openSriModal() {
+      var m = $('gx-sri-modal'); if (!m) return;
+      sriSt.catFilter = '__ALL__'; sriSt.shown = 15; sriSt.dateFrom = ''; sriSt.dateTo = '';
+      var df = $('gx-sri-date-from'), dt = $('gx-sri-date-to'); if (df) df.value = ''; if (dt) dt.value = '';
+      refreshSriHeader(); renderSriList();
+      m.classList.add('op');
+      _gxSetVH(); _gxSyncScrollLock();
+    }
+    function closeSriModal() { var m = $('gx-sri-modal'); if (m) m.classList.remove('op'); _gxSyncScrollLock(); }
+
+    // mover el modal al body
+    (function() { var m = $('gx-sri-modal'); if (m && m.parentNode !== document.body) document.body.appendChild(m); })();
+
+    if ($('gx-sri-projects-btn')) $('gx-sri-projects-btn').addEventListener('click', openSriModal);
+    var sriMod = $('gx-sri-modal');
+    if (sriMod) sriMod.addEventListener('click', function (e) { if (e.target === sriMod) closeSriModal(); });
+    if ($('gx-sri-x')) $('gx-sri-x').addEventListener('click', closeSriModal);
+    if ($('gx-sri-cattabs')) $('gx-sri-cattabs').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-sricat]') : null; if (!b) return;
+      sriSt.catFilter = b.getAttribute('data-sricat'); sriSt.shown = 15;
+      refreshSriHeader(); renderSriList();
+    });
+    if ($('gx-sri-date-from')) $('gx-sri-date-from').addEventListener('change', function () { sriSt.dateFrom = this.value; sriSt.shown = 15; refreshSriHeader(); renderSriList(); });
+    if ($('gx-sri-date-to'))   $('gx-sri-date-to').addEventListener('change',   function () { sriSt.dateTo   = this.value; sriSt.shown = 15; refreshSriHeader(); renderSriList(); });
+    if ($('gx-sri-date-clear')) $('gx-sri-date-clear').addEventListener('click', function () {
+      sriSt.dateFrom = ''; sriSt.dateTo = ''; $('gx-sri-date-from').value = ''; $('gx-sri-date-to').value = '';
+      refreshSriHeader(); renderSriList();
+    });
+    if ($('gx-sri-more')) $('gx-sri-more').addEventListener('click', function () { sriSt.shown += 15; renderSriList(); });
+    if ($('gx-sri-export')) $('gx-sri-export').addEventListener('click', openExportModal);
+    // ── fin modal SRI ────────────────────────────────────────────────
     var pmMod = $('gx-pm');
     if (pmMod) pmMod.addEventListener('click', function (e) { if (e.target === pmMod) closeProjectsModal(); });
     $('gx-pm-x').addEventListener('click', closeProjectsModal);

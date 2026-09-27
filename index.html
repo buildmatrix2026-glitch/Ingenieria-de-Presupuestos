@@ -13656,6 +13656,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     renderSync();
     syncKeyFromCloud();
     CLOUD.unsub = gcol().onSnapshot(onCloudSnapshot, cloudError);
+  }
 
   // La clave de Gemini viaja con la cuenta (no solo con el dispositivo): se guarda en
   // el documento del usuario en Firestore, protegida por las mismas reglas que ya
@@ -13664,9 +13665,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!CLOUD.uid) return;
     fdb().collection('users').doc(CLOUD.uid).get().then(function (doc) {
       var data = doc.data() || {};
-      if (data.geminiKey) { try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {} renderKeyInfo(); }
+      if (data.geminiKey) {
+        // La nube ya tiene clave: es la fuente de verdad, la copiamos a este dispositivo.
+        try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {}
+        renderKeyInfo();
+      } else {
+        // La nube todavía no tiene clave (cuenta recién sincronizada): si este dispositivo
+        // ya tenía una guardada de antes, la subimos ahora para que los demás la reciban.
+        var local = ''; try { local = (localStorage.getItem('bm_gemini_key') || '').trim(); } catch (e) {}
+        if (local) {
+          fdb().collection('users').doc(CLOUD.uid).set({ geminiKey: local }, { merge: true }).then(function () {
+            renderKeyInfo();
+          }).catch(function () {});
+        }
+      }
     }).catch(function () {});
-  }
   }
   function cloudStop() {
     if (CLOUD.unsub) { try { CLOUD.unsub(); } catch (e) {} CLOUD.unsub = null; }
@@ -16069,6 +16082,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     renderSync();
     syncKeyFromCloud();
     CLOUD.unsub = gcol().onSnapshot(onCloudSnapshot, cloudError);
+  }
 
   // La clave de Gemini viaja con la cuenta (no solo con el dispositivo): se guarda en
   // el documento del usuario en Firestore, protegida por las mismas reglas que ya
@@ -16077,9 +16091,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!CLOUD.uid) return;
     fdb().collection('users').doc(CLOUD.uid).get().then(function (doc) {
       var data = doc.data() || {};
-      if (data.geminiKey) { try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {} renderKeyInfo(); }
+      if (data.geminiKey) {
+        // La nube ya tiene clave: es la fuente de verdad, la copiamos a este dispositivo.
+        try { localStorage.setItem('bm_gemini_key', data.geminiKey); } catch (e) {}
+        renderKeyInfo();
+      } else {
+        // La nube todavía no tiene clave (cuenta recién sincronizada): si este dispositivo
+        // ya tenía una guardada de antes, la subimos ahora para que los demás la reciban.
+        var local = ''; try { local = (localStorage.getItem('bm_gemini_key') || '').trim(); } catch (e) {}
+        if (local) {
+          fdb().collection('users').doc(CLOUD.uid).set({ geminiKey: local }, { merge: true }).then(function () {
+            renderKeyInfo();
+          }).catch(function () {});
+        }
+      }
     }).catch(function () {});
-  }
   }
   function cloudStop() {
     if (CLOUD.unsub) { try { CLOUD.unsub(); } catch (e) {} CLOUD.unsub = null; }

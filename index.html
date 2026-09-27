@@ -3810,9 +3810,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                   <option value="Vestimenta">Vestimenta</option>
                   <option value="Vivienda">Vivienda</option>
                   <option value="Salud">Salud</option>
-                  <option value="Educación">Educación</option>
-                  <option value="Arte y Cultura">Arte y Cultura</option>
+                  <option value="Educación, Arte y Cultura">Educación, Arte y Cultura</option>
                   <option value="Turismo">Turismo</option>
+                  <option value="Otros (no deducible SRI)">Otros (no deducible SRI)</option>
                 </select>
                 <button type="button" class="gx-btn" id="gxp-batch-applycat" style="flex:1 1 150px">Categoría a todas</button>
               </div>
@@ -3885,9 +3885,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                     <option value="Vestimenta">Vestimenta</option>
                     <option value="Vivienda">Vivienda</option>
                     <option value="Salud">Salud</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Arte y Cultura">Arte y Cultura</option>
+                    <option value="Educación, Arte y Cultura">Educación, Arte y Cultura</option>
                     <option value="Turismo">Turismo</option>
+                    <option value="Otros (no deducible SRI)">Otros (no deducible SRI)</option>
                   </select>
                 </div>
                 <div class="gx-f">
@@ -13180,6 +13180,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'forma_pago = descripción de la forma de pago (ej. "OTROS CON UTILIZACION DEL SISTEMA FINANCIERO"). ' +
     'Importes: números decimales con punto, sin símbolo de moneda ni separador de miles. ' +
     'subtotal = "SUBTOTAL SIN IMPUESTOS"; desglose_iva = una entrada por cada renglón "SUBTOTAL x%" con tarifa, base (ese subtotal) y el "IVA x%" correspondiente; ' +
+    'IMPORTANTE SOBRE TARIFAS DE IVA: en Ecuador conviven varias tarifas de IVA (0%, 5%, 8%, 15%) y NO debes asumir que todo es 15%. En particular, desde 2024 los MATERIALES DE CONSTRUCCIÓN (cemento, varilla/acero de refuerzo, arena, ripio, piedra, hormigón/concreto premezclado, bloques, ladrillos, adoquín, clinker, yeso, chatarra ferrosa) suelen facturarse al 5% por la Resolución NAC-DGERCGC24-00000013 del SRI; otros materiales de construcción (pintura, tubería PVC, cable eléctrico, cerámica, vidrio) siguen al 15%; alimentos en estado natural, medicinas y libros pueden ir al 0%. Lee la factura tal cual está impresa: copia exactamente cada renglón "SUBTOTAL x%" que aparezca (puede haber más de uno en la misma factura) en desglose_iva, sin asumir ni corregir la tarifa. ' +
     'subtotal_0, no_objeto, exento, ice, propina y descuento (TOTAL DESCUENTO) tal como aparecen (0 si no hay); ' +
     'iva = suma de todas las líneas de IVA; total = "VALOR TOTAL" o "TOTAL A PAGAR" (NO "valor total sin subsidio"). ' +
     'items: UNA entrada por CADA línea del detalle de la factura, en el mismo orden y de TODAS las páginas; no omitas, no resumas ni agrupes líneas. ' +
@@ -13188,15 +13189,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
+    'CONTEXTO: este comprobante fue emitido al RUC del contratista/empresa de construcción, para gastos de EJECUCIÓN, LOGÍSTICA, ADMINISTRACIÓN, PERMISOS o MANTENIMIENTO de un proyecto de obra (nunca gasto de consumo personal o familiar). ' +
     'PASO FINAL — campo "categoria": lee los ítems de la factura que acabas de extraer y determina a cuál de estas 6 categorías pertenece el gasto. ' +
     'Elige UNO de estos valores exactos (respeta mayúsculas y tildes): ' +
-    '"Materiales" → solo si los ítems son materiales físicos de construcción: cemento, hierro, varilla, bloque, madera, pintura, tubería PVC, cable eléctrico, arena, ripio, cerámica, vidrio, encofrado, mortero, impermeabilizante, etc. ' +
-    '"Mano de Obra" → solo si los ítems son servicios de trabajo humano en obra: albañilería, instalación eléctrica, plomería, carpintería, soldadura, acabados, etc. ' +
-    '"Equipos y Maquinaria" → solo si los ítems son alquiler o compra de maquinaria o herramientas: retroexcavadora, concretera, andamio, generador, bomba, taladro, etc. ' +
-    '"Subcontratos" → solo si se contrata a otra empresa para ejecutar una parte completa de la obra. ' +
-    '"Gastos Indirectos" → combustible de cualquier tipo (gasolina, diesel, GLP, gasoil), lubricantes, aceite de motor, llantas; también transporte de personas, alimentación, hospedaje, agua, luz, teléfono, internet, papelería, limpieza, uniformes, peajes, seguros. REGLA: si ves la palabra diesel, gasolina, combustible, fuel, galones, litros de combustible, o el emisor es una estación de servicio o gasolinera → categoria = "Gastos Indirectos" SIN EXCEPCIÓN. ' +
-    '"Gastos Trámites" → permisos, tasas municipales, impuestos, honorarios de abogado o contador, notaría, registros, asesoría. ' +
-    'Si la factura mezcla varios tipos, elige la categoría del ítem de mayor valor. No uses "Materiales" para combustible ni lubricantes nunca.';
+    '"Materiales" → materiales físicos de construcción: cemento, hierro, varilla, bloque, madera, pintura, tubería PVC, cable eléctrico, arena, ripio, cerámica, vidrio, empaste, gypsum, perfiles, aditivos, clavos, encofrado, mortero, impermeabilizante, etc. NUNCA ropa, calzado ni EPP (eso va en Gastos Indirectos). ' +
+    '"Mano de Obra" → pagos a maestros de obra, albañiles, cuadrilla, jornales, encofradores y servicios directos de construcción (trabajo humano en obra): albañilería, instalación eléctrica, plomería, carpintería, soldadura, acabados, etc. ' +
+    '"Equipos y Maquinaria" → alquiler o compra de maquinaria o herramientas pesadas: retroexcavadora, concretera, andamio, generador, bomba, compactadora, taladro, etc. ' +
+    '"Subcontratos" → servicios especializados completos contratados a otra empresa: electricidad, plomería, carpintería, aluminio y vidrio, sistemas contra incendios, o cualquier parte completa de la obra delegada a un tercero. ' +
+    '"Gastos Trámites" → licencias de construcción, aprobación de planos, registro de la propiedad, notaría, escrituras, peritajes topográficos, tasas municipales, permisos, impuestos, honorarios de abogado o contador, asesoría. ' +
+    '"Gastos Indirectos" → todo lo demás que sostiene la obra sin ser material, mano de obra, maquinaria, subcontrato ni trámite. Incluye, sin excepción: ' +
+    '(a) COMBUSTIBLE de vehículos de obra — gasolina, diesel, GLP, gasoil, lubricantes, aceite de motor, llantas, peajes: si ves diesel, gasolina, combustible, fuel, galones/litros de combustible, o el emisor es una estación de servicio/gasolinera → "Gastos Indirectos" SIN EXCEPCIÓN, nunca "Materiales"; ' +
+    '(b) EQUIPO DE PROTECCIÓN PERSONAL (EPP) y ropa de trabajo — botas de punta de acero, cascos, chalecos reflectivos, guantes de cuero, impermeables, uniformes de trabajo (NUNCA en "Materiales"); ' +
+    '(c) ALIMENTACIÓN CONTRATADA PARA LA CUADRILLA/OBRA — almuerzos o víveres para los obreros en sitio, o comidas de trabajo/fiscalización con clientes; ' +
+    '(d) fletes de transporte de materiales, transporte de personas, hospedaje de personal de obra, agua/luz/teléfono/internet de la obra, papelería, limpieza, seguros, y consumibles menores (discos de corte, piolas, marcadores, herramientas menores). ' +
+    'Si la factura mezcla varios tipos, elige la categoría del ítem de mayor valor. No uses "Materiales" para combustible, lubricantes, ropa ni EPP nunca.';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
   function prepareImage(file) {
@@ -14390,6 +14396,37 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     rows.forEach(function (x) { if (!CATS.some(function (c) { return gkey(c) === gkey(x.categoria); })) { otras.n++; otras.sub += x.subtotal; otras.iva += x.iva; otras.tot += x.total; } });
     if (otras.n) catGroups.push(otras);
     groupTable('GASTO POR CATEGORÍA', 'Categoría', catGroups, 'cat');
+    // Tabla de IVA por tarifa (0%, 5%, 15%, etc.): útil porque en obra conviven materiales
+    // al 5% (Resolución NAC-DGERCGC24-00000013) con otros ítems al 15% o al 0% en la misma factura.
+    var tarAgg = {}, SD2 = 'Sin detalle';
+    rows.forEach(function (g) {
+      var dg = (g.extra || {}).desglose || [];
+      if (!dg.length) { tarAgg[SD2] = tarAgg[SD2] || { n: 0, base: 0, iva: 0 }; tarAgg[SD2].n++; tarAgg[SD2].base += g.subtotal; tarAgg[SD2].iva += g.iva; }
+      else dg.forEach(function (d) { var t = d.tarifa || SD2; tarAgg[t] = tarAgg[t] || { n: 0, base: 0, iva: 0 }; tarAgg[t].n++; tarAgg[t].base += d.base || 0; tarAgg[t].iva += d.iva || 0; });
+    });
+    var tarKeys = Object.keys(tarAgg).sort(function (a, b) { if (a === SD2) return 1; if (b === SD2) return -1; return (parseFloat(b) || 0) - (parseFloat(a) || 0); });
+    if (tarKeys.length) {
+      band('IVA POR TARIFA (0%, 5%, 15%, etc.)');
+      headerRow(wsR, row, ['Tarifa', 'N° renglones', 'Base imponible', 'IVA'], 2); row++;
+      tarKeys.forEach(function (t, i) {
+        var a = tarAgg[t], r = wsR.getRow(row), z = (i % 2) ? XL.GRIS2 : null;
+        dataCell(r, 1, t === SD2 ? 'Sin detalle de tarifa' : t, { fill: z, bold: true });
+        dataCell(r, 2, a.n, { h: 'center', fill: z });
+        dataCell(r, 3, round2(a.base), { fmt: F_USD, h: 'right', fill: z });
+        dataCell(r, 4, round2(a.iva), { fmt: F_USD, h: 'right', fill: z, bold: true });
+        row++;
+      });
+      var totT = wsR.getRow(row); totT.height = 20;
+      for (var qq = 1; qq <= 4; qq++) { var tq = totT.getCell(qq); tq.fill = xfill(XL.AZUL_MED); tq.border = BORDER; tq.font = xf(true, XL.NEGRO, 9); }
+      totT.getCell(1).value = 'TOTAL';
+      var aggN = 0, aggBase = 0, aggIva = 0;
+      tarKeys.forEach(function (t) { aggN += tarAgg[t].n; aggBase += tarAgg[t].base; aggIva += tarAgg[t].iva; });
+      totT.getCell(2).value = aggN; totT.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+      totT.getCell(3).value = round2(aggBase); totT.getCell(3).numFmt = F_USD; totT.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+      totT.getCell(4).value = round2(aggIva); totT.getCell(4).numFmt = F_USD; totT.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
+      row += 2;
+    }
+
     if (multi) groupTable('GASTO POR PROYECTO', 'Proyecto', groupBy(function (g) { return g.proyecto; }, function (g) { return g.proyecto || 'Sin proyecto'; }), 'proyecto');
     groupTable('GASTO POR PROVEEDOR', 'Proveedor', groupBy(function (g) { return String(g.proveedor || '').trim(); }, function (g) { return String(g.proveedor || '').trim() || '(sin nombre)'; }), 'proveedor');
     groupTable('GASTO MENSUAL', 'Mes (AAAA-MM)', groupBy(monthOf, function (g) { return monthOf(g) || '(sin fecha)'; }, 'label'), 'mes');
@@ -14801,6 +14838,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (otras.n) catG.push(otras);
     catG.sort(function (a, b) { return b.tot - a.tot; });
     y = pGroupTable(doc, ctx, y, 'Gasto por categoría', 'Categoría', catG);
+    var tarAgg2 = {}, SD3 = 'Sin detalle';
+    rows.forEach(function (g) {
+      var dg = (g.extra || {}).desglose || [];
+      if (!dg.length) { tarAgg2[SD3] = tarAgg2[SD3] || { n: 0, sub: 0, iva: 0 }; tarAgg2[SD3].n++; tarAgg2[SD3].sub += g.subtotal; tarAgg2[SD3].iva += g.iva; }
+      else dg.forEach(function (d) { var t = d.tarifa || SD3; tarAgg2[t] = tarAgg2[t] || { n: 0, sub: 0, iva: 0 }; tarAgg2[t].n++; tarAgg2[t].sub += d.base || 0; tarAgg2[t].iva += d.iva || 0; });
+    });
+    var tarG = Object.keys(tarAgg2).sort(function (a, b) { if (a === SD3) return 1; if (b === SD3) return -1; return (parseFloat(b) || 0) - (parseFloat(a) || 0); }).map(function (t) {
+      var a = tarAgg2[t]; return { label: t === SD3 ? 'Sin detalle de tarifa' : t, n: a.n, sub: round2(a.sub), iva: round2(a.iva), tot: round2(a.sub + a.iva) };
+    });
+    if (tarG.length) y = pGroupTable(doc, ctx, y, 'IVA por tarifa (0%, 5%, 15%, etc.)', 'Tarifa', tarG);
+
     if (multi) y = pGroupTable(doc, ctx, y, 'Gasto por proyecto', 'Proyecto', pGroups(rows, function (g) { return g.proyecto; }, function (g) { return g.proyecto || 'Sin proyecto'; }));
     var provG = pGroups(rows, function (g) { return String(g.proveedor || '').trim(); }, function (g) { return String(g.proveedor || '').trim() || '(sin nombre)'; });
     if (provG.length > 15) {
@@ -15397,8 +15445,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 (function () {
   'use strict';
 
-  var CATS = ['Alimentación', 'Vestimenta', 'Vivienda', 'Salud', 'Educación', 'Arte y Cultura', 'Turismo'];
-  var CAT_COLORS = { 'Alimentación': '#F59E0B', 'Vestimenta': '#8B5CF6', 'Vivienda': '#0052FF', 'Salud': '#EF4444', 'Educación': '#10B981', 'Arte y Cultura': '#EC4899', 'Turismo': '#06B6D4' };
+  var CATS = ['Alimentación', 'Vestimenta', 'Vivienda', 'Salud', 'Educación, Arte y Cultura', 'Turismo', 'Otros (no deducible SRI)'];
+  var CAT_COLORS = { 'Alimentación': '#F59E0B', 'Vestimenta': '#8B5CF6', 'Vivienda': '#0052FF', 'Salud': '#EF4444', 'Educación, Arte y Cultura': '#10B981', 'Turismo': '#06B6D4', 'Otros (no deducible SRI)': '#6B7280' };
+  var NO_DEDUCIBLE = 'Otros (no deducible SRI)';   // no suma al total deducible del Anexo SRI de Gastos Personales
   var ALL = '__all__', OTHER = '__other__', NONE = 'Sin proyecto';
   var PERSONAL_PROJECT = 'Gastos personales';   // sin selector de proyecto: todos los gastos personales van aquí
 
@@ -15536,15 +15585,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
-    'PASO FINAL — campo "categoria": lee los ítems del comprobante que acabas de extraer y determina a cuál de estas 7 categorías de gasto personal pertenece. ' +
-    'Elige UNO de estos valores exactos (respeta mayúsculas y tildes): ' +
-    '"Alimentación" → supermercado, mercado, restaurante, comida rápida, cafetería, víveres, panadería, delivery de comida. ' +
-    '"Vestimenta" → ropa, calzado, accesorios de vestir, boutique, tienda de moda, textiles de uso personal. ' +
-    '"Vivienda" → arriendo, servicios básicos del hogar (agua, luz, internet, gas doméstico), mantenimiento del hogar, muebles, electrodomésticos, ferretería para el hogar. ' +
-    '"Salud" → farmacia, medicinas, consulta médica u odontológica, exámenes de laboratorio, seguro médico, óptica. ' +
-    '"Educación" → matrícula, pensión, útiles escolares, cursos, libros, capacitaciones. ' +
-    '"Arte y Cultura" → cine, teatro, museos, conciertos, entretenimiento, streaming, eventos culturales. ' +
-    '"Turismo" → pasajes, hospedaje, hoteles, agencias de viaje, tours, alquiler de vehículo de paseo. ' +
+    'CONTEXTO: este comprobante fue emitido a la CÉDULA (persona natural), para gasto de consumo PERSONAL o FAMILIAR — nunca gasto de un RUC de empresa ni de ejecución de obra. ' +
+    'PASO FINAL — campo "categoria": lee los ítems del comprobante que acabas de extraer y determina a cuál de estas 7 categorías pertenece el gasto. Las primeras 6 son EXACTAMENTE las categorías oficiales del Anexo de Gastos Personales del SRI Ecuador (Reglamento LORTI vigente y ficha "Gastos personales: conceptos y ejemplos" del SRI), deducibles de Impuesto a la Renta; la 7ª es para lo que NO califica en ninguna de esas 6. ' +
+    'Elige UNO de estos valores exactos (respeta mayúsculas, tildes y comas): ' +
+    '"Vivienda" → arriendo de un único inmueble; intereses de préstamos hipotecarios (ampliación, remodelación, restauración, adquisición o construcción); servicios básicos del hogar (agua, luz/electricidad, gas, teléfono convencional) y alícuota de condominio; impuesto predial; pensión alimenticia; y otros gastos de adquisición, construcción, remodelación, ampliación, mejora o mantenimiento de la vivienda (muebles, ferretería del hogar). ' +
+    '"Salud" → honorarios de médicos y profesionales de salud; servicios de clínicas, hospitales, laboratorios y farmacias; medicinas, insumos médicos, lentes, órtesis, prótesis; medicina prepagada y prima de seguro médico (individual o corporativo); deducible de seguro privado; pensión alimenticia; también gastos de salud de MASCOTAS (veterinaria, medicinas veterinarias). ' +
+    '"Alimentación" → compras de alimentos para consumo humano (supermercado, mercado, víveres); restaurantes y centros de expendio de comida preparada; pensión alimenticia; también alimento de MASCOTAS. ' +
+    '"Vestimenta" → cualquier prenda de vestir y calzado de uso personal o de dependientes del hogar; pensión alimenticia. NUNCA botas de punta de acero, cascos, chalecos reflectivos, guantes de cuero ni ropa/uniformes de TRABAJO de obra — eso no es gasto personal deducible, usa "Otros (no deducible SRI)". Los UNIFORMES ESCOLARES van en "Educación, Arte y Cultura", no aquí. ' +
+    '"Educación, Arte y Cultura" → matrícula y pensión en todo nivel educativo (inicial a superior), transporte escolar, derechos de grado, intereses de crédito educativo, útiles y textos escolares, equipos de computación para estudio, uniformes escolares, educación especial para discapacidad, centros de cuidado/desarrollo infantil, cursos y seminarios de formación; Y TAMBIÉN arte y cultura: artes vivas/escénicas (danza, teatro, ópera), artes plásticas/visuales, artes literarias (incluye libros y revistas), artes cinematográficas/audiovisuales (cine), artes musicales (conciertos, instrumentos musicales), museos/archivos/bibliotecas, artesanías hechas a mano, pensión alimenticia (es UNA sola categoría oficial del SRI, no la separes en Educación y Arte y Cultura). ' +
+    '"Turismo" → SOLO turismo NACIONAL dentro de Ecuador: alojamiento turístico; transporte de pasajeros (aéreo, terrestre, marítimo, fluvial) y alquiler de vehículos para turismo interno; alimentos y bebidas no alcohólicas consumidos durante la actividad turística (restaurantes/bares en el viaje); operación turística (paquetes, tours); intermediación turística (agencias de viaje); parques de atracciones estables; pensión alimenticia. Si el viaje, hospedaje o tour es FUERA de Ecuador (internacional), NO es deducible: usa "Otros (no deducible SRI)". REGLA GASOLINA en viaje: gasolinera/estación de servicio cuyo contexto indica un trayecto turístico dentro de Ecuador (ciudad/provincia distinta a la habitual, junto a otros gastos de viaje) → "Turismo". ' +
+    '"Otros (no deducible SRI)" → gasto personal real pero que NO entra en ninguna de las 6 categorías oficiales, por lo que no debe sumarse como deducible del Anexo SRI. Principalmente: (a) gasolina o combustible de uso diario/movilidad personal en la ciudad sin evidencia de viaje turístico — REGLA: gasolinera/estación de servicio sin evidencia de viaje → "Otros (no deducible SRI)", nunca "Vivienda" ni "Turismo"; (b) ropa/EPP/uniformes de trabajo de obra; (c) turismo o alojamiento fuera de Ecuador; (d) cualquier otro gasto personal que no encaje con claridad en las 6 categorías oficiales (ej. tecnología no educativa, suscripciones no culturales, compras generales). ' +
     'Si el comprobante mezcla varios tipos, elige la categoría del ítem de mayor valor.';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
@@ -16050,13 +16100,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   function summarize(list) {
-    var r = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {} };
-    CATS.forEach(function (c) { r.byCat[c] = 0; });
+    var r = { total: 0, subtotal: 0, iva: 0, count: list.length, byCat: {}, byCatSub: {} };
+    CATS.forEach(function (c) { r.byCat[c] = 0; r.byCatSub[c] = 0; });
     list.forEach(function (g) {
       r.total += g.total; r.subtotal += g.subtotal; r.iva += g.iva;
       r.byCat[g.categoria] = (r.byCat[g.categoria] || 0) + g.total;
+      r.byCatSub[g.categoria] = (r.byCatSub[g.categoria] || 0) + g.subtotal;
     });
     r.total = round2(r.total); r.subtotal = round2(r.subtotal); r.iva = round2(r.iva);
+    // Deducible Anexo SRI: por normativa se excluye el IVA (y el ICE) de las transacciones,
+    // así que se calcula sobre el SUBTOTAL (no el total con IVA) y sin lo registrado como
+    // "Otros (no deducible SRI)". Solo aplica a Gastos personales; en Obra NO_DEDUCIBLE no existe.
+    r.deducible = round2(r.subtotal - (r.byCatSub[typeof NO_DEDUCIBLE !== 'undefined' ? NO_DEDUCIBLE : ''] || 0));
     return r;
   }
 
@@ -16072,7 +16127,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var cats = CATS.slice().sort(function (a, b) { return s.byCat[b] - s.byCat[a]; });   // TODAS las categorías, incluso en $0
     var max = Math.max.apply(null, cats.map(function (c) { return s.byCat[c]; }).concat([1]));
     var html = '<div class="gx-sumtop"><div><div class="gx-cap">Total gastado acumulado</div><div class="gx-big">' + money(s.total) + '</div>' +
-      '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div></div>' +
+      '<div class="gx-sub">Subtotal ' + money(s.subtotal) + ' · IVA ' + money(s.iva) + '</div>' +
+      '<div class="gx-sub">Deducible Anexo SRI (sin IVA) <b>' + money(s.deducible) + '</b>' + (s.total !== s.deducible ? ' · Resto (IVA / no aplica) ' + money(round2(s.total - s.deducible)) : '') + '</div></div>' +
       '<div class="gx-hint gx-mono">' + s.count + ' comprobante' + (s.count === 1 ? '' : 's') + '</div></div>';
     if (!s.count) html += '<div class="gx-empty">Aún no hay gastos registrados. Escanea o registra el primero.</div>';
     else {
@@ -16647,14 +16703,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     /* ══════════ RESUMEN ══════════ */
     [34, 16, 16, 16, 16, 14].forEach(function (w, i) { wsR.getColumn(i + 1).width = w; });
-    titleBlock(wsR, 'F', 'BuildMatrix — Control de Gastos y Facturas', null);
+    titleBlock(wsR, 'F', 'BuildMatrix — Gastos Personales (Anexo SRI)', null);
     function info(rn, label, value) {
       var r = wsR.getRow(rn); r.height = 16;
       var a = r.getCell(1); a.value = label; a.font = xf(true, XL.SUB, 9); a.alignment = { vertical: 'middle' };
       wsR.mergeCells('B' + rn + ':F' + rn);
       var b = r.getCell(2); b.value = value; b.font = xf(true, XL.NEGRO, 10); b.alignment = { horizontal: 'left', vertical: 'middle' };
     }
-    info(3, 'Proyecto', projName);
+    info(3, 'Registro', 'Gastos personales (Cédula) — Anexo de Gastos Personales SRI');
     info(4, 'Generado', now.toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' }) + ' ' + now.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }));
     info(5, 'Usuario', meta.usuario || '—');
     info(6, 'Período', rows.length ? fmtDateEs(minF) + ' al ' + fmtDateEs(maxF) : '—');
@@ -16668,10 +16724,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     band('INDICADORES');
     var totCol = colL(CC.tot), subCol = colL(CC.sub), ivaCol = colL(CC.iva);
+    var noDedSub = round2(rows.reduce(function (s, g) { return s + (g.categoria === NO_DEDUCIBLE ? (g.subtotal || 0) : 0); }, 0));
+    var deducibleSub = round2(sums.sub - noDedSub);
     var kpis = [
       ['Total gastado', 'SUM(' + rg('tot') + ')', round2(sums.tot), F_USD],
       ['Subtotal (sin IVA)', 'SUM(' + rg('sub') + ')', round2(sums.sub), F_USD],
       ['IVA pagado', 'SUM(' + rg('iva') + ')', round2(sums.iva), F_USD],
+      ['Deducible Anexo SRI (sin IVA)', 'SUMIFS(' + rg('sub') + ',' + rg('cat') + ',"<>' + NO_DEDUCIBLE + '")', deducibleSub, F_USD],
+      ['No deducible / Otros (sin IVA)', 'SUMIFS(' + rg('sub') + ',' + rg('cat') + ',"' + NO_DEDUCIBLE + '")', noDedSub, F_USD],
       ['N° de comprobantes', 'COUNTA(' + rg('proveedor') + ')', n, '0'],
       ['N° de ítems registrados', 'SUM(' + rg('nit') + ')', itemsCount, '0']
     ];
@@ -17140,6 +17200,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     y = pKpis(doc, mx, y, ctx.tableW, [
       { label: 'TOTAL GASTADO', value: pMoney(sums.tot), filled: true }, { label: 'SUBTOTAL (SIN IVA)', value: pMoney(sums.sub) },
       { label: 'IVA PAGADO', value: pMoney(sums.iva) }, { label: 'COMPROBANTES', value: n + ' · ' + sums.it + ' ítems' }]);
+    var noDedSub = round2(rows.reduce(function (s, g) { return s + (g.categoria === NO_DEDUCIBLE ? (g.subtotal || 0) : 0); }, 0));
+    var deducibleSub = round2(sums.sub - noDedSub);
+    y = pKpis(doc, mx, y, ctx.tableW, [
+      { label: 'DEDUCIBLE ANEXO SRI (SIN IVA)', value: pMoney(deducibleSub), filled: true }, { label: 'NO DEDUCIBLE / OTROS (SIN IVA)', value: pMoney(noDedSub) }]);
     var MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     var catG = CATS.map(function (c) {
       var g = { label: c, n: 0, sub: 0, iva: 0, tot: 0 };

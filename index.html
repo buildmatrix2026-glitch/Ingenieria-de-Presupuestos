@@ -2100,6 +2100,8 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
 /* Tabs de categoría + rango de fechas dentro del detalle de proyecto */
 .gx-scope .gx-cattabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:center;gap:0;background:var(--s2);position:relative;z-index:2}
+/* Gastos personales tiene 8 pestañas (Todas + 7 categorías) en vez de 7: en escritorio necesita una columna más para que "Turismo" no baje de fila */
+@media(min-width:701px){ #v-gasp .gx-cattabs{grid-template-columns:repeat(8,minmax(0,1fr))} }
 .gx-scope .gx-cattab{
   display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:5px 7px;border:none;border-right:1px solid var(--gx-br);
   background:transparent;color:var(--gx-tx2);font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;
@@ -3943,7 +3945,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <div class="mb" id="gxp-pm2">
         <div class="mo mo-w-lg mo-tall" style="display:flex;flex-direction:column">
           <div class="drh" style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:14px 16px;position:relative;z-index:2">
-            <button type="button" class="ib" id="gxp-pm2-back" aria-label="Cerrar" style="justify-self:start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <span aria-hidden="true"></span>
             <h3 id="gxp-pm2-title" style="text-align:center;text-transform:uppercase;letter-spacing:0.08em;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Gastos personales</h3>
             <button type="button" class="ib" id="gxp-pm2-x" aria-label="Cerrar" style="justify-self:end"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
@@ -17654,7 +17656,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var pm2Mod = $('gxp-pm2');
     if (pm2Mod) pm2Mod.addEventListener('click', function (e) { if (e.target === pm2Mod) closeProjectDetailModal(); });
     $('gxp-pm2-x').addEventListener('click', closeProjectDetailModal);
-    $('gxp-pm2-back').addEventListener('click', closeProjectDetailModal);
     $('gxp-cattabs').addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-cat]') : null; if (!b) return;
       st.catFilter = b.getAttribute('data-cat'); st.shown = 15;

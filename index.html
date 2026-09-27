@@ -3655,7 +3655,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             <div class="gx-card" style="background:transparent;border:none;padding:0">
               <div class="gx-form">
                 <div class="gx-f full">
-                  <label for="gx-proyecto">Proyecto</label>
+                  <label for="gx-proyecto">Gastos Totales</label>
                   <div class="gx-dd" id="gx-proyecto-dd">
                     <select class="gx-in gx-dd-native" id="gx-proyecto"></select>
                     <button type="button" class="gx-dd-trigger" id="gx-proyecto-trigger" aria-haspopup="listbox">
@@ -13512,7 +13512,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (sel) {
       var pref = cur && names.indexOf(cur) >= 0 ? cur : names[0];
       sel.innerHTML = names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') +
-        '<option value="' + OTHER + '">＋ Otro proyecto…</option>';
+        '<option value="' + OTHER + '">＋ Otro proyecto…</option>' +
+        '<option value="__SRI__">— Gastos Personales SRI —</option>';
       sel.value = pref;
       syncDropdownPanel('gx-proyecto-dd');
     }
@@ -15169,6 +15170,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     document.addEventListener('click', closeAllDropdowns);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAllDropdowns(); });
     $('gx-proyecto').addEventListener('change', function () {
+      if (this.value === '__SRI__') {
+        renderProjects(); // restaura el valor anterior
+        openSriModal();
+        return;
+      }
       if (this.value !== OTHER) return;
       var n = prompt('Nombre del proyecto:', '');
       n = (n || '').trim();

@@ -860,6 +860,46 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--cy);outline-off
 /* CANVAS */
 #hc{position:fixed;inset:0;z-index:0;pointer-events:none}
 
+/* ══════════ Sistema de diseño global "HUD" — aplica a TODA la app ══════════
+   Refuerza con el mismo lenguaje visual del panel analítico (glass, glow
+   neón cian, líneas cibernéticas, monospace luminoso) los componentes que
+   ya comparten todos los módulos: barra superior, menú lateral, tarjetas,
+   KPIs, botones, píldoras y filtros. No cambia estructura ni JS: solo estilo. */
+@keyframes bmLiveDot{0%,100%{opacity:1}50%{opacity:.3}}
+.at{position:relative}
+.at::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.55),transparent)}
+.sd{position:relative;background:linear-gradient(180deg,var(--s2),rgba(10,17,30,.92))}
+.sd::after{content:'';position:absolute;top:0;right:-1px;bottom:0;width:1px;background:linear-gradient(180deg,transparent,rgba(0,212,255,.35),transparent)}
+.ni{position:relative}
+.ni.ac{box-shadow:inset 0 0 0 1px rgba(0,212,255,.12),0 0 22px -8px rgba(0,82,255,.55)}
+.ni.ac::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:60%;border-radius:3px;background:var(--cy);box-shadow:0 0 8px 1px var(--cy)}
+.mn{position:relative}
+.mn::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0px,rgba(255,255,255,.012) 1px,transparent 1px,transparent 3px);
+}
+[data-theme="light"] .mn::before{display:none}
+.mn>*{position:relative;z-index:1}
+.card{
+  background:linear-gradient(165deg,var(--s3),var(--s2));border:1px solid var(--br);border-radius:var(--r3);
+  position:relative;overflow:hidden;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:border-color .25s,box-shadow .25s;
+}
+.card::after{content:'';position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.5),transparent);opacity:.7}
+.card:hover{border-color:rgba(0,212,255,.32);box-shadow:0 0 0 1px rgba(0,212,255,.08),0 18px 44px -22px rgba(0,82,255,.35)}
+.kpi .kv{text-shadow:0 0 14px rgba(0,212,255,.28)}
+[data-theme="light"] .kpi .kv{text-shadow:none}
+.pill.c{box-shadow:0 0 10px -3px rgba(0,212,255,.6)}
+.pill.g{box-shadow:0 0 10px -3px rgba(26,158,104,.5)}
+.pill.a{box-shadow:0 0 10px -3px rgba(255,178,36,.5)}
+.chip.ac{box-shadow:0 0 12px -4px rgba(0,82,255,.7)}
+.btn{position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(115deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .55s var(--eo)}
+.btn:hover::after{left:130%}
+.btn.ghost:hover{box-shadow:0 0 0 1px rgba(0,212,255,.25),0 10px 32px -10px rgba(0,212,255,.35)}
+.tbl .code{text-shadow:0 0 8px rgba(0,212,255,.35)}
+[data-theme="light"] .tbl .code{text-shadow:none}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}

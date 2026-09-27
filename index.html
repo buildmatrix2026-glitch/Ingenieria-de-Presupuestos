@@ -982,6 +982,72 @@ html:not([data-theme="light"]) .gx-scope .gx-bar .t{height:8px;background:rgba(2
 .gx-scope .gx-bar .t i{position:relative;overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .gx-scope .gx-bar .t i::after,#app .bt i::after{animation:none} }
 
+/* ══════════ Fase 2 HUD: fondo de la app, Presupuesto (capítulos), Presupuesto IA, Usuarios y despliegue de pestañas ══════════ */
+@keyframes bmUnfold{
+  0%{opacity:0;clip-path:inset(0 0 100% 0 round 18px);transform:perspective(1400px) rotateX(-7deg) translateY(22px) scale(.985)}
+  55%{opacity:1}
+  100%{opacity:1;clip-path:inset(0 0 -60px 0 round 0);transform:none}
+}
+@keyframes bmRise{from{opacity:0;transform:translateY(26px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes bmBeam{0%{transform:translateY(0);opacity:0}12%{opacity:1}100%{transform:translateY(78vh);opacity:0}}
+.vw{position:relative}
+.vw.ac{animation:bmUnfold .8s cubic-bezier(.16,1,.3,1)}
+.vw.ac::after{content:'';position:absolute;left:0;right:0;top:0;height:2px;z-index:6;pointer-events:none;
+  background:linear-gradient(90deg,transparent,#22d3ee 30%,#a78bfa 70%,transparent);box-shadow:0 0 22px 3px rgba(6,182,212,.65);animation:bmBeam 1s ease-out forwards}
+.vw.ac>*:not(.mb){animation:bmRise .7s cubic-bezier(.16,1,.3,1) backwards}
+.vw.ac>*:nth-child(1){animation-delay:.05s}.vw.ac>*:nth-child(2){animation-delay:.12s}.vw.ac>*:nth-child(3){animation-delay:.19s}
+.vw.ac>*:nth-child(4){animation-delay:.26s}.vw.ac>*:nth-child(5){animation-delay:.33s}.vw.ac>*:nth-child(6){animation-delay:.4s}
+.vw.ac>*:nth-child(7){animation-delay:.47s}.vw.ac>*:nth-child(n+8){animation-delay:.54s}
+@media (prefers-reduced-motion:reduce){.vw.ac,.vw.ac>*,.vw.ac::after{animation:none!important}}
+
+/* Fondo de toda la app: resplandores cian/violeta + cuadrícula técnica muy tenue */
+html:not([data-theme="light"]) #app .mn{
+  background:
+    radial-gradient(900px 520px at 6% -6%,rgba(6,182,212,.11),transparent 62%),
+    radial-gradient(820px 560px at 100% 104%,rgba(139,92,246,.11),transparent 62%),
+    linear-gradient(rgba(6,182,212,.035) 1px,transparent 1px) 0 0/46px 46px,
+    linear-gradient(90deg,rgba(6,182,212,.035) 1px,transparent 1px) 0 0/46px 46px,
+    #060b14;
+}
+
+/* Presupuesto: franja financiera y capítulos */
+html:not([data-theme="light"]) #app .fs{background:rgba(6,182,212,.20);border-color:rgba(6,182,212,.35);box-shadow:0 0 0 1px rgba(6,182,212,.08),0 20px 60px -24px rgba(6,182,212,.3)}
+html:not([data-theme="light"]) #app .fc{background:linear-gradient(180deg,rgba(11,15,25,.97),rgba(15,23,42,.97))}
+html:not([data-theme="light"]) #app .fc .fl{color:#67e8f9;letter-spacing:.1em}
+html:not([data-theme="light"]) #app .fc .fv{color:#e5faff;text-shadow:0 0 14px rgba(6,182,212,.45)}
+html:not([data-theme="light"]) #app .fc.hl{background:linear-gradient(140deg,rgba(0,82,255,.34),rgba(6,182,212,.18));border-top-color:rgba(34,211,238,.7);box-shadow:inset 0 0 34px -10px rgba(6,182,212,.55)}
+html:not([data-theme="light"]) #app .fc.hl .fv{color:#fff;text-shadow:0 0 22px rgba(34,211,238,.6)}
+html:not([data-theme="light"]) #app .ca{position:relative;border-radius:16px;border:1px solid rgba(6,182,212,.28);
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));box-shadow:0 0 0 1px rgba(6,182,212,.05),0 14px 40px -26px rgba(6,182,212,.4);transition:border-color .3s,box-shadow .3s}
+html:not([data-theme="light"]) #app .ca::before{content:'';position:absolute;left:0;top:14%;bottom:14%;width:3px;border-radius:0 3px 3px 0;background:#22d3ee;box-shadow:0 0 12px 1px #22d3ee;opacity:0;transition:opacity .3s}
+html:not([data-theme="light"]) #app .ca:hover{border-color:rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #app .ca.op{border-color:rgba(6,182,212,.62);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 22px 56px -22px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #app .ca.op::before{opacity:1}
+html:not([data-theme="light"]) #app .cah:hover{background:rgba(6,182,212,.06)}
+html:not([data-theme="light"]) #app .cah .cname{color:#e6faff}
+html:not([data-theme="light"]) #app .cah .ctot{color:#67e8f9;text-shadow:0 0 12px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #app .ca.op .cah .arr{filter:drop-shadow(0 0 5px #22d3ee)}
+
+/* Presupuesto con IA */
+html:not([data-theme="light"]) #v-pia .pia-badge{background:rgba(6,182,212,.10);border-color:rgba(6,182,212,.5);color:#22d3ee;text-shadow:0 0 10px rgba(6,182,212,.5);box-shadow:0 0 16px -4px rgba(6,182,212,.6)}
+html:not([data-theme="light"]) #v-pia .pia-proj-banner,html:not([data-theme="light"]) #v-pia .pia-drop,html:not([data-theme="light"]) #v-pia .pia-summary,html:not([data-theme="light"]) #v-pia .pia-status{
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));border:1px solid rgba(6,182,212,.35);box-shadow:0 0 0 1px rgba(6,182,212,.08),0 18px 50px -24px rgba(6,182,212,.3)}
+html:not([data-theme="light"]) #v-pia .pia-drop:hover{border-color:rgba(6,182,212,.7);transform:translateY(-3px);box-shadow:0 0 0 1px rgba(6,182,212,.18),0 24px 60px -20px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #v-pia .pia-btn{background:rgba(6,182,212,.06);border-color:rgba(6,182,212,.3)}
+html:not([data-theme="light"]) #v-pia .pia-btn:hover:not(:disabled){border-color:rgba(6,182,212,.6);box-shadow:0 8px 26px -10px rgba(6,182,212,.55)}
+html:not([data-theme="light"]) #v-pia .pia-btn-primary{background:linear-gradient(135deg,rgba(0,82,255,.85),rgba(8,145,178,.85));border-color:rgba(34,211,238,.55);color:#fff;box-shadow:0 0 22px -8px rgba(6,182,212,.7)}
+html:not([data-theme="light"]) #v-pia .pia-tab{background:rgba(6,182,212,.05);border-color:rgba(6,182,212,.28)}
+html:not([data-theme="light"]) #v-pia .pia-tab.active{background:rgba(6,182,212,.18);border-color:rgba(34,211,238,.7);color:#22d3ee;text-shadow:0 0 10px rgba(6,182,212,.55);box-shadow:0 0 18px -6px rgba(6,182,212,.7)}
+html:not([data-theme="light"]) #v-pia .pia-table-wrap{border-color:rgba(6,182,212,.35);box-shadow:0 0 0 1px rgba(6,182,212,.06),0 18px 50px -26px rgba(6,182,212,.3)}
+
+/* Usuarios */
+html:not([data-theme="light"]) #v-admin #admin-users-list>div{position:relative;border-radius:16px!important;border-color:rgba(6,182,212,.3)!important;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;box-shadow:0 0 0 1px rgba(6,182,212,.06),0 14px 40px -26px rgba(6,182,212,.4)!important;transition:border-color .25s,box-shadow .25s,transform .25s!important}
+html:not([data-theme="light"]) #v-admin #admin-users-list>div:hover{border-color:rgba(6,182,212,.6)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 22px 56px -22px rgba(6,182,212,.5)!important}
+html:not([data-theme="light"]) #v-admin .atb-main button{box-shadow:0 0 16px -8px rgba(6,182,212,.6)}
+html:not([data-theme="light"]) #app .kpi:hover{transform:translateY(-2px)}
+html:not([data-theme="light"]) #app .kpi{transition:border-color .25s,box-shadow .25s,transform .25s}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}

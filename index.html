@@ -16135,6 +16135,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function render() {
     wire();
     ensureCloud();
+    autoCleanLegacyPersonalData();
     renderProjects(); renderSummary(); renderList(); renderKeyInfo(); renderItems(); renderDesglose(); renderSync(); renderBatch();
     var pm2 = $('gxp-pm2'); if (pm2 && pm2.classList.contains('op')) refreshProjectDetailHeader();   // por si cambia algo mientras está abierta
     var f = $('gxp-fecha'); if (f && !f.value) f.value = todayISO();
@@ -16340,6 +16341,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     st.shown = 15;
     render();
     say(toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') + ' eliminado' + (toDelete.length === 1 ? '' : 's'));
+  }
+  // ── Limpieza única de datos heredados: la primera vez que este dispositivo/cuenta
+  //    abre "Gastos personales" con este build, borra cualquier comprobante que haya
+  //    quedado de pruebas anteriores (local y en la nube), para arrancar en $0.
+  //    Usa el mismo camino seguro de deleteAllFiltered (tombstone + deleteCloud), así
+  //    que no revive por sincronización. Se ejecuta una sola vez por usuario.
+  function autoCleanLegacyPersonalData() {
+    try {
+      var flag = 'bm_gp_clean_v2_' + uid();
+      if (localStorage.getItem(flag)) return;
+      var list = load();
+      if (list.length) {
+        list.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); });
+        save([]);
+      }
+      localStorage.setItem(flag, '1');
+    } catch (e) {}
   }
 
   /* ─────────────── escaneo ─────────────── */

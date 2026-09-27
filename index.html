@@ -2146,6 +2146,16 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 .gx-scope .gx-hud-dot{width:8px;height:8px;flex:0 0 auto;border-radius:50%;background:#06b6d4;box-shadow:0 0 8px 2px rgba(6,182,212,.8);animation:gxHudPulse 1.6s ease-in-out infinite}
 .gx-scope .gx-hud.pu .gx-hud-dot{background:#a855f7;box-shadow:0 0 8px 2px rgba(168,85,247,.8)}
 @keyframes gxHudPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.gx-scope .gx-hud-ctls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.gx-scope .gx-hud-proj{display:flex;align-items:center;gap:8px;margin:0;background:rgba(255,255,255,.03);border:1px solid rgba(16,185,129,.4);border-radius:10px;padding:4px 5px 4px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;font-weight:700;color:#6ee7b7;box-shadow:0 0 14px -6px rgba(16,185,129,.7)}
+.gx-scope .gx-hud-proj select{width:auto;min-width:190px;max-width:280px;min-height:0;height:30px;padding:0 28px 0 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;
+  background-color:rgba(11,15,25,.95);color:#e5faff;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;color-scheme:dark;
+  -webkit-appearance:none;appearance:none;background-repeat:no-repeat;background-position:right 9px center;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236ee7b7' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+.gx-scope .gx-hud-proj select:focus{outline:none;border-color:#10b981;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+.gx-scope .gx-hud-proj select option{background:#0b0f19;color:#e5faff}
+@media(max-width:560px){ .gx-scope .gx-hud-ctls{justify-content:flex-start;width:100%} .gx-scope .gx-hud-proj{width:100%} .gx-scope .gx-hud-proj select{flex:1 1 auto;min-width:0;max-width:none} }
 .gx-scope .gx-hud-tf{display:flex;gap:4px;flex-wrap:wrap;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:4px}
 .gx-scope .gx-hud-tf button{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.05em;font-weight:700;padding:7px 11px;border-radius:7px;border:none;background:transparent;color:var(--gx-tx2);cursor:pointer;transition:all .15s;white-space:nowrap;width:auto;min-height:0;min-width:0;flex:0 0 auto}
 .gx-scope .gx-hud-tf button:hover{color:var(--gx-tx)}
@@ -3701,12 +3711,15 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <div class="gx-hud" id="gxh-hud">
         <div class="gx-hud-head">
           <div class="gx-hud-title"><span class="gx-hud-dot"></span>LIVE MONITORING · ANÁLISIS DE OBRA</div>
-    <div class="gx-hud-tf" id="gxh-tf">
+    <div class="gx-hud-ctls">
+      <label class="gx-hud-proj"><span>OBRA</span><select id="gxh-proj" aria-label="Elegir obra para ver sus estadísticas"><option value="__all__">TODOS LOS PROYECTOS</option></select></label>
+      <div class="gx-hud-tf" id="gxh-tf">
       <button type="button" data-p="dia">DÍA</button>
       <button type="button" data-p="semana">SEMANA</button>
       <button type="button" data-p="mes" class="on">MES</button>
       <button type="button" data-p="anio">AÑO</button>
       <button type="button" data-p="historico">HISTÓRICO TOTAL</button>
+    </div>
     </div>
         </div>
         <div class="gx-hud-kpis">
@@ -18097,11 +18110,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function initHud(cfg) {
     var root = document.getElementById(cfg.prefix + '-hud');
     if (!root) return;
-    var lineChart = null, donutChart = null, current = 'mes', lastSig = '';
+    var lineChart = null, donutChart = null, current = 'mes', lastSig = '', proj = '__all__';
 
     function $(s) { return document.getElementById(cfg.prefix + '-' + s); }
     function getData() {
       try { var api = window[cfg.api]; var l = api && typeof api.load === 'function' ? api.load() : []; return Array.isArray(l) ? l : []; } catch (e) { return []; }
+    }
+    // Selector de obra (solo Gastos y facturas): lista los proyectos que realmente tienen comprobantes
+    function syncProj(list) {
+      var sel = $('proj'); if (!sel) return list;
+      var counts = {}, names = [];
+      list.forEach(function (g) { var n = g.proyecto || '(sin proyecto)'; if (!(n in counts)) { counts[n] = 0; names.push(n); } counts[n]++; });
+      names.sort(function (a, b) { return a.localeCompare(b, 'es'); });
+      if (proj !== '__all__' && !(proj in counts)) proj = '__all__';      // la obra elegida ya no tiene datos
+      var key = names.map(function (n) { return n + '\u0001' + counts[n]; }).join('\u0002') + '|' + list.length;
+      if (sel.getAttribute('data-k') !== key) {
+        sel.innerHTML = '';
+        var o = document.createElement('option'); o.value = '__all__'; o.textContent = 'TODOS LOS PROYECTOS · ' + list.length; sel.appendChild(o);
+        names.forEach(function (n) { var op = document.createElement('option'); op.value = n; op.textContent = n + ' · ' + counts[n]; sel.appendChild(op); });
+        sel.setAttribute('data-k', key);
+      }
+      sel.value = proj;
+      return proj === '__all__' ? list : list.filter(function (g) { return (g.proyecto || '(sin proyecto)') === proj; });
     }
     function setMsg(txt) {
       root.querySelectorAll('.gx-hud-canwrap').forEach(function (w) {
@@ -18121,11 +18151,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     function draw(force) {
       if (root.offsetParent === null) return;          // pestaña oculta: se dibuja al entrar
-      var an = analyze(current, getData(), new Date());
+      var an = analyze(current, syncProj(getData()), new Date());
       var catKeys = cfg.cats.slice();
       Object.keys(an.cats).forEach(function (k) { if (catKeys.indexOf(k) < 0) catKeys.push(k); });
       var catVals = catKeys.map(function (k) { return Math.round((an.cats[k] || 0) * 100) / 100; });
-      var sig = JSON.stringify([current, new Date().toDateString(), an.values, catVals, an.total, an.prevTotal, an.count]);
+      var sig = JSON.stringify([current, proj, new Date().toDateString(), an.values, catVals, an.total, an.prevTotal, an.count]);
       if (!force && sig === lastSig && lineChart) { lineChart.resize(); if (donutChart) donutChart.resize(); return; }
 
       // ── KPIs ──
@@ -18199,6 +18229,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }).join('');
     }
 
+    var ps = $('proj');
+    if (ps) ps.addEventListener('change', function () { proj = ps.value || '__all__'; draw(true); });
     var tf = $('tf');
     if (tf) tf.addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button[data-p]') : null; if (!btn) return;

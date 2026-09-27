@@ -2152,7 +2152,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
 /* Ventana flotante "Proyectos" */
 .gx-scope .gx-pm-row{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-radius:12px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px 13px 14px;border-radius:12px;
   border:1px solid var(--gx-br);background:var(--gx-card2);cursor:pointer;margin-bottom:8px;transition:border-color .15s,background .15s;
 }
 .gx-scope .gx-pm-row:hover{border-color:var(--gx-pri);background:rgba(0,82,255,.08)}
@@ -14935,8 +14935,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var row = function (name, label, count, total) {
       return '<div class="gx-pm-row" data-proj="' + esc(name) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(label) + '</div><div class="d">' + count + ' comprobante' + (count === 1 ? '' : 's') + '</div></div>' +
+        '<div style="display:flex;align-items:center;gap:12px;flex:0 0 auto">' +
         '<div class="v">' + money(total) + '</div>' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>';
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div>';
     };
     box.innerHTML = row(ALL, 'Todos los proyectos', all.count, all.total) +
       projs.map(function (p) { return row(p.name, p.name, p.count, p.total); }).join('');
@@ -17301,8 +17302,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var row = function (name, label, count, total) {
       return '<div class="gx-pm-row" data-proj="' + esc(name) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(label) + '</div><div class="d">' + count + ' comprobante' + (count === 1 ? '' : 's') + '</div></div>' +
+        '<div style="display:flex;align-items:center;gap:12px;flex:0 0 auto">' +
         '<div class="v">' + money(total) + '</div>' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>';
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div>';
     };
     box.innerHTML = row(ALL, 'Todos los proyectos', all.count, all.total) +
       projs.map(function (p) { return row(p.name, p.name, p.count, p.total); }).join('');

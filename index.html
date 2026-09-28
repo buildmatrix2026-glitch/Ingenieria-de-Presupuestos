@@ -1347,6 +1347,27 @@ html:not([data-theme="light"]) #app .at .ib:hover{color:#67e8f9;box-shadow:0 0 1
 #app .nav-logo svg.lg-cube .lgc.off{filter:none;opacity:.2;animation:none}
 @media (prefers-reduced-motion:reduce){#app .nav-logo svg.lg-cube .lgc{animation:none!important}}
 
+/* ══════════ Fase 12: subtítulos, etiquetas CAP.N y píldoras de los KPI ══════════ */
+/* 1) Subtítulo bajo el título en Usuarios y Presupuesto IA: mismo tamaño y gris que en las demás pestañas */
+#v-admin>.sub,#v-admin #admin-users-sub,#v-admin #admin-projects-sub,#v-pia .pia-head .sub{color:var(--sl);font-size:12.5px;font-weight:400;line-height:1.5;margin-top:4px}
+/* 2) Etiqueta CAP.N de los capítulos: tipografía del título (monoespaciada, negrita, espaciada) y color violeta neón */
+#app .cn{font-family:var(--f-mo);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+html:not([data-theme="light"]) #app .cn{color:#d8b4fe;background:rgba(139,92,246,.14);border:1px solid rgba(167,139,250,.5);
+  text-shadow:0 0 8px rgba(168,85,247,.7);box-shadow:inset 0 0 12px -6px rgba(139,92,246,.7),0 0 14px -8px rgba(139,92,246,.8)}
+/* 3) Panel general: al pasar el cursor por cualquier parte de la tarjeta, su píldora (TOTAL, DIRECTO, RUBROS, BASE) se enciende con neón */
+@keyframes bmPillIgnite{0%{filter:brightness(1)}12%{filter:brightness(1.8)}22%{filter:brightness(.85)}34%{filter:brightness(1.55)}48%,100%{filter:brightness(1.12)}}
+#app .kpi .pill{transition:box-shadow .35s,text-shadow .35s,background .35s,border-color .35s,color .35s}
+html:not([data-theme="light"]) #app .kpi:hover .pill{animation:bmPillIgnite .7s ease-out both}
+html:not([data-theme="light"]) #app .kpi:hover .pill.c{color:#c9f7ff;border-color:#22d3ee;background:rgba(34,211,238,.22);text-shadow:0 0 8px #22d3ee;
+  box-shadow:0 0 6px 1px rgba(34,211,238,.85),0 0 18px 2px rgba(6,182,212,.6),0 0 34px rgba(6,182,212,.35)}
+html:not([data-theme="light"]) #app .kpi:hover .pill.b{color:#d6e4ff;border-color:#4d8dff;background:rgba(0,82,255,.30);text-shadow:0 0 8px #4d8dff;
+  box-shadow:0 0 6px 1px rgba(77,141,255,.85),0 0 18px 2px rgba(0,82,255,.65),0 0 34px rgba(0,82,255,.4)}
+html:not([data-theme="light"]) #app .kpi:hover .pill.g{color:#b8f7d8;border-color:#34d399;background:rgba(52,211,153,.20);text-shadow:0 0 8px #34d399;
+  box-shadow:0 0 6px 1px rgba(52,211,153,.85),0 0 18px 2px rgba(16,185,129,.6),0 0 34px rgba(16,185,129,.35)}
+html:not([data-theme="light"]) #app .kpi:hover .pill.a{color:#ffe7a3;border-color:#fbbf24;background:rgba(251,191,36,.20);text-shadow:0 0 8px #fbbf24;
+  box-shadow:0 0 6px 1px rgba(251,191,36,.85),0 0 18px 2px rgba(245,158,11,.6),0 0 34px rgba(245,158,11,.35)}
+@media (prefers-reduced-motion:reduce){#app .kpi:hover .pill{animation:none}}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}

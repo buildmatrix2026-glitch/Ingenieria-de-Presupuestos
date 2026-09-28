@@ -5080,6 +5080,36 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
 <script>
+window.BM_CONFIRM = function (msg) {
+  return new Promise(function (resolve) {
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(3,8,18,.72);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px';
+    var box = document.createElement('div');
+    box.style.cssText = 'max-width:460px;width:100%;background:#0b1424;border:1px solid rgba(0,209,255,.35);border-radius:14px;padding:22px;box-shadow:0 0 40px rgba(0,209,255,.15);font-family:inherit';
+    var p = document.createElement('div');
+    p.style.cssText = 'color:#dbe8f5;font-size:14px;line-height:1.55;white-space:pre-line;margin-bottom:18px';
+    p.textContent = msg;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end';
+    var bCancel = document.createElement('button'), bOk = document.createElement('button');
+    bCancel.textContent = 'Cancelar'; bOk.textContent = 'Continuar';
+    bCancel.style.cssText = 'padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#cbd5e1;font-weight:600;cursor:pointer';
+    bOk.style.cssText = 'padding:10px 18px;border-radius:8px;border:1px solid rgba(0,209,255,.5);background:rgba(0,209,255,.12);color:#67e8f9;font-weight:700;cursor:pointer';
+    function cerrar(v) { document.body.removeChild(ov); document.removeEventListener('keydown', onKey); resolve(v); }
+    function onKey(e) { if (e.key === 'Escape') cerrar(false); if (e.key === 'Enter') cerrar(true); }
+    bCancel.onclick = function () { cerrar(false); };
+    bOk.onclick = function () { cerrar(true); };
+    ov.onclick = function (e) { if (e.target === ov) cerrar(false); };
+    row.appendChild(bCancel); row.appendChild(bOk);
+    box.appendChild(p); box.appendChild(row); ov.appendChild(box);
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', onKey);
+    bOk.focus();
+  });
+};
+</script>
+
+<script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    BuildMatrix · Motor local de comprobantes SRI (Ecuador)  —  BM_SRI
    PDF vectorial → texto con pdf.js → regex → mismo objeto que devuelve parseAI() de la IA.
@@ -5183,19 +5213,58 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     });
     return out;
   }
-  async function leerDoc(pdfjs, u8) {
+  async function leerDoc(pdfjs, u8, rango) {
     var doc = await pdfjs.getDocument({ data: u8, isEvalSupported: false }).promise;
-    var lines = [], izq = [], pages = [], n = Math.min(doc.numPages, MAX_PAGES);
-    for (var p = 1; p <= n; p++) {
+    var lines = [], izq = null, pages = [];
+    var ini = rango ? rango[0] : 1, fin = rango ? Math.min(rango[1], doc.numPages) : Math.min(doc.numPages, MAX_PAGES);
+    for (var p = ini; p <= fin; p++) {
       var pg = await doc.getPage(p), tc = await pg.getTextContent(), vp = pg.getViewport({ scale: 1 });
       lines = lines.concat(armarLineas(tc.items));
       pages.push({ cells: tc.items, W: vp.width, H: vp.height });
-      if (p === 1) {
-        izq = lineasIzquierda(tokenizar(tc.items), vp.width, vp.height);
-      }
+      if (izq == null) izq = lineasIzquierda(tokenizar(tc.items), vp.width, vp.height);
     }
     try { doc.destroy(); } catch (e) {}
-    return { lines: lines, izq: izq, pages: pages, texto: lines.join('\n') };
+    return { lines: lines, izq: izq || [], pages: pages, texto: lines.join('\n') };
+  }
+
+  /* ───── varios comprobantes en un solo PDF: separa por página según dónde empieza cada uno ─────
+     Cada comprobante del SRI trae su propia clave de acceso de 49 dígitos y su propia cabecera
+     ("FACTURA"/"NOTA DE CRÉDITO" + "R.U.C.:" + "No." + fecha) en la parte de arriba de su primera
+     página. Se agrupan las páginas consecutivas que comparten la MISMA clave de acceso; cuando
+     aparece una clave distinta (o una cabecera nueva sin clave), empieza el siguiente comprobante. */
+  function detectarInicios(pdfjs, doc, maxPag) {
+    return (async function () {
+      var n = Math.min(doc.numPages, maxPag);
+      var claves = [], cabeceras = [];
+      for (var p = 1; p <= n; p++) {
+        var pg = await doc.getPage(p), tc = await pg.getTextContent();
+        var lin = armarLineas(tc.items), texto = lin.join('\n');
+        claves.push(buscarClave(texto));
+        var esCab = /R\.?\s?U\.?\s?C\.?\s*:?\s*\d{10,13}/i.test(texto.slice(0, 400)) &&
+                    /(FACTURA|NOTA\s+DE\s+CR[EÉ]DITO|NOTA\s+DE\s+D[EÉ]BITO|LIQUIDACI[OÓ]N\s+DE\s+COMPRA|COMPROBANTE\s+DE\s+RETENCI|GU[IÍ]A\s+DE\s+REMISI[OÓ]N)/i.test(texto.slice(0, 400));
+        cabeceras.push(esCab);
+      }
+      var rangos = [], ini = 1;
+      for (var i = 1; i < n; i++) {
+        var nuevaClave = claves[i] && claves[i] !== claves[i - 1];
+        var nuevaSinClave = !claves[i] && cabeceras[i] && !(claves[i - 1] && claves[i - 1] === claves[i]);
+        if (nuevaClave || nuevaSinClave) { rangos.push([ini, i]); ini = i + 1; }
+      }
+      rangos.push([ini, n]);
+      return rangos;
+    })();
+  }
+  async function detectarComprobantes(file, maxPag) {
+    if (!(/pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || ''))) return null;
+    var buf = await leerArchivo(file);
+    var pdfjs = await cargarPdfjs();
+    var doc = await pdfjs.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+    var n = doc.numPages;
+    try {
+      if (n < 2) return null;
+      var rangos = await detectarInicios(pdfjs, doc, Math.min(n, maxPag || 2000));
+      return (rangos.length > 1) ? { total: n, rangos: rangos } : null;
+    } finally { try { doc.destroy(); } catch (e) {} }
   }
 
   /* ───────── cabecera ───────── */
@@ -5781,30 +5850,35 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
   /* ───────── API pública ─────────
      extract(file, 'obra' | 'personal') → objeto tipo parseAI, o null si hay que usar Gemini (foto / escaneado / error).  */
-  async function extractBuffer(u8, contexto, pdfjs) {
+  async function extractBuffer(u8, contexto, pdfjs, rango) {
     var t0 = Date.now();
     var head = String.fromCharCode.apply(null, Array.prototype.slice.call(u8.subarray(0, 5)));
     if (head !== '%PDF-') return null;
-    var lec = await leerDoc(pdfjs, u8);
+    var lec = await leerDoc(pdfjs, u8, rango);
     if (lec.texto.replace(/\s/g, '').length < MIN_CHARS) return null;
     var res = procesarLecturas(lec, contexto, t0);
     try { console.log('[BM_SRI]', contexto, '|', res.proveedor, '| aplica:', res.aplica, '|', res.razonClasif); } catch (e) {}
     return res;
   }
-  async function extract(file, contexto) {
+  async function extract(file, contexto, rango) {
     try {
       if (!file || !(/pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || ''))) return null;
-      if (file.size > 15 * 1024 * 1024) return null;
+      if (!rango && file.size > 15 * 1024 * 1024) return null;
       var buf = await leerArchivo(file);
       var pdfjs = await cargarPdfjs();
-      return await extractBuffer(new Uint8Array(buf), contexto, pdfjs);
+      return await extractBuffer(new Uint8Array(buf), contexto, pdfjs, rango);
     } catch (e) {
       try { console.warn('[BM_SRI] lectura local no disponible, se usa IA:', e && e.message ? e.message : e); } catch (x) {}
       return null;
     }
   }
+  /* archivo con varios comprobantes → null si es de uno solo (o no es PDF); si trae varios,
+     un array [{rango:[ini,fin], paginas:n}] con cada tramo de páginas detectado. */
+  async function detectarLote(file, maxPag) {
+    try { return await detectarComprobantes(file, maxPag); } catch (e) { return null; }
+  }
 
-  var api = { extract: extract, _extractBuffer: extractBuffer, _procesarLecturas: procesarLecturas, _armarLineas: armarLineas, claveValida: claveValida };
+  var api = { extract: extract, detectarLote: detectarLote, _extractBuffer: extractBuffer, _procesarLecturas: procesarLecturas, _armarLineas: armarLineas, claveValida: claveValida };
   root.BM_SRI = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -14677,7 +14751,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 2, maxConc: 3, rpm: 10, minRpm: 4, maxRpm: 30, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 600, concurrency: 2, maxConc: 3, rpm: 10, minRpm: 4, maxRpm: 30, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
     cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
@@ -16579,7 +16653,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function extractOne(file, tok, d) {
     for (var attempt = 0; ; attempt++) {
       try {
-        var loc = window.BM_SRI ? await BM_SRI.extract(file, 'obra') : null;   // PDF con texto: lectura local, sin Gemini
+        var loc = window.BM_SRI ? await BM_SRI.extract(file, 'obra', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
         if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
         var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
@@ -16752,19 +16826,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
-  function addFilesToBatch(files) {
+  async function addFilesToBatch(files) {
     var valid = [], skipped = 0;
     files.forEach(function (f) {
       if (/^image\//i.test(f.type || '') || isPdf(f) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || '')) valid.push(f); else skipped++;
     });
     if (skipped) say(skipped === 1 ? 'Se omitió 1 archivo que no es imagen ni PDF' : 'Se omitieron ' + skipped + ' archivos que no son imagen ni PDF');
-    var room = CFG.max - st.drafts.length;
-    if (valid.length > room) { say('Máximo ' + CFG.max + ' facturas por lote: se agregaron ' + Math.max(room, 0)); valid = valid.slice(0, Math.max(room, 0)); }
     if (!valid.length) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false && valid.some(function (f) { return !isPdf(f); })) { setStatus('err', 'Sin conexión a internet. Puedes ingresar los datos manualmente.'); return; }
     if (!getKey() && valid.some(function (f) { return !isPdf(f); })) { setStatus('err', friendly({ code: 'NO_KEY' })); renderKeyInfo(); return; }
+    setStatus('loading', 'Revisando ' + valid.length + ' archivo' + (valid.length === 1 ? '' : 's') + '...', {});
+    var entradas = [];
+    for (var vi = 0; vi < valid.length; vi++) {
+      var f = valid[vi], lote = (isPdf(f) && window.BM_SRI) ? await BM_SRI.detectarLote(f, 2000) : null;
+      if (lote && lote.rangos.length > 1) {
+        lote.rangos.forEach(function (r, ri) { entradas.push({ file: f, range: r, name: f.name + ' · factura ' + (ri + 1) + '/' + lote.rangos.length }); });
+      } else entradas.push({ file: f, range: null, name: f.name || 'archivo' });
+    }
+    var room = CFG.max - st.drafts.length;
+    if (entradas.length > room) { say('Máximo ' + CFG.max + ' facturas por lote: se agregaron ' + Math.max(room, 0)); entradas = entradas.slice(0, Math.max(room, 0)); }
+    if (!entradas.length) { setStatus(''); return; }
     setStatus('');
-    valid.forEach(function (f) { st.drafts.push({ id: newId(), name: f.name || 'archivo', file: f, status: 'pending', data: null, err: '', cat: val('gx-cat') || 'Materiales' }); });
+    entradas.forEach(function (e) { st.drafts.push({ id: newId(), name: e.name, file: e.file, range: e.range, status: 'pending', data: null, err: '', cat: val('gx-cat') || 'Materiales' }); });
     renderBatch();
     var b = $('gx-batch'); if (b && b.scrollIntoView) { try { b.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
     runBatch();
@@ -16808,7 +16891,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return ncApply(g);
   }
 
-  function saveAllDrafts() {
+  async function saveAllDrafts() {
     if (st.batchBusy) return;
     var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
     if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
@@ -16838,7 +16921,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
     if (cnt.skip) lines.push('Se descartarán ' + cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' (no suman al total).');
     lines.push('¿Continuar?');
-    if (!confirm(lines.join('\n'))) return;
+    if (!(await BM_CONFIRM(lines.join('\n')))) return;
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Materiales'); list.push(g); created.push(g); });
     if (!save(list)) return;
@@ -17262,7 +17345,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 2, maxConc: 3, rpm: 10, minRpm: 4, maxRpm: 30, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 600, concurrency: 2, maxConc: 3, rpm: 10, minRpm: 4, maxRpm: 30, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
     cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
@@ -19168,7 +19251,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function extractOne(file, tok, d) {
     for (var attempt = 0; ; attempt++) {
       try {
-        var loc = window.BM_SRI ? await BM_SRI.extract(file, 'personal') : null;   // PDF con texto: lectura local, sin Gemini
+        var loc = window.BM_SRI ? await BM_SRI.extract(file, 'personal', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
         if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
         var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
@@ -19341,19 +19424,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
-  function addFilesToBatch(files) {
+  async function addFilesToBatch(files) {
     var valid = [], skipped = 0;
     files.forEach(function (f) {
       if (/^image\//i.test(f.type || '') || isPdf(f) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || '')) valid.push(f); else skipped++;
     });
     if (skipped) say(skipped === 1 ? 'Se omitió 1 archivo que no es imagen ni PDF' : 'Se omitieron ' + skipped + ' archivos que no son imagen ni PDF');
-    var room = CFG.max - st.drafts.length;
-    if (valid.length > room) { say('Máximo ' + CFG.max + ' facturas por lote: se agregaron ' + Math.max(room, 0)); valid = valid.slice(0, Math.max(room, 0)); }
     if (!valid.length) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false && valid.some(function (f) { return !isPdf(f); })) { setStatus('err', 'Sin conexión a internet. Puedes ingresar los datos manualmente.'); return; }
     if (!getKey() && valid.some(function (f) { return !isPdf(f); })) { setStatus('err', friendly({ code: 'NO_KEY' })); renderKeyInfo(); return; }
+    setStatus('loading', 'Revisando ' + valid.length + ' archivo' + (valid.length === 1 ? '' : 's') + '...', {});
+    var entradas = [];
+    for (var vi = 0; vi < valid.length; vi++) {
+      var f = valid[vi], lote = (isPdf(f) && window.BM_SRI) ? await BM_SRI.detectarLote(f, 2000) : null;
+      if (lote && lote.rangos.length > 1) {
+        lote.rangos.forEach(function (r, ri) { entradas.push({ file: f, range: r, name: f.name + ' · factura ' + (ri + 1) + '/' + lote.rangos.length }); });
+      } else entradas.push({ file: f, range: null, name: f.name || 'archivo' });
+    }
+    var room = CFG.max - st.drafts.length;
+    if (entradas.length > room) { say('Máximo ' + CFG.max + ' facturas por lote: se agregaron ' + Math.max(room, 0)); entradas = entradas.slice(0, Math.max(room, 0)); }
+    if (!entradas.length) { setStatus(''); return; }
     setStatus('');
-    valid.forEach(function (f) { st.drafts.push({ id: newId(), name: f.name || 'archivo', file: f, status: 'pending', data: null, err: '', cat: val('gxp-cat') || 'Alimentación' }); });
+    entradas.forEach(function (e) { st.drafts.push({ id: newId(), name: e.name, file: e.file, range: e.range, status: 'pending', data: null, err: '', cat: val('gxp-cat') || 'Alimentación' }); });
     renderBatch();
     var b = $('gxp-batch'); if (b && b.scrollIntoView) { try { b.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
     runBatch();
@@ -19397,7 +19489,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return ncApply(g);
   }
 
-  function saveAllDrafts() {
+  async function saveAllDrafts() {
     if (st.batchBusy) return;
     var proyecto = PERSONAL_PROJECT;
     var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
@@ -19426,7 +19518,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
     if (cnt.skip) lines.push('Se descartarán ' + cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' (no suman al total).');
     lines.push('¿Continuar?');
-    if (!confirm(lines.join('\n'))) return;
+    if (!(await BM_CONFIRM(lines.join('\n')))) return;
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Alimentación'); list.push(g); created.push(g); });
     if (!save(list)) return;

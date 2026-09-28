@@ -15572,7 +15572,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (!data.proveedor) faltan.push('proveedor');
       if (!data.numero) faltan.push('N° de factura');
       if (!data.fecha) faltan.push('fecha');
-      if (!(data.total > 0)) faltan.push('total');
+      if (!(Math.abs(data.total) > 0)) faltan.push('total');
       if (data.sinItems) setStatus('warn', 'Se leyeron los totales, pero no se pudo leer la lista de ítems de este PDF. Complétala antes de guardar.');
       else if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
       else if (data.warn) setStatus('warn', 'Datos extraídos, pero Subtotal + IVA no coincide con el Total. Revisa los montos antes de guardar.');
@@ -18192,7 +18192,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (!data.proveedor) faltan.push('proveedor');
       if (!data.numero) faltan.push('N° de factura');
       if (!data.fecha) faltan.push('fecha');
-      if (!(data.total > 0)) faltan.push('total');
+      if (!(Math.abs(data.total) > 0)) faltan.push('total');
       if (data.sinItems) setStatus('warn', 'Se leyeron los totales, pero no se pudo leer la lista de ítems de este PDF. Complétala antes de guardar.');
       else if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
       else if (data.warn) setStatus('warn', 'Datos extraídos, pero Subtotal + IVA no coincide con el Total. Revisa los montos antes de guardar.');

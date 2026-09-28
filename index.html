@@ -13938,7 +13938,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function modelList() {
     var out = [], seen = {}, saved = '';
     try { saved = localStorage.getItem('bm_gemini_model_ok') || ''; } catch (e) {}
-    [saved, GEMINI_MODEL].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
+    [GEMINI_MODEL, saved].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
     return out;
   }
 
@@ -13946,15 +13946,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 2, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 25, concurrency: 3, maxConc: 4, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
-    cool: { server: 45000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
+    cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
   };
 
   // Estado de cada modelo durante la sesión: uno que acaba de responder "saturado" se deja en pausa
   // y se prueba primero con los que están sanos.
   var HEALTH = {};
+  var okStreak = 0;   // aciertos seguidos: al llegar a 3 se sube el paralelismo otra vez
   function cool(m, ms) { HEALTH[m] = { until: Date.now() + ms }; }
   function orderModels() {
     var now = Date.now(), all = modelList();
@@ -15836,7 +15837,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var transient = (c === 'QUOTA' || c === 'SERVER' || c === 'TIMEOUT') && attempt < 1;
         var soft = (c === 'PARSE' || c === 'EMPTY') && attempt < 1;
         if ((transient || soft) && !st.batchCancel) {
-          if (transient) { CFG.concurrency = 1; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
+          if (transient) { CFG.concurrency = Math.max(1, CFG.concurrency - 1); okStreak = 0; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
           continue;
         }
         throw e;
@@ -15929,18 +15930,30 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function runBatch() {
     if (st.batchBusy) return;
     st.batchBusy = true; st.batchCancel = false; setBusy(true); setBatchMsg('');
-    var tick = setInterval(function () { if (st.drafts.some(function (d) { return d.status === 'processing'; })) renderBatch(); }, 1000);   // contador de segundos
+    CFG.concurrency = 3; okStreak = 0;   // cada lote arranca con 3 en paralelo
+    var tick = setInterval(function () {
+      st.drafts.forEach(function (d) {
+        if (d.status !== 'processing' || !d.t0) return;
+        var el = document.querySelector('[data-did="' + d.id + '"] .gx-st');
+        if (el && el.lastChild && el.lastChild.nodeType === 3) el.lastChild.nodeValue = ST_LABEL.processing + ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s';
+      });
+    }, 1000);   // contador de segundos (solo cambia el texto; no redibuja la lista)
     renderBatch();
+    var running = 0;
     async function worker() {
       for (;;) {
         if (st.batchCancel) return;
+        while (running >= CFG.concurrency) { await sleep(250); if (st.batchCancel) return; }     // paralelismo adaptativo: se ajusta solo según la presión de Gemini
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
+        running++;
         d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
         try {
+          try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Materiales');
           d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated) ? 'warn' : 'ok';
+          okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
           if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
@@ -15950,12 +15963,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             st.batchCancel = true; setBatchMsg('warn', 'Se agotó la cuota gratuita de Gemini. Espera unos minutos y pulsa "Procesar pendientes".');
           }
         }
+          } finally { running--; }
         d.tok = null; renderBatch();
         if (!st.batchCancel) await sleep(CFG.gap);
       }
     }
     try {
-      var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
+      var n = Math.max(1, Math.min(CFG.maxConc, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
       var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });
@@ -16473,7 +16487,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function modelList() {
     var out = [], seen = {}, saved = '';
     try { saved = localStorage.getItem('bm_gemini_model_ok') || ''; } catch (e) {}
-    [saved, GEMINI_MODEL].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
+    [GEMINI_MODEL, saved].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
     return out;
   }
 
@@ -16481,15 +16495,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 2, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 25, concurrency: 3, maxConc: 4, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
-    cool: { server: 45000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
+    cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
   };
 
   // Estado de cada modelo durante la sesión: uno que acaba de responder "saturado" se deja en pausa
   // y se prueba primero con los que están sanos.
   var HEALTH = {};
+  var okStreak = 0;   // aciertos seguidos: al llegar a 3 se sube el paralelismo otra vez
   function cool(m, ms) { HEALTH[m] = { until: Date.now() + ms }; }
   function orderModels() {
     var now = Date.now(), all = modelList();
@@ -18375,7 +18390,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var transient = (c === 'QUOTA' || c === 'SERVER' || c === 'TIMEOUT') && attempt < 1;
         var soft = (c === 'PARSE' || c === 'EMPTY') && attempt < 1;
         if ((transient || soft) && !st.batchCancel) {
-          if (transient) { CFG.concurrency = 1; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
+          if (transient) { CFG.concurrency = Math.max(1, CFG.concurrency - 1); okStreak = 0; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
           continue;
         }
         throw e;
@@ -18468,18 +18483,30 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function runBatch() {
     if (st.batchBusy) return;
     st.batchBusy = true; st.batchCancel = false; setBusy(true); setBatchMsg('');
-    var tick = setInterval(function () { if (st.drafts.some(function (d) { return d.status === 'processing'; })) renderBatch(); }, 1000);   // contador de segundos
+    CFG.concurrency = 3; okStreak = 0;   // cada lote arranca con 3 en paralelo
+    var tick = setInterval(function () {
+      st.drafts.forEach(function (d) {
+        if (d.status !== 'processing' || !d.t0) return;
+        var el = document.querySelector('[data-did="' + d.id + '"] .gx-st');
+        if (el && el.lastChild && el.lastChild.nodeType === 3) el.lastChild.nodeValue = ST_LABEL.processing + ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s';
+      });
+    }, 1000);   // contador de segundos (solo cambia el texto; no redibuja la lista)
     renderBatch();
+    var running = 0;
     async function worker() {
       for (;;) {
         if (st.batchCancel) return;
+        while (running >= CFG.concurrency) { await sleep(250); if (st.batchCancel) return; }     // paralelismo adaptativo: se ajusta solo según la presión de Gemini
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
+        running++;
         d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
         try {
+          try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Alimentación');
           d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated) ? 'warn' : 'ok';
+          okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
           if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
@@ -18489,12 +18516,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             st.batchCancel = true; setBatchMsg('warn', 'Se agotó la cuota gratuita de Gemini. Espera unos minutos y pulsa "Procesar pendientes".');
           }
         }
+          } finally { running--; }
         d.tok = null; renderBatch();
         if (!st.batchCancel) await sleep(CFG.gap);
       }
     }
     try {
-      var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
+      var n = Math.max(1, Math.min(CFG.maxConc, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
       var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });

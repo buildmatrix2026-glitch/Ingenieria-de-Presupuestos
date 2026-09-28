@@ -5328,60 +5328,108 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     return items;
   }
 
-  /* ───────── clasificación (obra / personal) ───────── */
+  /* ───────── clasificación (obra / personal) ─────────
+     Mismas leyes que tenía el prompt de Gemini en cada pestaña:
+     · Gastos y facturas (obra): aplica=true salvo que sea claramente consumo personal; ante la duda con contenido de obra → obra.
+       Sin coincidencias → "Gastos Indirectos".
+     · Gastos personales: aplica=false si es obra (materiales, ferretería, EPP, mano de obra, maquinaria), combustible o
+       mantenimiento de vehículos; ante la duda con piezas de ferretería → obra. Categorías oficiales del Anexo SRI
+       (Vivienda, Salud, Alimentación, Vestimenta, Educación Arte y Cultura, Turismo); lo demás → "Otros (no deducible SRI)".
+     Se decide por lo que se compró (ítems) y por el tipo de proveedor; NUNCA por el tipo de identificación del cliente. */
   function rx(words) {
     var seen = {}, arr = [];
-    words.forEach(function (w) { var n = norm(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); if (!seen[n]) { seen[n] = 1; arr.push(n); } });
+    words.forEach(function (w) { var n = norm(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); if (n && !seen[n]) { seen[n] = 1; arr.push(n); } });
     arr.sort(function (a, b) { return b.length - a.length; });
     return new RegExp('\\b(?:' + arr.join('|') + ')(?:s|es)?\\b', 'g');
   }
-  var KW = [
-    [A_OBRA, 'Materiales', ['cemento', 'cemento cola', 'hormigon', 'concreto', 'premezclado', 'varilla', 'corrugado', 'hierro', 'acero', 'alambre', 'malla', 'electrosoldada', 'bloque', 'ladrillo', 'adoquin', 'arena', 'ripio', 'piedra', 'grava', 'lastre', 'cascajo', 'tubo', 'tuberia', 'pvc', 'codo', 'tee', 'union', 'valvula', 'llave de paso', 'cable', 'breaker', 'tomacorriente', 'interruptor', 'canaleta', 'pintura', 'bondex', 'empaste', 'sellador', 'ceramica', 'porcelanato', 'pegante', 'fragua', 'yeso', 'gypsum', 'cielo raso', 'vidrio', 'perfil', 'clavo', 'tornillo', 'perno', 'taco', 'silicon', 'silicona', 'impermeabilizante', 'madera', 'tablero', 'plywood', 'tabla', 'tiras', 'teja', 'eternit', 'zinc', 'cubierta', 'aditivo', 'sika', 'geotextil', 'chova', 'lija', 'cinta aislante', 'manguera', 'cal', 'estuco', 'masilla', 'thinner', 'diluyente']],
-    [A_OBRA, 'Equipos y Maquinaria', ['alquiler de', 'renta de', 'retroexcavadora', 'volqueta', 'mezcladora', 'andamio', 'compactador', 'vibrador', 'plancha vibratoria', 'excavadora', 'cargadora', 'generador', 'martillo', 'pala', 'pico', 'carretilla', 'taladro', 'amoladora', 'flexometro', 'nivel', 'plomada', 'alicate', 'sierra', 'cinta metrica', 'llave inglesa', 'destornillador', 'herramienta', 'disco de corte', 'broca', 'esmeril', 'cortadora']],
-    [A_OBRA, 'Mano de Obra', ['mano de obra', 'jornal', 'albanil', 'peon', 'obrero', 'maestro de obra', 'instalacion de', 'colocacion de', 'pintor']],
-    [A_OBRA, 'Subcontratos', ['subcontrato', 'contrato de obra', 'fiscalizacion', 'estudio de suelos', 'diseno estructural', 'topografia', 'excavacion']],
-    [A_OBRA, 'Gastos Indirectos', ['diesel', 'gasolina', 'combustible', 'ecopais', 'lubricante', 'aceite de motor', 'llanta', 'neumatico', 'repuesto', 'mantenimiento vehicular', 'cambio de aceite', 'peaje', 'parqueadero', 'casco', 'chaleco', 'guantes', 'botas de seguridad', 'botas punta de acero', 'botas de punta de acero', 'epp', 'arnes', 'mascarilla', 'flete', 'transporte', 'acarreo', 'papeleria', 'toner', 'resma', 'gasolinera', 'estacion de servicio', 'primax', 'terpel', 'petroecuador', 'lavado de vehiculo']],
-    [A_OBRA, 'Gastos Trámites', ['permiso', 'tramite', 'tasa', 'patente', 'catastro', 'municipio', 'licencia', 'planos aprobados', 'registro de la propiedad', 'notaria', 'escritura', 'certificado', 'bomberos', 'aprobacion de planos', 'impuesto de obra']],
-    [A_PERS, 'Alimentación', ['supermaxi', 'megamaxi', 'santa maria', 'corporacion favorita', 'tia', 'aki', 'restaurante', 'cafeteria', 'pizza', 'pollo', 'hamburguesa', 'sanduche', 'almuerzo', 'desayuno', 'cena', 'bebida', 'gaseosa', 'leche', 'pan', 'arroz', 'carne', 'fruta', 'verdura', 'huevo', 'queso', 'jugo', 'yogurt', 'cafe', 'cerveza', 'vino', 'snack', 'galleta', 'chocolate', 'atun', 'aceite de cocina', 'aceite vegetal', 'azucar', 'fideo', 'harina', 'mercado', 'supermercado', 'kfc', 'mcdonalds', 'helado', 'panaderia']],
-    [A_PERS, 'Salud', ['farmacia', 'medicina', 'medicamento', 'fybeca', 'cruz azul', 'sana sana', 'pharmacys', 'consulta medica', 'consulta', 'medico', 'clinica', 'hospital', 'laboratorio', 'examen', 'odontologia', 'dentista', 'optica', 'lentes', 'prepagada', 'seguro medico', 'vacuna', 'terapia', 'paracetamol', 'ibuprofeno', 'vitamina']],
-    [A_PERS, 'Vivienda', ['arriendo', 'alicuota', 'predial', 'energia electrica', 'luz electrica', 'agua potable', 'internet', 'telefono residencial', 'hipoteca', 'intereses hipotecarios', 'cnel', 'empresa electrica', 'epmaps', 'netlife', 'claro hogar', 'cnt']],
-    [A_PERS, 'Educación, Arte y Cultura', ['colegio', 'escuela', 'universidad', 'matricula', 'pension escolar', 'libro', 'cuaderno', 'uniforme escolar', 'utiles escolares', 'curso', 'academia', 'museo', 'teatro', 'cine', 'cinemark', 'supercines', 'instituto', 'libreria']],
-    [A_PERS, 'Vestimenta', ['ropa', 'camiseta', 'camisa', 'pantalon', 'zapatos', 'calzado', 'vestido', 'chompa', 'jean', 'blusa', 'falda', 'medias', 'de prati', 'etafashion', 'marathon sports', 'chaqueta', 'zapatillas', 'sandalias']],
-    [A_PERS, 'Turismo', ['hotel', 'hospedaje', 'hostal', 'hosteria', 'resort', 'pasaje aereo', 'agencia de viajes', 'tour', 'turismo', 'aerolinea', 'cabana']]
-  ].map(function (k) { return { a: k[0], c: k[1], re: rx(k[2]) }; });
-  var RX_CUADRILLA = /\b(cuadrilla|obreros?|trabajadores|personal de obra|maestros?)\b/, RX_COMIDA = /\b(alimentacion|almuerzos?|desayunos?|refrigerios?|comida|meriendas?)\b/;
+  function R(a, c, w, words) { return { a: a, c: c, w: w, re: rx(words) }; }
+  var G = 'Gastos Indirectos';
 
-  function clasificarTexto(txt) {
+  var REGLAS = [
+    /* ── OBRA ── */
+    R(A_OBRA, 'Materiales', 3, ['cemento', 'hormigon', 'concreto', 'premezclado', 'varilla', 'corrugado', 'hierro', 'acero', 'alambre', 'malla', 'electrosoldada', 'bloque', 'ladrillo', 'adoquin', 'arena', 'ripio', 'piedra', 'grava', 'lastre', 'cascajo', 'mortero', 'encofrado', 'tubo', 'tuberia', 'pvc', 'codo', 'tee', 'union', 'sifon', 'valvula', 'llave de paso', 'griferia', 'cable', 'breaker', 'tomacorriente', 'interruptor', 'canaleta', 'pintura', 'bondex', 'empaste', 'sellador', 'ceramica', 'porcelanato', 'pegante', 'fragua', 'yeso', 'gypsum', 'cielo raso', 'vidrio', 'perfil', 'clavo', 'tornillo', 'perno', 'taco fisher', 'silicon', 'silicona', 'impermeabilizante', 'madera', 'tablero', 'plywood', 'tabla', 'teja', 'eternit', 'zinc', 'cubierta', 'aditivo', 'sika', 'geotextil', 'chova', 'lija', 'cinta aislante', 'manguera', 'cal', 'estuco', 'masilla', 'thinner', 'diluyente', 'rodillo', 'brocha', 'cerradura', 'bisagra', 'lavamanos', 'inodoro', 'ducha', 'teflon', 'adhesivo', 'membrana', 'angulo', 'viga', 'baldosa', 'zocalo', 'aluminio', 'policarbonato', 'lavaplatos', 'fregadero', 'reductor', 'neplo', 'abrazadera', 'bajante', 'tapon', 'llave', 'grifo', 'foco', 'lampara', 'reflector']),
+    R(A_OBRA, 'Materiales', 2, ['pega', 'tira', 'plancha', 'tapa', 'puerta', 'ventana', 'candado', 'cinta']),
+    R(A_OBRA, 'Equipos y Maquinaria', 3, ['retroexcavadora', 'volqueta', 'mezcladora', 'concretera', 'andamio', 'compactador', 'compactadora', 'vibrador', 'plancha vibratoria', 'excavadora', 'cargadora', 'minicargadora', 'generador', 'bomba de agua', 'bomba sumergible', 'martillo demoledor', 'rotomartillo', 'taladro', 'amoladora', 'cortadora', 'esmeril', 'sierra circular', 'hidrolavadora', 'montacargas', 'grua', 'maquinaria']),
+    R(A_OBRA, 'Equipos y Maquinaria', 4, ['alquiler de maquinaria', 'alquiler de equipo', 'alquiler de andamio', 'alquiler de volqueta', 'alquiler de herramienta', 'arriendo de maquinaria', 'arriendo de equipo', 'renta de equipo', 'renta de maquinaria']),
+    R(A_OBRA, 'Equipos y Maquinaria', 2, ['alquiler de', 'renta de']),
+    R(A_OBRA, 'Mano de Obra', 3, ['mano de obra', 'jornal', 'albanil', 'albanileria', 'peon', 'obrero', 'maestro de obra', 'encofrador', 'instalacion de', 'colocacion de', 'plomero', 'electricista', 'carpintero', 'soldador', 'pintor', 'cuadrilla']),
+    R(A_OBRA, 'Subcontratos', 3, ['subcontrato', 'contrato de obra', 'obra civil', 'instalacion electrica', 'instalaciones electricas', 'instalaciones sanitarias', 'sistema contra incendios', 'estructura metalica', 'impermeabilizacion', 'fiscalizacion', 'diseno estructural', 'estudio de suelos', 'aluminio y vidrio']),
+    R(A_OBRA, 'Gastos Trámites', 3, ['licencia de construccion', 'aprobacion de planos', 'planos', 'registro de la propiedad', 'notaria', 'escritura', 'peritaje', 'topografia', 'topografico', 'tasa municipal', 'tasas municipales', 'permiso', 'patente', 'catastro', 'municipio', 'bomberos', 'abogado', 'contador', 'asesoria', 'tramite', 'registro mercantil', 'impuesto predial de obra']),
+    R(A_OBRA, 'Gastos Trámites', 2, ['honorarios', 'certificado', 'impuesto', 'tasa']),
+    R(A_OBRA, G, 4, ['diesel', 'gasolina', 'combustible', 'ecopais', 'gasoil', 'glp', 'lubricante', 'aceite de motor', 'aceite hidraulico', 'llanta', 'neumatico', 'peaje', 'repuesto', 'mantenimiento vehicular', 'mantenimiento de vehiculo', 'cambio de aceite', 'alineacion', 'balanceo', 'lavado de vehiculo', 'mecanica', 'filtro de aceite', 'filtro de aire', 'bateria', 'pastillas de freno', 'seguro vehicular', 'matricula vehicular', 'lubricado']),
+    R(A_OBRA, G, 4, ['casco', 'chaleco', 'guantes', 'botas de punta de acero', 'botas punta de acero', 'botas de seguridad', 'zapatos de seguridad', 'botas de caucho', 'epp', 'arnes', 'lentes de seguridad', 'gafas de seguridad', 'uniforme de trabajo', 'uniformes de trabajo', 'ropa de trabajo', 'overol', 'impermeable', 'proteccion auditiva', 'respirador']),
+    R(A_OBRA, G, 3, ['flete', 'acarreo', 'transporte de materiales', 'transporte de personal', 'papeleria', 'toner', 'resma', 'disco de corte', 'piola', 'marcador', 'herramienta menor', 'herramientas menores', 'guaipe', 'cinta de peligro', 'cono', 'extintor', 'hospedaje de personal', 'agua de obra', 'luz de obra', 'internet de obra', 'servicio de obra']),
+    R(A_OBRA, G, 2, ['transporte', 'mascarilla', 'herramienta', 'broca', 'disco']),
+    R(A_OBRA, G, 1, ['limpieza']),
+    /* ── PERSONAL (Anexo de Gastos Personales SRI) ── */
+    R(A_PERS, 'Alimentación', 3, ['leche', 'pan', 'arroz', 'carne', 'pollo', 'pescado', 'fruta', 'verdura', 'hortaliza', 'huevo', 'queso', 'jugo', 'yogurt', 'cafe', 'cerveza', 'vino', 'snack', 'galleta', 'chocolate', 'atun', 'aceite de cocina', 'aceite vegetal', 'azucar', 'fideo', 'harina', 'embutido', 'jamon', 'salchicha', 'mantequilla', 'margarina', 'cereal', 'gaseosa', 'bebida', 'agua mineral', 'agua purificada', 'almuerzo', 'desayuno', 'cena', 'menu', 'combo', 'hamburguesa', 'pizza', 'sanduche', 'helado', 'pastel', 'torta', 'papas', 'gelatina', 'mermelada', 'avena', 'coca cola', 'sprite', 'fanta', 'tostado', 'chifle', 'lenteja', 'frejol', 'mantecado', 'yuca', 'platano', 'tomate', 'cebolla', 'papa', 'lechuga', 'sopa', 'salsa', 'atun', 'sardina', 'cuchufli', 'alimento para perro', 'alimento para gato', 'alimento para mascota', 'balanceado', 'dog chow', 'cat chow', 'purina']),
+    R(A_PERS, 'Salud', 3, ['medicina', 'medicamento', 'farmacia', 'consulta medica', 'honorarios medicos', 'clinica', 'hospital', 'laboratorio clinico', 'examen de laboratorio', 'examenes de laboratorio', 'odontologia', 'dentista', 'optica', 'lentes', 'prepagada', 'seguro medico', 'vacuna', 'terapia', 'fisioterapia', 'psicologo', 'paracetamol', 'ibuprofeno', 'vitamina', 'jarabe', 'tableta', 'capsula', 'ampolla', 'alcohol antiseptico', 'mascarilla quirurgica', 'veterinaria', 'veterinario', 'consulta veterinaria', 'desparasitante', 'cirugia', 'rayos x', 'ecografia', 'resonancia', 'tomografia', 'cardiologia', 'consulta', 'antibiotico', 'analgesico', 'inyeccion', 'suero', 'gotas', 'pomada', 'crema medicada', 'panales', 'tensiometro', 'glucometro']),
+    R(A_PERS, 'Vivienda', 3, ['alicuota', 'predial', 'energia electrica', 'luz electrica', 'agua potable', 'servicio de agua', 'internet', 'telefono', 'telefonia', 'hipoteca', 'interes hipotecario', 'cilindro de gas', 'gas domestico', 'gas licuado', 'mueble', 'colchon', 'sofa', 'refrigeradora', 'lavadora', 'electrodomestico', 'televisor', 'microondas', 'licuadora', 'comedor', 'cama', 'tv cable', 'condominio', 'cocina a gas', 'closet', 'escritorio', 'silla', 'mesa', 'plan movil', 'plan de datos']),
+    R(A_PERS, 'Vivienda', 2, ['arriendo']),
+    R(A_PERS, 'Educación, Arte y Cultura', 3, ['colegio', 'unidad educativa', 'escuela', 'universidad', 'matricula', 'pension escolar', 'libro', 'cuaderno', 'uniforme escolar', 'uniformes escolares', 'utiles escolares', 'textos escolares', 'curso', 'seminario', 'capacitacion', 'academia', 'idiomas', 'guarderia', 'centro de desarrollo infantil', 'museo', 'teatro', 'concierto', 'cine', 'entrada al cine', 'instrumento musical', 'guitarra', 'piano', 'libreria', 'revista', 'danza', 'artesania', 'boleto de cine', 'transporte escolar', 'derechos de grado', 'tutorias']),
+    R(A_PERS, 'Vestimenta', 3, ['ropa', 'camiseta', 'camisa', 'pantalon', 'jean', 'zapatos', 'calzado', 'zapatillas', 'sandalias', 'vestido', 'chompa', 'blusa', 'falda', 'medias', 'ropa interior', 'chaqueta', 'abrigo', 'sueter', 'buzo', 'short', 'bermuda', 'gorra', 'cinturon', 'bolso', 'corbata', 'pijama', 'bikini', 'tenis']),
+    R(A_PERS, 'Vestimenta', 1, ['botas']),
+    R(A_PERS, 'Turismo', 3, ['hotel', 'hospedaje', 'hostal', 'hosteria', 'resort', 'pasaje aereo', 'pasaje terrestre', 'aerolinea', 'agencia de viajes', 'tour', 'turismo', 'cabana', 'camping', 'parque de atracciones', 'paquete turistico', 'alojamiento'])
+  ];
+
+  /* Tipo de proveedor (se aplica a los ítems que no tienen coincidencia propia) */
+  function P(a, c, words) { return { a: a, c: c, re: rx(words) }; }
+  var PROV = [
+    P(A_OBRA, G, ['gasolinera', 'estacion de servicio', 'primax', 'terpel', 'petrocomercial', 'petroecuador', 'puma energy', 'combustibles', 'lubricantes', 'lubricadora', 'taller', 'mecanica', 'automotriz', 'repuestos', 'autopartes', 'llantas', 'neumaticos', 'autolavado', 'lavadora de autos', 'vulcanizadora', 'fletes', 'transportes', 'papeleria', 'imprenta', 'seguridad industrial', 'mobil', 'shell']),
+    P(A_OBRA, 'Materiales', ['ferreteria', 'ferro', 'corralon', 'almacen de materiales', 'materiales de construccion', 'kywi', 'disensa', 'kiwy', 'construmercado', 'ferrisariato', 'pinturas', 'vidrieria', 'maderera', 'aluminios', 'hidrosanitarios', 'sanitarios', 'ceramicas', 'cementos', 'hormigones', 'holcim', 'unacem', 'novacero', 'adelca', 'sika', 'pintuco', 'plastigama', 'fibrocemento', 'materiales electricos', 'acabados', 'plomeria', 'grifos', 'aceros', 'hierros']),
+    P(A_OBRA, 'Equipos y Maquinaria', ['alquiler de maquinaria', 'alquiler de equipos', 'alquiler de andamios', 'rental', 'maquinaria']),
+    P(A_OBRA, 'Gastos Trámites', ['municipio', 'gad municipal', 'notaria', 'registro de la propiedad', 'colegio de arquitectos', 'colegio de ingenieros', 'cuerpo de bomberos', 'estudio juridico', 'abogados']),
+    P(A_PERS, 'Alimentación', ['supermaxi', 'megamaxi', 'santa maria', 'corporacion favorita', 'corporacion el rosado', 'mi comisariato', 'comisariato', 'tiendas industriales asociadas', 'tia', 'aki', 'gran aki', 'coral hipermercados', 'tuti', 'oki doki', 'supermercado', 'minimarket', 'mini market', 'panaderia', 'pasteleria', 'heladeria', 'restaurante', 'cafeteria', 'pizzeria', 'picanteria', 'asadero', 'sangucheria', 'kfc', 'mcdonald', 'burger king', 'subway', 'pollo gus', 'juan valdez', 'sweet coffee', 'tropiburger', 'papa johns', 'pizza hut', 'domino', 'parrilla', 'cevicheria', 'bar', 'cerveceria', 'fritada', 'delicatessen', 'hipermercado', 'abarrotes', 'mercado']),
+    P(A_PERS, 'Salud', ['farmacia', 'fybeca', 'sana sana', 'cruz azul', 'pharmacys', 'medicity', 'botica', 'clinica', 'hospital', 'laboratorio', 'consultorio', 'odontologic', 'optica', 'veterinaria', 'veterinario', 'centro medico', 'vozandes', 'axxis', 'eskala', 'humana', 'ecuasanitas', 'saludsa', 'medicina prepagada']),
+    P(A_PERS, 'Vestimenta', ['de prati', 'etafashion', 'marathon sports', 'zapateria', 'boutique', 'textil', 'moda', 'pat primo', 'lacoste', 'zara', 'adidas', 'nike', 'ropa', 'tennis']),
+    P(A_PERS, 'Vivienda', ['cnel', 'empresa electrica', 'epmaps', 'agua potable', 'netlife', 'puntonet', 'xtrim', 'claro', 'movistar', 'cnt', 'administracion de edificio', 'condominio', 'artefacta', 'la ganga', 'marcimex', 'jaher', 'muebles', 'electrodomesticos', 'colchones', 'duragas', 'austrogas', 'lojagas', 'tropigas', 'directv']),
+    P(A_PERS, 'Educación, Arte y Cultura', ['colegio', 'unidad educativa', 'escuela', 'universidad', 'instituto', 'libreria', 'mr books', 'cinemark', 'supercines', 'multicines', 'teatro', 'museo', 'academia', 'guarderia']),
+    P(A_PERS, 'Turismo', ['hotel', 'hostal', 'hosteria', 'resort', 'agencia de viajes', 'aerolinea', 'avianca', 'latam', 'turismo', 'tours', 'cabanas'])
+  ];
+  var RX_CUADRILLA = /\b(cuadrilla|obreros?|trabajadores|personal de obra|maestros?)\b/, RX_COMIDA = /\b(alimentacion|almuerzos?|desayunos?|refrigerios?|comida|meriendas?|viveres)\b/;
+
+  function puntuar(txt) {
     var t = norm(txt); if (!t) return null;
-    if (RX_CUADRILLA.test(t) && RX_COMIDA.test(t)) return { a: A_OBRA, c: 'Gastos Indirectos' };
-    var mejor = null, nm = 0;
-    KW.forEach(function (k) { var n = (t.match(k.re) || []).length; if (n > nm) { mejor = { a: k.a, c: k.c }; nm = n; } });
-    return mejor;
+    if (RX_CUADRILLA.test(t) && RX_COMIDA.test(t)) return { a: A_OBRA, c: G, s: 99 };   // alimentación de la cuadrilla = gasto de obra
+    var res = {}, best = null, bs = 0;
+    REGLAS.forEach(function (r) {
+      var n = (t.match(r.re) || []).length; if (!n) return;
+      var k = r.a + '|' + r.c; res[k] = (res[k] || 0) + n * r.w;
+    });
+    Object.keys(res).forEach(function (k) { if (res[k] > bs) { bs = res[k]; best = k; } });
+    if (!best) return null;
+    var p = best.split('|'); return { a: p[0], c: p[1], s: bs };
+  }
+  function tipoProveedor(prov) {
+    var t = norm(prov); if (!t) return null;
+    for (var i = 0; i < PROV.length; i++) { PROV[i].re.lastIndex = 0; if (PROV[i].re.test(t)) return { a: PROV[i].a, c: PROV[i].c, s: 1 }; }
+    return null;
   }
 
   function clasificar(d, contexto) {
-    var prov = clasificarTexto(d.proveedor), montos = {}, mObra = 0, mPers = 0, adv = [], revision = false;
+    var provT = tipoProveedor(d.proveedor), montos = {}, mObra = 0, mPers = 0, tot = 0, adv = [];
     function suma(c, v) { var k = c.a + '|' + c.c; montos[k] = (montos[k] || 0) + v; if (c.a === A_OBRA) mObra += v; else mPers += v; }
     d.items.forEach(function (it) {
-      var c = clasificarTexto(it.desc + ' ' + (it.det || '')) || prov;
-      if (c) suma(c, Math.abs(it.total) || 0.01);
+      var v = Math.abs(it.total) || 0.01; tot += v;
+      var c = puntuar(it.desc + ' ' + (it.det || ''));
+      if (provT && (!c || c.s <= 1)) c = provT;      // coincidencia débil: manda el tipo de proveedor
+      if (c) suma(c, v);
     });
-    if (!d.items.length && prov) suma(prov, Math.abs(d.total) || 0.01);
-    var ambito;
-    if (mObra === 0 && mPers === 0) {
-      ambito = contexto === 'obra' ? A_OBRA : contexto === 'personal' ? A_PERS : null;
-      revision = true; adv.push('No se reconoció el tipo de gasto por palabras clave: revisa la categoría.');
-    } else {
-      ambito = mObra >= mPers ? A_OBRA : A_PERS;
-      if (mObra && mPers) { revision = true; adv.push('Comprobante mixto (obra $' + mObra.toFixed(2) + ' / personal $' + mPers.toFixed(2) + '): revisa la clasificación.'); }
+    if (!(mObra + mPers)) {        // ítems ilegibles o sin coincidencias: se usa el texto de la zona de detalle y el tipo de proveedor
+      var v0 = Math.abs(d.total) || 0.01; if (!tot) tot = v0;
+      var c2 = puntuar(d.cuerpo || '') || provT;
+      if (c2) suma(c2, v0);
     }
-    var cat = null;
-    if (ambito) {
-      var best = null, bv = -1;
-      Object.keys(montos).forEach(function (k) { if (k.split('|')[0] === ambito && montos[k] > bv) { bv = montos[k]; best = k.split('|')[1]; } });
-      cat = best || (ambito === A_OBRA ? 'Gastos Indirectos' : NO_DEDUCIBLE);
-    }
-    return { ambito: ambito, categoria: cat, revision: revision, adv: adv };
+    var nada = !(mObra + mPers), ambito;
+    if (contexto === 'personal') ambito = (mObra > 0 && mObra >= mPers) ? A_OBRA : A_PERS;                 // ante la duda con contenido de obra → obra
+    else if (contexto === 'obra') ambito = (mPers > mObra && mPers >= 0.5 * tot) ? A_PERS : A_OBRA;       // ante la duda → obra
+    else ambito = nada ? A_OBRA : (mPers > mObra ? A_PERS : A_OBRA);
+    var best = null, bv = -1;
+    Object.keys(montos).forEach(function (k) { if (k.split('|')[0] === ambito && montos[k] > bv) { bv = montos[k]; best = k.split('|')[1]; } });
+    var cat = best || (ambito === A_OBRA ? G : NO_DEDUCIBLE);
+    if (nada) adv.push('Sin coincidencias de palabras clave: se asignó la categoría por defecto (' + cat + ').');
+    if (mObra && mPers) adv.push('Comprobante mixto (obra $' + mObra.toFixed(2) + ' / personal $' + mPers.toFixed(2) + '): se eligió el de mayor valor.');
+    return { ambito: ambito, categoria: cat, revision: false, adv: adv };
   }
 
   /* ───────── cierre común ───────── */
@@ -5431,7 +5479,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       categoria: cl.categoria || '', aplica: aplica, motivoNoAplica: motivoNo,
       tipo: tipo, documento: DOCS[tipo], facModificada: d.facModificada, motivoNC: d.motivoNC,
       truncated: false, warn: warn, itemsSum: itemsSum, itemsWarn: itemsWarn,
-      revisar: !!(cl.revision && aplica), notaRevision: cl.adv.join(' '),
+      revisar: false, notaRevision: cl.adv.join(' '),
       origen: 'PDF_LOCAL', advertencias: adv.concat(cl.adv)
     };
     if (tipo === '04') {          // Nota de crédito: TODO negativo salvo el precio unitario
@@ -5443,12 +5491,27 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     return o;
   }
 
+  function zonaItems(lines) {
+    var ini = -1, out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var n = norm(lines[i]);
+      if (n.indexOf('descripcion') >= 0 && (n.indexOf('cant') >= 0 || n.indexOf('cod') >= 0 || n.indexOf('precio') >= 0)) { ini = i + 1; break; }
+    }
+    if (ini < 0) return '';
+    for (var j = ini; j < lines.length; j++) {
+      if (STOP_ITEMS.test(norm(lines[j]))) break;
+      out.push(lines[j].replace(/-?\d+(?:[.,]\d+)*/g, ' '));
+    }
+    return limpia(out.join(' '));
+  }
+
   /* ───────── procesar texto ya extraído (sirve también para pruebas) ───────── */
   function procesarLecturas(lec, contexto, t0) {
     var cab = cabecera(lec.texto, lec.izq, lec.lines);
     var d = cab.d, adv = cab.adv, tt = totales(lec.texto);
     Object.keys(tt).forEach(function (k) { d[k] = tt[k]; });
     d.items = itemsDeTexto(lec.lines);
+    d.cuerpo = zonaItems(lec.lines);
     return finalizar(d, contexto, adv, t0 || Date.now());
   }
 

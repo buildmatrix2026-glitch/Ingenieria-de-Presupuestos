@@ -1213,6 +1213,44 @@ html:not([data-theme="light"]) #app .fc.hl .fv{background:linear-gradient(180deg
 .gx-scope .gx-st.skip{color:var(--gx-warn);border-color:var(--gx-warn)}
 html:not([data-theme="light"]) .gx-scope .gx-dr2.skip{border-style:dashed;border-color:var(--gx-warn);background:rgba(245,158,11,.05);box-shadow:inset 0 0 18px -12px rgba(245,158,11,.5)}
 
+/* ══════════ Fase 8 HUD: menú sin scroll horizontal, avisos modernos y cursor de triángulo neón ══════════ */
+/* Menú lateral: sin scroll horizontal (la línea del borde ya no sobresale) */
+#app .sd{overflow-x:hidden}
+#app .sd::after{right:0}
+
+/* Avisos modernos: cristal con barra de neón e icono (reemplazan los amarillos planos) */
+.gx-scope .gx-dr2 .msg{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:12px;border:1px solid transparent}
+.gx-scope .gx-dr2 .msg::before,.gx-scope .gx-status.on.warn::before,.gx-scope .gx-status.on.err::before,.gx-scope .gx-status.on.ok::before{
+  content:'';flex:0 0 16px;width:16px;height:16px;margin-top:1px;background:center/contain no-repeat}
+html:not([data-theme="light"]) .gx-scope .gx-dr2 .msg.warn,html:not([data-theme="light"]) .gx-scope .gx-status.on.warn{color:#fed7aa;border-color:rgba(251,146,60,.4);
+  background:linear-gradient(90deg,rgba(251,146,60,.15),rgba(251,146,60,.03) 75%);box-shadow:inset 3px 0 0 #fb923c,0 0 22px -12px rgba(251,146,60,.75)}
+html:not([data-theme="light"]) .gx-scope .gx-dr2 .msg.err,html:not([data-theme="light"]) .gx-scope .gx-status.on.err{color:#fecaca;border-color:rgba(248,113,113,.4);
+  background:linear-gradient(90deg,rgba(248,113,113,.15),rgba(248,113,113,.03) 75%);box-shadow:inset 3px 0 0 #f87171,0 0 22px -12px rgba(248,113,113,.75)}
+html:not([data-theme="light"]) .gx-scope .gx-status.on.ok{color:#bbf7d0;border-color:rgba(52,211,153,.4);
+  background:linear-gradient(90deg,rgba(52,211,153,.15),rgba(52,211,153,.03) 75%);box-shadow:inset 3px 0 0 #34d399,0 0 22px -12px rgba(52,211,153,.75)}
+.gx-scope .gx-dr2 .msg.warn::before,.gx-scope .gx-status.on.warn::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fb923c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z'/%3E%3Cpath d='M12 9v4M12 17h.01'/%3E%3C/svg%3E")}
+.gx-scope .gx-dr2 .msg.err::before,.gx-scope .gx-status.on.err::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M15 9l-6 6M9 9l6 6'/%3E%3C/svg%3E")}
+.gx-scope .gx-status.on.ok::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2334d399' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12.5l2.7 2.7L16 9.5'/%3E%3C/svg%3E")}
+/* Etiquetas de estado (Lista, Revisar, No corresponde…): píldoras neón */
+html:not([data-theme="light"]) .gx-scope .gx-st{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px}
+html:not([data-theme="light"]) .gx-scope .gx-st.warn,html:not([data-theme="light"]) .gx-scope .gx-st.skip,html:not([data-theme="light"]) .gx-scope .gx-st.incomplete{color:#fdba74;border-color:rgba(251,146,60,.6);background:rgba(251,146,60,.10);box-shadow:0 0 14px -5px rgba(251,146,60,.85);text-shadow:0 0 8px rgba(251,146,60,.5)}
+html:not([data-theme="light"]) .gx-scope .gx-st.ok{color:#6ee7b7;border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.10);box-shadow:0 0 14px -5px rgba(52,211,153,.8);text-shadow:0 0 8px rgba(52,211,153,.45)}
+html:not([data-theme="light"]) .gx-scope .gx-st.err{color:#fca5a5;border-color:rgba(248,113,113,.55);background:rgba(248,113,113,.10);box-shadow:0 0 14px -5px rgba(248,113,113,.8)}
+/* Notificaciones emergentes (toast) en cristal con barra de neón */
+html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,212,.16),rgba(11,15,25,.94) 60%);border:1px solid rgba(34,211,238,.42);color:#e6fbff;border-radius:14px;
+  box-shadow:inset 3px 0 0 #22d3ee,0 12px 44px rgba(0,0,0,.5),0 0 26px -10px rgba(6,182,212,.75)}
+
+/* Cursor de la app: triángulo neón (la landing conserva el suyo) */
+@media(hover:hover) and (pointer:fine){
+  body.ia #cursor{width:40px;height:33px;border-radius:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 143 117'%3E%3Cpolygon points='27,16 117,41 52,104' fill='%23052e33' stroke='%235fe0e6' stroke-width='5' stroke-linejoin='round'/%3E%3Cpolygon points='46,37 94,46 58,88' fill='%230f6a6f' stroke='%234fd8d2' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%;
+    transform:translate(-7.6px,-4.5px);transform-origin:7.6px 4.5px;
+    filter:drop-shadow(0 0 3px rgba(34,211,238,.95)) drop-shadow(0 0 9px rgba(6,182,212,.75));
+    transition:transform .18s var(--eo),filter .2s}
+  body.ia.cursor-hover #cursor{width:40px;height:33px;background-color:transparent;transform:translate(-7.6px,-4.5px) scale(1.22) rotate(-8deg);
+    filter:drop-shadow(0 0 4px rgba(103,232,249,1)) drop-shadow(0 0 14px rgba(6,182,212,.95))}
+  body.ia #cursor-ring{display:none!important}
+}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -15614,10 +15652,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
     var saved = load(), proyecto = val('gx-proyecto'), seen = {};
-    var ready = 0, warn = 0, sum = 0, done = 0, pending = 0;
+    var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var html = ds.map(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
+      else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
       var title = o.proveedor || d.name;
@@ -15644,13 +15683,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-batch-bar').style.width = pct + '%';
     $('gx-batch-prog').textContent = st.batchBusy ? 'Procesando ' + Math.min(done + 1, ds.length) + ' de ' + ds.length : (pending ? 'Detenido · ' + pending + ' en cola' : done + ' de ' + ds.length + ' leídas');
     var sv = $('gx-batch-save');
-    sv.textContent = ready ? 'Guardar todas (' + ready + ' · ' + money(sum) + ')' : 'Guardar todas';
+    sv.textContent = ready ? 'Guardar todas (' + ready + ' · ' + money(round2(sum)) + ')' : 'Guardar todas';
     sv.classList[ready && !st.batchBusy ? 'remove' : 'add']('is-disabled');
     $('gx-batch-stop').style.display = st.batchBusy ? '' : 'none';
     $('gx-batch-resume').style.display = (!st.batchBusy && pending) ? '' : 'none';
     var note = $('gx-batch-note');
     var bproy = val('gx-batch-proyecto') || val('gx-proyecto');
-    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas, con error o que no corresponden no se guardan.';
+    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
   }
 
   function setBatchMsg(type, msg) {
@@ -15760,35 +15799,45 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (st.batchBusy) return;
     var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
     if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 };
+    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
+      else if (s === 'skip') { skipped.push(d); cnt.skip++; }
       else if (cnt[s] != null) cnt[s]++;
     });
-    if (!ok.length) { say('No hay facturas listas para guardar'); return; }
+    if (!ok.length) {
+      if (skipped.length && confirm('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
+        var gone0 = {}; skipped.forEach(function (d) { gone0[d.id] = 1; });
+        st.drafts = st.drafts.filter(function (d) { return !gone0[d.id]; });
+        if (st.editing && gone0[st.editing]) st.editing = null;
+        setBatchMsg('', ''); renderBatch(); say(skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') + ' (no corresponden a esta sección)');
+        return;
+      }
+      say('No hay facturas listas para guardar'); return;
+    }
     var lines = ['Se guardarán ' + ok.length + ' factura' + (ok.length === 1 ? '' : 's') + ' en "' + proyecto + '"' + (cnt.warn ? ' (' + cnt.warn + ' con avisos de revisión)' : '') + '.'];
     var skip = [];
     if (cnt.dup) skip.push(cnt.dup + ' duplicada' + (cnt.dup === 1 ? '' : 's'));
     if (cnt.incomplete) skip.push(cnt.incomplete + ' incompleta' + (cnt.incomplete === 1 ? '' : 's'));
     if (cnt.error) skip.push(cnt.error + ' con error');
     if (cnt.pending) skip.push(cnt.pending + ' en cola');
-    if (cnt.skip) skip.push(cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a esta sección');
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
+    if (cnt.skip) lines.push('Se descartarán ' + cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' (no suman al total).');
     lines.push('¿Continuar?');
     if (!confirm(lines.join('\n'))) return;
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Materiales'); list.push(g); created.push(g); });
     if (!save(list)) return;
     created.forEach(pushCloud);
-    var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; });
+    var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; }); skipped.forEach(function (d) { gone[d.id] = 1; });
     st.drafts = st.drafts.filter(function (d) { return !gone[d.id]; });
     if (st.editing && gone[st.editing]) st.editing = null;
     var total = round2(created.reduce(function (s, g) { return s + g.total; }, 0));
     st.filter = ALL;
     setBatchMsg(st.drafts.length ? 'ok' : '', st.drafts.length ? created.length + ' guardadas. Quedan ' + st.drafts.length + ' por revisar.' : '');
     render();
-    say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total));
+    say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total) + (skipped.length ? ' · ' + skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') : ''));
   }
 
   function clearBatch() {
@@ -18066,10 +18115,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
     var saved = load(), proyecto = PERSONAL_PROJECT, seen = {};
-    var ready = 0, warn = 0, sum = 0, done = 0, pending = 0;
+    var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var html = ds.map(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
+      else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
       var title = o.proveedor || d.name;
@@ -18096,13 +18146,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gxp-batch-bar').style.width = pct + '%';
     $('gxp-batch-prog').textContent = st.batchBusy ? 'Procesando ' + Math.min(done + 1, ds.length) + ' de ' + ds.length : (pending ? 'Detenido · ' + pending + ' en cola' : done + ' de ' + ds.length + ' leídas');
     var sv = $('gxp-batch-save');
-    sv.textContent = ready ? 'Guardar todas (' + ready + ' · ' + money(sum) + ')' : 'Guardar todas';
+    sv.textContent = ready ? 'Guardar todas (' + ready + ' · ' + money(round2(sum)) + ')' : 'Guardar todas';
     sv.classList[ready && !st.batchBusy ? 'remove' : 'add']('is-disabled');
     $('gxp-batch-stop').style.display = st.batchBusy ? '' : 'none';
     $('gxp-batch-resume').style.display = (!st.batchBusy && pending) ? '' : 'none';
     var note = $('gxp-batch-note');
     var bproy = PERSONAL_PROJECT;
-    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas, con error o que no corresponden no se guardan.';
+    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
   }
 
   function setBatchMsg(type, msg) {
@@ -18211,35 +18261,45 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function saveAllDrafts() {
     if (st.batchBusy) return;
     var proyecto = PERSONAL_PROJECT;
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 };
+    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
+      else if (s === 'skip') { skipped.push(d); cnt.skip++; }
       else if (cnt[s] != null) cnt[s]++;
     });
-    if (!ok.length) { say('No hay facturas listas para guardar'); return; }
+    if (!ok.length) {
+      if (skipped.length && confirm('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
+        var gone0 = {}; skipped.forEach(function (d) { gone0[d.id] = 1; });
+        st.drafts = st.drafts.filter(function (d) { return !gone0[d.id]; });
+        if (st.editing && gone0[st.editing]) st.editing = null;
+        setBatchMsg('', ''); renderBatch(); say(skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') + ' (no corresponden a esta sección)');
+        return;
+      }
+      say('No hay facturas listas para guardar'); return;
+    }
     var lines = ['Se guardarán ' + ok.length + ' factura' + (ok.length === 1 ? '' : 's') + ' en "' + proyecto + '"' + (cnt.warn ? ' (' + cnt.warn + ' con avisos de revisión)' : '') + '.'];
     var skip = [];
     if (cnt.dup) skip.push(cnt.dup + ' duplicada' + (cnt.dup === 1 ? '' : 's'));
     if (cnt.incomplete) skip.push(cnt.incomplete + ' incompleta' + (cnt.incomplete === 1 ? '' : 's'));
     if (cnt.error) skip.push(cnt.error + ' con error');
     if (cnt.pending) skip.push(cnt.pending + ' en cola');
-    if (cnt.skip) skip.push(cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a esta sección');
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
+    if (cnt.skip) lines.push('Se descartarán ' + cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' (no suman al total).');
     lines.push('¿Continuar?');
     if (!confirm(lines.join('\n'))) return;
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Alimentación'); list.push(g); created.push(g); });
     if (!save(list)) return;
     created.forEach(pushCloud);
-    var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; });
+    var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; }); skipped.forEach(function (d) { gone[d.id] = 1; });
     st.drafts = st.drafts.filter(function (d) { return !gone[d.id]; });
     if (st.editing && gone[st.editing]) st.editing = null;
     var total = round2(created.reduce(function (s, g) { return s + g.total; }, 0));
     st.filter = ALL;
     setBatchMsg(st.drafts.length ? 'ok' : '', st.drafts.length ? created.length + ' guardadas. Quedan ' + st.drafts.length + ' por revisar.' : '');
     render();
-    say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total));
+    say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total) + (skipped.length ? ' · ' + skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') : ''));
   }
 
   function clearBatch() {

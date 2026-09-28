@@ -1208,6 +1208,11 @@ html:not([data-theme="light"]) #app .fc.hl .fv{background:linear-gradient(180deg
   filter:drop-shadow(0 0 5px rgba(34,211,238,.6)) drop-shadow(0 0 16px rgba(139,92,246,.35))}
 @media (prefers-reduced-motion:reduce){#app .fc.hl::after{animation:none}}
 
+/* Estado "No corresponde" del lote (factura que la IA descartó por no ser de este módulo) */
+.gx-scope .gx-dr2.skip{border-style:dashed;border-color:var(--gx-warn);opacity:.9}
+.gx-scope .gx-st.skip{color:var(--gx-warn);border-color:var(--gx-warn)}
+html:not([data-theme="light"]) .gx-scope .gx-dr2.skip{border-style:dashed;border-color:var(--gx-warn);background:rgba(245,158,11,.05);box-shadow:inset 0 0 18px -12px rgba(245,158,11,.5)}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -4028,7 +4033,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div class="gx-row">
                 <button type="button" class="gx-btn primary" id="gx-batch-save" style="min-height:48px;font-size:15px">Guardar todas</button>
               </div>
-              <div class="gx-hint" style="margin-top:9px" id="gx-batch-note">Se guardan en el proyecto seleccionado en "Registro del gasto". Las duplicadas, incompletas o con error no se guardan.</div>
+              <div class="gx-hint" style="margin-top:9px" id="gx-batch-note">Se guardan en el proyecto seleccionado en "Registro del gasto". Las duplicadas, incompletas, con error o que no corresponden no se guardan.</div>
             </div>
 
             <div class="gx-card">
@@ -4271,7 +4276,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <div class="gx-row">
                 <button type="button" class="gx-btn primary" id="gxp-batch-save" style="min-height:48px;font-size:15px">Guardar todas</button>
               </div>
-              <div class="gx-hint" style="margin-top:9px" id="gxp-batch-note">Se guardan en tus gastos personales. Las duplicadas, incompletas o con error no se guardan.</div>
+              <div class="gx-hint" style="margin-top:9px" id="gxp-batch-note">Se guardan en tus gastos personales. Las duplicadas, incompletas, con error o que no corresponden no se guardan.</div>
             </div>
 
             <div class="gx-card">
@@ -13639,7 +13644,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Analiza TODO el documento y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con exactamente estas claves ' +
     '(la clave "items" va siempre al final): ' +
     '{"proveedor": "", "ruc": "", "numero_factura": "", "autorizacion": "", "fecha": "YYYY-MM-DD", ' +
-    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", ' +
+    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", ' +
     '"subtotal": 0.00, "descuento": 0.00, ' +
     '"desglose_iva": [{"tarifa": "15%", "base": 0.00, "iva": 0.00}], ' +
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
@@ -13664,6 +13669,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
     'CONTEXTO: este comprobante fue emitido al RUC del contratista/empresa de construcción, para gastos de EJECUCIÓN, LOGÍSTICA, ADMINISTRACIÓN, PERMISOS o MANTENIMIENTO de un proyecto de obra (nunca gasto de consumo personal o familiar). ' +
+    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos de OBRA / proyectos de construcción del RUC del contratista. ' +
+    'Pon aplica=true si el comprobante es un gasto de obra: materiales de construcción, mano de obra, alquiler de equipos y maquinaria, subcontratos, trámites y permisos de obra, y gastos indirectos de obra (combustible y mantenimiento de vehículos de obra, EPP y ropa de trabajo, alimentación de la cuadrilla, fletes, papelería, servicios de la obra). ' +
+    'Pon aplica=false y explica en motivo_no_aplica (una frase corta en español, ej. "Factura de supermercado: es un gasto personal") si es claramente un gasto PERSONAL o FAMILIAR: supermercado o víveres del hogar, restaurantes familiares, farmacia, consultas médicas, ropa o calzado casual, educación o colegio, cine o entretenimiento, hoteles o viajes turísticos, servicios básicos del hogar (agua, luz, internet de casa), arriendo de vivienda, mascotas y cualquier compra de consumo personal. ' +
+    'Ayuda para casos dudosos (comida, ropa, combustible): si cliente_identificacion tiene 13 dígitos (RUC) y el contexto es de trabajo, aplica=true; si tiene 10 dígitos (cédula) y es consumo familiar, aplica=false. Si dudas y el contenido es de construcción u obra, aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
     'PASO FINAL — campo "categoria": lee los ítems de la factura que acabas de extraer y determina a cuál de estas 6 categorías pertenece el gasto. ' +
     'Elige UNO de estos valores exactos (respeta mayúsculas y tildes): ' +
     '"Materiales" → materiales físicos de construcción: cemento, hierro, varilla, bloque, madera, pintura, tubería PVC, cable eléctrico, arena, ripio, cerámica, vidrio, empaste, gypsum, perfiles, aditivos, clavos, encofrado, mortero, impermeabilizante, etc. NUNCA ropa, calzado ni EPP (eso va en Gastos Indirectos). ' +
@@ -13949,6 +13958,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }).filter(function (d) { return d.base || d.iva; }),
       items: (Array.isArray(j.items) ? j.items : []).map(normItem).filter(function (it) { return it.desc || it.cod || it.total > 0; }),
       categoria: String(j.categoria || '').trim(),
+      aplica: !(j.aplica === false || /^(false|no)$/i.test(String(j.aplica == null ? '' : j.aplica).trim())),
+      motivoNoAplica: String(j.motivo_no_aplica || '').replace(/\s+/g, ' ').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -14536,6 +14547,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         setStatus('loading', base + ' ' + Math.round((Date.now() - t0) / 1000) + ' s', { cancel: true });   // sin esperar al temporizador
       });
       var data = parseAI(res.text);
+      if (data.aplica === false) {
+        setStatus('warn', 'No va en ' + SCOPE_NAME + ': ' + (data.motivoNoAplica || 'no corresponde a esta sección') + '. No se cargó. Si crees que sí corresponde, usa "Registrar gasto" para ingresarlo manualmente.');
+        return;
+      }
       console.log('[BuildMatrix] categoria IA (individual):', data.categoria, '| proveedor:', data.proveedor);
       var took = ' Leída en ' + secs(Date.now() - t0) + '.';
       fillForm(data);
@@ -15567,6 +15582,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function draftState(d, saved, proyecto, seen) {
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
+    if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
     if (!o.proveedor || !(o.total > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
@@ -15577,12 +15593,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return d.status;   // ok | warn
   }
 
-  var ST_LABEL = { pending: 'En cola', processing: 'Procesando', ok: 'Lista', warn: 'Revisar', incomplete: 'Incompleta', dup: 'Duplicada', error: 'Error' };
+  var SCOPE_NAME = 'Gastos y facturas (obra)';
+  var ST_LABEL = { pending: 'En cola', processing: 'Procesando', ok: 'Lista', warn: 'Revisar', skip: 'No corresponde', incomplete: 'Incompleta', dup: 'Duplicada', error: 'Error' };
 
   function draftNote(d, s) {
     var o = d.data || {};
     if (s === 'processing') return d.retry ? 'Gemini está saturado: reintentando automáticamente (intento ' + (d.retry + 1) + ')...' : '';
     if (s === 'error') return d.err || 'No se pudo procesar.';
+    if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
     if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
     if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
     if (s === 'warn') return o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
@@ -15607,13 +15625,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d"><span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
+      var showCat = canEdit && s !== 'skip';
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
-          (canEdit ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+          (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
           (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
           '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
@@ -15630,7 +15649,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gx-batch-resume').style.display = (!st.batchBusy && pending) ? '' : 'none';
     var note = $('gx-batch-note');
     var bproy = val('gx-batch-proyecto') || val('gx-proyecto');
-    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas o con error no se guardan.';
+    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas, con error o que no corresponden no se guardan.';
   }
 
   function setBatchMsg(type, msg) {
@@ -15672,9 +15691,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
-      var okN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; }).length;
+      var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });
+      var skipN = validN.filter(function (x) { return x.data && x.data.aplica === false; }).length;
+      var okN = validN.length - skipN;
+      var skipTxt = skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' y no se guardar' + (skipN === 1 ? 'á' : 'án') + ' (el motivo aparece en cada una).' : '';
       var pend = st.drafts.filter(function (x) { return x.status === 'pending'; }).length;
-      if (!pend && !st.batchCancel) setBatchMsg(okN ? 'ok' : 'warn', okN ? 'Listo: ' + okN + ' factura' + (okN === 1 ? '' : 's') + ' leída' + (okN === 1 ? '' : 's') + '. Revisa la lista y pulsa "Guardar todas".' : 'No se pudo leer ninguna factura.');
+      if (!pend && !st.batchCancel) setBatchMsg(okN ? 'ok' : 'warn', okN ? 'Listo: ' + okN + ' factura' + (okN === 1 ? '' : 's') + ' leída' + (okN === 1 ? '' : 's') + '. Revisa la lista y pulsa "Guardar todas".' + skipTxt : (skipN ? 'Ninguna factura corresponde a ' + SCOPE_NAME + '.' + skipTxt : 'No se pudo leer ninguna factura.'));
       else if (st.batchCancel && !$('gx-batch-msg').className.includes('on')) setBatchMsg('warn', 'Proceso detenido. Quedan ' + pend + ' en cola.');
     } finally {
       clearInterval(tick);
@@ -15737,7 +15759,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (st.batchBusy) return;
     var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
     if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0 };
+    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 };
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
@@ -15750,6 +15772,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (cnt.incomplete) skip.push(cnt.incomplete + ' incompleta' + (cnt.incomplete === 1 ? '' : 's'));
     if (cnt.error) skip.push(cnt.error + ' con error');
     if (cnt.pending) skip.push(cnt.pending + ' en cola');
+    if (cnt.skip) skip.push(cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a esta sección');
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
     lines.push('¿Continuar?');
     if (!confirm(lines.join('\n'))) return;
@@ -16070,7 +16093,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Analiza TODO el documento y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con exactamente estas claves ' +
     '(la clave "items" va siempre al final): ' +
     '{"proveedor": "", "ruc": "", "numero_factura": "", "autorizacion": "", "fecha": "YYYY-MM-DD", ' +
-    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", ' +
+    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", ' +
     '"subtotal": 0.00, "descuento": 0.00, ' +
     '"desglose_iva": [{"tarifa": "15%", "base": 0.00, "iva": 0.00}], ' +
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
@@ -16094,15 +16117,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
     'CONTEXTO: este comprobante fue emitido a la CÉDULA (persona natural), para gasto de consumo PERSONAL o FAMILIAR — nunca gasto de un RUC de empresa ni de ejecución de obra. ' +
+    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos PERSONALES o FAMILIARES de la persona natural (cédula). Pon aplica=false y explica en motivo_no_aplica (una frase corta en español) si el comprobante es: ' +
+    '(1) gasto de OBRA o de proyectos de construcción: materiales de construcción (cemento, hierro, arena, ripio, bloques, pintura de obra, tubería, cable, cerámica), mano de obra o jornales, alquiler de maquinaria o equipos, subcontratos, trámites y permisos de obra, EPP o ropa de trabajo, o cualquier gasto de empresa emitido a un RUC de 13 dígitos por trabajo; ' +
+    '(2) COMBUSTIBLE de cualquier tipo (gasolina, diesel, extra, súper, ecopaís, GLP vehicular) o compra en gasolineras / estaciones de servicio; ' +
+    '(3) MANTENIMIENTO Y GASTOS DE VEHÍCULOS: mecánica, cambio de aceite y lubricantes, llantas, repuestos y accesorios de auto, alineación y balanceo, lavado y lubricado, taller automotriz, seguro o matrícula vehicular. ' +
+    'Ejemplo de motivo_no_aplica: "Factura de combustible: no va en gastos personales". En cualquier otro caso pon aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
     'PASO FINAL — campo "categoria": lee los ítems del comprobante que acabas de extraer y determina a cuál de estas 7 categorías pertenece el gasto. Las primeras 6 son EXACTAMENTE las categorías oficiales del Anexo de Gastos Personales del SRI Ecuador (Reglamento LORTI vigente y ficha "Gastos personales: conceptos y ejemplos" del SRI), deducibles de Impuesto a la Renta; la 7ª es para lo que NO califica en ninguna de esas 6. ' +
     'Elige UNO de estos valores exactos (respeta mayúsculas, tildes y comas): ' +
     '"Vivienda" → arriendo de un único inmueble; intereses de préstamos hipotecarios (ampliación, remodelación, restauración, adquisición o construcción); servicios básicos del hogar (agua, luz/electricidad, gas, teléfono convencional) y alícuota de condominio; impuesto predial; pensión alimenticia; y otros gastos de adquisición, construcción, remodelación, ampliación, mejora o mantenimiento de la vivienda (muebles, ferretería del hogar). ' +
     '"Salud" → honorarios de médicos y profesionales de salud; servicios de clínicas, hospitales, laboratorios y farmacias; medicinas, insumos médicos, lentes, órtesis, prótesis; medicina prepagada y prima de seguro médico (individual o corporativo); deducible de seguro privado; pensión alimenticia; también gastos de salud de MASCOTAS (veterinaria, medicinas veterinarias). ' +
     '"Alimentación" → compras de alimentos para consumo humano (supermercado, mercado, víveres); restaurantes y centros de expendio de comida preparada; pensión alimenticia; también alimento de MASCOTAS. ' +
-    '"Vestimenta" → cualquier prenda de vestir y calzado de uso personal o de dependientes del hogar; pensión alimenticia. NUNCA botas de punta de acero, cascos, chalecos reflectivos, guantes de cuero ni ropa/uniformes de TRABAJO de obra — eso no es gasto personal deducible, usa "Otros (no deducible SRI)". Los UNIFORMES ESCOLARES van en "Educación, Arte y Cultura", no aquí. ' +
+    '"Vestimenta" → cualquier prenda de vestir y calzado de uso personal o de dependientes del hogar; pensión alimenticia. NUNCA botas de punta de acero, cascos, chalecos reflectivos, guantes de cuero ni ropa/uniformes de TRABAJO de obra — eso es gasto de obra y se marca aplica=false. Los UNIFORMES ESCOLARES van en "Educación, Arte y Cultura", no aquí. ' +
     '"Educación, Arte y Cultura" → matrícula y pensión en todo nivel educativo (inicial a superior), transporte escolar, derechos de grado, intereses de crédito educativo, útiles y textos escolares, equipos de computación para estudio, uniformes escolares, educación especial para discapacidad, centros de cuidado/desarrollo infantil, cursos y seminarios de formación; Y TAMBIÉN arte y cultura: artes vivas/escénicas (danza, teatro, ópera), artes plásticas/visuales, artes literarias (incluye libros y revistas), artes cinematográficas/audiovisuales (cine), artes musicales (conciertos, instrumentos musicales), museos/archivos/bibliotecas, artesanías hechas a mano, pensión alimenticia (es UNA sola categoría oficial del SRI, no la separes en Educación y Arte y Cultura). ' +
-    '"Turismo" → SOLO turismo NACIONAL dentro de Ecuador: alojamiento turístico; transporte de pasajeros (aéreo, terrestre, marítimo, fluvial) y alquiler de vehículos para turismo interno; alimentos y bebidas no alcohólicas consumidos durante la actividad turística (restaurantes/bares en el viaje); operación turística (paquetes, tours); intermediación turística (agencias de viaje); parques de atracciones estables; pensión alimenticia. Si el viaje, hospedaje o tour es FUERA de Ecuador (internacional), NO es deducible: usa "Otros (no deducible SRI)". REGLA GASOLINA en viaje: gasolinera/estación de servicio cuyo contexto indica un trayecto turístico dentro de Ecuador (ciudad/provincia distinta a la habitual, junto a otros gastos de viaje) → "Turismo". ' +
-    '"Otros (no deducible SRI)" → gasto personal real pero que NO entra en ninguna de las 6 categorías oficiales, por lo que no debe sumarse como deducible del Anexo SRI. Principalmente: (a) gasolina o combustible de uso diario/movilidad personal en la ciudad sin evidencia de viaje turístico — REGLA: gasolinera/estación de servicio sin evidencia de viaje → "Otros (no deducible SRI)", nunca "Vivienda" ni "Turismo"; (b) ropa/EPP/uniformes de trabajo de obra; (c) turismo o alojamiento fuera de Ecuador; (d) cualquier otro gasto personal que no encaje con claridad en las 6 categorías oficiales (ej. tecnología no educativa, suscripciones no culturales, compras generales). ' +
+    '"Turismo" → SOLO turismo NACIONAL dentro de Ecuador: alojamiento turístico; transporte de pasajeros (aéreo, terrestre, marítimo, fluvial) y alquiler de vehículos para turismo interno; alimentos y bebidas no alcohólicas consumidos durante la actividad turística (restaurantes/bares en el viaje); operación turística (paquetes, tours); intermediación turística (agencias de viaje); parques de atracciones estables; pensión alimenticia. Si el viaje, hospedaje o tour es FUERA de Ecuador (internacional), NO es deducible: usa "Otros (no deducible SRI)". ' +
+    '"Otros (no deducible SRI)" → gasto personal real pero que NO entra en ninguna de las 6 categorías oficiales, por lo que no debe sumarse como deducible del Anexo SRI. Principalmente: (a) turismo o alojamiento fuera de Ecuador; (b) cualquier otro gasto personal que no encaje con claridad en las 6 categorías oficiales (ej. tecnología no educativa, suscripciones no culturales, compras generales). Los gastos de obra, el combustible y el mantenimiento de vehículos NO llegan aquí: ya se rechazaron con aplica=false. ' +
     'Si el comprobante mezcla varios tipos, elige la categoría del ítem de mayor valor.';
 
   // Redimensiona (lado máx. 1600 px) y comprime a JPEG: fotos más livianas y envíos más rápidos en celular
@@ -16376,6 +16404,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }).filter(function (d) { return d.base || d.iva; }),
       items: (Array.isArray(j.items) ? j.items : []).map(normItem).filter(function (it) { return it.desc || it.cod || it.total > 0; }),
       categoria: String(j.categoria || '').trim(),
+      aplica: !(j.aplica === false || /^(false|no)$/i.test(String(j.aplica == null ? '' : j.aplica).trim())),
+      motivoNoAplica: String(j.motivo_no_aplica || '').replace(/\s+/g, ' ').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -16970,6 +17000,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         setStatus('loading', base + ' ' + Math.round((Date.now() - t0) / 1000) + ' s', { cancel: true });   // sin esperar al temporizador
       });
       var data = parseAI(res.text);
+      if (data.aplica === false) {
+        setStatus('warn', 'No va en ' + SCOPE_NAME + ': ' + (data.motivoNoAplica || 'no corresponde a esta sección') + '. No se cargó. Si crees que sí corresponde, usa "Registrar gasto" para ingresarlo manualmente.');
+        return;
+      }
       console.log('[BuildMatrix] categoria IA (individual):', data.categoria, '| proveedor:', data.proveedor);
       var took = ' Leída en ' + secs(Date.now() - t0) + '.';
       fillForm(data);
@@ -17967,6 +18001,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function draftState(d, saved, proyecto, seen) {
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
+    if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
     if (!o.proveedor || !(o.total > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
@@ -17977,12 +18012,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return d.status;   // ok | warn
   }
 
-  var ST_LABEL = { pending: 'En cola', processing: 'Procesando', ok: 'Lista', warn: 'Revisar', incomplete: 'Incompleta', dup: 'Duplicada', error: 'Error' };
+  var SCOPE_NAME = 'Gastos personales';
+  var ST_LABEL = { pending: 'En cola', processing: 'Procesando', ok: 'Lista', warn: 'Revisar', skip: 'No corresponde', incomplete: 'Incompleta', dup: 'Duplicada', error: 'Error' };
 
   function draftNote(d, s) {
     var o = d.data || {};
     if (s === 'processing') return d.retry ? 'Gemini está saturado: reintentando automáticamente (intento ' + (d.retry + 1) + ')...' : '';
     if (s === 'error') return d.err || 'No se pudo procesar.';
+    if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
     if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
     if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
     if (s === 'warn') return o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
@@ -18007,13 +18044,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d"><span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
+      var showCat = canEdit && s !== 'skip';
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
-          (canEdit ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+          (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
           (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
           '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
@@ -18030,7 +18068,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('gxp-batch-resume').style.display = (!st.batchBusy && pending) ? '' : 'none';
     var note = $('gxp-batch-note');
     var bproy = PERSONAL_PROJECT;
-    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas o con error no se guardan.';
+    if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '. Las duplicadas, incompletas, con error o que no corresponden no se guardan.';
   }
 
   function setBatchMsg(type, msg) {
@@ -18072,9 +18110,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
-      var okN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; }).length;
+      var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });
+      var skipN = validN.filter(function (x) { return x.data && x.data.aplica === false; }).length;
+      var okN = validN.length - skipN;
+      var skipTxt = skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' a ' + SCOPE_NAME + ' y no se guardar' + (skipN === 1 ? 'á' : 'án') + ' (el motivo aparece en cada una).' : '';
       var pend = st.drafts.filter(function (x) { return x.status === 'pending'; }).length;
-      if (!pend && !st.batchCancel) setBatchMsg(okN ? 'ok' : 'warn', okN ? 'Listo: ' + okN + ' factura' + (okN === 1 ? '' : 's') + ' leída' + (okN === 1 ? '' : 's') + '. Revisa la lista y pulsa "Guardar todas".' : 'No se pudo leer ninguna factura.');
+      if (!pend && !st.batchCancel) setBatchMsg(okN ? 'ok' : 'warn', okN ? 'Listo: ' + okN + ' factura' + (okN === 1 ? '' : 's') + ' leída' + (okN === 1 ? '' : 's') + '. Revisa la lista y pulsa "Guardar todas".' + skipTxt : (skipN ? 'Ninguna factura corresponde a ' + SCOPE_NAME + '.' + skipTxt : 'No se pudo leer ninguna factura.'));
       else if (st.batchCancel && !$('gxp-batch-msg').className.includes('on')) setBatchMsg('warn', 'Proceso detenido. Quedan ' + pend + ' en cola.');
     } finally {
       clearInterval(tick);
@@ -18136,7 +18177,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function saveAllDrafts() {
     if (st.batchBusy) return;
     var proyecto = PERSONAL_PROJECT;
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0 };
+    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 };
     st.drafts.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
@@ -18149,6 +18190,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (cnt.incomplete) skip.push(cnt.incomplete + ' incompleta' + (cnt.incomplete === 1 ? '' : 's'));
     if (cnt.error) skip.push(cnt.error + ' con error');
     if (cnt.pending) skip.push(cnt.pending + ' en cola');
+    if (cnt.skip) skip.push(cnt.skip + ' que no corresponde' + (cnt.skip === 1 ? '' : 'n') + ' a esta sección');
     if (skip.length) lines.push('No se guardarán: ' + skip.join(', ') + '.');
     lines.push('¿Continuar?');
     if (!confirm(lines.join('\n'))) return;

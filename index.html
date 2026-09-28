@@ -5170,21 +5170,32 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     }).filter(Boolean);
   }
 
+  // Columna izquierda de la cabecera (razón social del emisor): se corta donde empieza la caja derecha (R.U.C., clave, etc.)
+  function lineasIzquierda(toks, W, H) {
+    var ruc = toks.filter(function (x) { return x.y >= H * 0.5 && /^r\.?u\.?c/i.test(norm(x.s)) && x.x > W * 0.3; }).sort(function (a, b) { return a.x - b.x; })[0];
+    var corte = ruc ? ruc.x - 6 : W * 0.47;
+    var t = toks.filter(function (x) { return x.y >= H * 0.5 && x.x < corte; }).sort(function (a, b) { return b.y - a.y; }), lineas = [], out = [];
+    t.forEach(function (k) { var l = lineas[lineas.length - 1]; if (l && Math.abs(l.y - k.y) <= 3) l.t.push(k); else lineas.push({ y: k.y, t: [k] }); });
+    lineas.forEach(function (l) {
+      l.t.sort(function (a, b) { return a.x - b.x; });
+      var txt = limpia(l.t.map(function (k) { return k.s; }).join(' '));
+      if (txt) out.push(txt);
+    });
+    return out;
+  }
   async function leerDoc(pdfjs, u8) {
     var doc = await pdfjs.getDocument({ data: u8, isEvalSupported: false }).promise;
-    var lines = [], izq = [], n = Math.min(doc.numPages, MAX_PAGES);
+    var lines = [], izq = [], pages = [], n = Math.min(doc.numPages, MAX_PAGES);
     for (var p = 1; p <= n; p++) {
-      var pg = await doc.getPage(p), tc = await pg.getTextContent();
+      var pg = await doc.getPage(p), tc = await pg.getTextContent(), vp = pg.getViewport({ scale: 1 });
       lines = lines.concat(armarLineas(tc.items));
+      pages.push({ cells: tc.items, W: vp.width, H: vp.height });
       if (p === 1) {
-        var vp = pg.getViewport({ scale: 1 }), W = vp.width, H = vp.height;
-        izq = armarLineas(tc.items.filter(function (it) {
-          return it.transform && it.transform[4] < W * 0.55 && it.transform[5] >= H * 0.55;
-        }));
+        izq = lineasIzquierda(tokenizar(tc.items), vp.width, vp.height);
       }
     }
     try { doc.destroy(); } catch (e) {}
-    return { lines: lines, izq: izq, texto: lines.join('\n') };
+    return { lines: lines, izq: izq, pages: pages, texto: lines.join('\n') };
   }
 
   /* ───────── cabecera ───────── */
@@ -5194,11 +5205,11 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       var l = limpia(izq[i]);
       if ((l.match(/[A-Za-zÁÉÍÓÚÑáéíóúñ]/g) || []).length < 3) continue;
       if (EXCL_PROV.test(sinTildes(l)) || /^\d/.test(l)) continue;
-      return l;
+      return l.replace(/\s+(fecha\s+y\s+hora.*|autorizaci[oó]n.*|ambiente.*|emisi[oó]n.*|clave.*|n[uú]mero\s+de.*)$/i, '').trim();
     }
     return '';
   }
-  var FORMAS = /SIN\s+UTILIZACI[OÓ]N\s+DEL\s+SISTEMA\s+FINANCIERO|OTROS\s+CON\s+UTILIZACI[OÓ]N\s+DEL\s+SISTEMA\s+FINANCIERO|TARJETA\s+DE\s+CR[EÉ]DITO|TARJETA\s+DE\s+D[EÉ]BITO|COMPENSACI[OÓ]N\s+DE\s+DEUDAS|ENDOSO\s+DE\s+T[IÍ]TULOS|DINERO\s+ELECTR[OÓ]NICO|CHEQUE|EFECTIVO/i;
+  var FORMAS = /SIN\s+UTILIZACI[OÓ]N\s+DEL\s+SISTEMA\s+FINANCIERO|OTROS\s+CON\s+UTILIZACI[OÓ]N\s+DEL\s+SISTEMA\s+FINANCIERO|TARJETA\s+DE\s+CR[EÉ]DITO|TARJETA\s+DE\s+D[EÉ]BITO|TARJETA\s+PREPAGO|COMPENSACI[OÓ]N\s+DE\s+DEUDAS|ENDOSO\s+DE\s+T[IÍ]TULOS|DINERO\s+ELECTR[OÓ]NICO|CHEQUE|EFECTIVO/i;
 
   function tipoPorTexto(t) {
     var c = t.slice(0, 1200);
@@ -5239,7 +5250,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       }
     }
     if (!d.clienteId) { m = texto.match(/Identificaci[oó]n\s*:?\s*([0-9A-Za-z]{5,13})/i); d.clienteId = m ? m[1] : ''; }
-    m = texto.match(FORMAS); d.formaPago = m ? limpia(m[0]).toUpperCase() : '';
+    m = texto.replace(/\s+\d+[.,]\d{2}(?=\s|$)/g, ' ').match(FORMAS); d.formaPago = m ? limpia(m[0]).toUpperCase() : '';
     m = texto.match(/Comprobante\s+que\s+se\s+modifica\s*:?\s*(?:[A-ZÁÉÍÓÚ ]*?)\s*(\d{3}-\d{3}-\d{9})/i);
     d.facModificada = m ? m[1] : '';
     m = texto.match(/Raz[oó]n\s+de\s+Modificaci[oó]n\s*:?\s*(.+)/i);
@@ -5276,7 +5287,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
   }
 
   /* ───────── ítems ───────── */
-  var NUMTOK = /^-?\d+(?:[.,]\d+)*$/;
+  var NUMTOK = /^-?\d+(?:[.,]\d+)*$/, NUMRE = NUMTOK;
   var HDR = { 'cod.': 1, cod: 1, principal: 1, auxiliar: 1, cantidad: 1, cant: 1, descripcion: 1, detalle: 1, adicional: 1, precio: 1, unitario: 1, subsidio: 1, sin: 1, descuento: 1, total: 1, unidad: 1, de: 1, medida: 1 };
 
   function itemDeLinea(linea) {
@@ -5305,6 +5316,190 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       }
     }
     return null;
+  }
+
+
+  /* ───────── ítems por posición en la página (robusto a descripciones en varias líneas, columnas extra y varias páginas) ───────── */
+  function tokenizar(items) {
+    var out = [];
+    items.forEach(function (it) {
+      if (!it || typeof it.str !== 'string' || !it.str.trim() || !it.transform) return;
+      var str = it.str, x0 = it.transform[4], y = it.transform[5], w = it.width || 0, len = str.length, re = /\S+/g, m;
+      while ((m = re.exec(str))) out.push({ s: m[0], x: x0 + (len ? w * m.index / len : 0), y: y, w: len ? w * m[0].length / len : 0 });
+    });
+    return out;
+  }
+  var HEADW = { 'cod.': 1, cod: 1, codigo: 1, principal: 1, auxiliar: 1, 'cant.': 1, cant: 1, cantidad: 1, descripcion: 1, detalle: 1, adicional: 1, precio: 1, unitario: 1, subsidio: 1, sin: 1, descuento: 1, 'dcto.': 1, dcto: 1, total: 1, unidad: 1, medida: 1 };
+  var STOPT = { subtotal: 1, informacion: 1, observaciones: 1, forma: 1 };
+  var HEAD_EXCL = { principal: 1, auxiliar: 1, unitario: 1, subsidio: 1, adicional: 1, descuento: 1, cantidad: 1, 'cant.': 1, 'cod.': 1, detalle: 1, descripcion: 1, 'dcto.': 1 };
+  function detectarHeader(toks) {
+    var cands = toks.filter(function (t) { return norm(t.s).indexOf('descripcion') === 0; }).sort(function (a, b) { return b.y - a.y; });
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i], band = toks.filter(function (t) { return Math.abs(t.y - c.y) <= 14 && HEADW[norm(t.s)]; });
+      var distintas = {}; band.forEach(function (t) { distintas[norm(t.s)] = 1; });
+      if (Object.keys(distintas).length < 3) continue;
+      // líneas de encabezado dentro de la banda: la de "Descripción" y las que traen palabras exclusivas de encabezado
+      var ys = [], todas = toks.filter(function (t) { return Math.abs(t.y - c.y) <= 13; }).sort(function (a, b) { return b.y - a.y; }), lin = [];
+      todas.forEach(function (t) { var l = lin[lin.length - 1]; if (l && Math.abs(l.y - t.y) <= 2.5) l.t.push(t); else lin.push({ y: t.y, t: [t] }); });
+      var bottom = c.y;
+      lin.forEach(function (l) {
+        var esHead = l.t.some(function (t) { return HEAD_EXCL[norm(t.s)]; });
+        if (esHead && l.y < bottom) bottom = l.y;
+      });
+      var dt = band.filter(function (t) { return norm(t.s) === 'detalle'; })[0];
+      return { y: c.y, bottom: bottom, detX: dt ? dt.x : null };
+    }
+    return null;
+  }
+  function clustersDe(nums, keyFn) {
+    var bins = {}; nums.forEach(function (t) { var k = Math.round(keyFn(t) / 4); (bins[k] = bins[k] || []).push(t); });
+    var keys = Object.keys(bins).map(Number).sort(function (a, b) { return a - b; }), cl = [], cur = null, last = null;
+    keys.forEach(function (k) { if (cur && k - last <= 1) cur = cur.concat(bins[k]); else { cur = bins[k].slice(); cl.push(cur); } last = k; if (cl[cl.length - 1] !== cur) cl[cl.length - 1] = cur; });
+    return cl;
+  }
+  var KEYS = [function (t) { return t.x + t.w; }, function (t) { return t.x; }, function (t) { return t.x + t.w / 2; }];
+  function anclasDe(nums, strat) {          // columna "Precio Total": la columna numérica más a la derecha con filas suficientes
+    var mejor = [], idx = (strat == null) ? [0, 1, 2] : [strat];
+    idx.forEach(function (k) {
+      var cl = clustersDe(nums, KEYS[k]); if (!cl.length) return;
+      var mx = Math.max.apply(null, cl.map(function (c) { return c.length; })), elegido = null;
+      for (var i = cl.length - 1; i >= 0; i--) if (cl[i].length >= Math.max(1, mx * 0.5)) { elegido = cl[i]; break; }
+      if (!elegido) return;
+      // ampliar: números que caen dentro de la misma columna (por su centro) pero con otro ancho
+      var lo = Math.min.apply(null, elegido.map(function (t) { return t.x; })) - 3, hi = Math.max.apply(null, elegido.map(function (t) { return t.x + t.w; })) + 3;
+      nums.forEach(function (t) { var c = t.x + t.w / 2; if (c >= lo && c <= hi && elegido.indexOf(t) < 0) elegido.push(t); });
+      if (elegido.length > mejor.length) mejor = elegido;
+    });
+    return mejor;
+  }
+  function ordenLectura(arr) {
+    var a = arr.slice().sort(function (p, q) { return q.y - p.y; }), lineas = [];
+    a.forEach(function (t) { var l = lineas[lineas.length - 1]; if (l && Math.abs(l.y - t.y) <= 3) l.t.push(t); else lineas.push({ y: t.y, t: [t] }); });
+    var out = []; lineas.forEach(function (l) { l.t.sort(function (p, q) { return p.x - q.x; }); out = out.concat(l.t); });
+    return out;
+  }
+  function segmentar(ordenados) {      // tramos de texto contiguos (una celda o una línea de celda)
+    var segs = [], cur = null, prev = null;
+    ordenados.forEach(function (t) {
+      var nuevaLinea = !prev || Math.abs(t.y - prev.y) > 3, hueco = prev && (t.x - (prev.x + prev.w)) > 9;
+      if (!cur || nuevaLinea || hueco) { cur = { x: t.x, y: t.y, txt: [] }; segs.push(cur); }
+      cur.txt.push(t.s); prev = t;
+    });
+    return segs;
+  }
+  function filaDeItem(f, detX) {
+    var tot = f.a, total = Math.abs(num(tot.s)), toks = f.toks;
+    var N = toks.filter(function (t) { return NUMRE.test(t.s) && t !== tot; }).sort(function (p, q) { return p.x - q.x; });
+    if (N.length + 1 < 3) return null;
+    var hit = null, tol = Math.max(TOL, total * 0.005);
+    for (var ci = 0; ci < N.length && !hit; ci++) {
+      var cv = Math.abs(num(N[ci].s));
+      for (var pi = 0; pi < N.length && !hit; pi++) {
+        if (pi === ci || N[pi].x <= N[ci].x) continue;
+        var pv = Math.abs(num(N[pi].s)), dcs = [null];
+        N.forEach(function (t, di) { if (di !== ci && di !== pi && t.x > N[pi].x) dcs.push(t); });
+        for (var di2 = 0; di2 < dcs.length && !hit; di2++) {
+          var dv = dcs[di2] ? Math.abs(num(dcs[di2].s)) : 0;
+          if (Math.abs(cv * pv - dv - total) <= tol) hit = { c: N[ci], p: N[pi], d: dcs[di2], cv: cv, pv: pv, dv: dv };
+        }
+      }
+    }
+    var usados = [tot]; if (hit) { usados.push(hit.c, hit.p); if (hit.d) usados.push(hit.d); }
+    var cx = hit ? hit.c.x : null, px = hit ? hit.p.x : null, izq = [], cuerpo = [];
+    toks.forEach(function (t) {
+      if (usados.indexOf(t) >= 0) return;
+      if (cx != null && t.x < cx - 2) { izq.push(t); return; }
+      if (NUMRE.test(t.s) && px != null && t.x >= px - 12) return;
+      cuerpo.push(t);
+    });
+    izq = ordenLectura(izq); cuerpo = ordenLectura(cuerpo);
+    var descT = [], detT = [];
+    segmentar(cuerpo).forEach(function (sg) { (detX != null && sg.x >= detX - 30 ? detT : descT).push(sg.txt.join(' ')); });
+    var cant = hit ? hit.cv : (N.length ? Math.abs(num(N[0].s)) : 1);
+    return {
+      _izq: izq, cod: '', aux: '',
+      desc: limpia(descT.join(' ')), det: limpia(detT.join(' ')),
+      cant: cant, pu: hit ? hit.pv : (cant ? total / cant : total), dto: hit ? hit.dv : 0, total: total, _ok: !!hit
+    };
+  }
+  function esCorte(t, toks, minX) {     // "Información Adicional", "Forma de pago" o "SUBTOTAL": fin de la tabla (no una palabra suelta de una descripción)
+    var n = norm(t.s);
+    if (n === 'subtotal') return true;
+    if (t.x > minX + 25) return false;   // las cajas de información adicional y forma de pago empiezan en el margen izquierdo; una descripción no
+    var mismaLinea = toks.filter(function (o) { return o !== t && Math.abs(o.y - t.y) <= 2.5 && o.x > t.x && o.x < t.x + 90; }).map(function (o) { return norm(o.s); });
+    if (n === 'informacion') return mismaLinea.indexOf('adicional') >= 0;
+    if (n === 'forma') return mismaLinea.indexOf('pago') >= 0 || mismaLinea.indexOf('de') >= 0;
+    if (n === 'observaciones') return true;
+    return false;
+  }
+  function itemsPosicionales(pages, cfg) {
+    cfg = cfg || {};
+    var items = [], abierta = false, detX = null;
+    (pages || []).forEach(function (pg) {
+      var toks = tokenizar(pg.cells), hdr = detectarHeader(toks);
+      if (hdr) { abierta = true; detX = hdr.detX; } else if (!abierta) return;
+      var top = hdr ? hdr.bottom - 2 : pg.H - 40, stopY = -Infinity;
+      var minX = Math.min.apply(null, toks.map(function (t) { return t.x; }));
+      toks.forEach(function (t) { if (t.y < top && STOPT[norm(t.s)] && t.y > stopY && esCorte(t, toks, minX)) stopY = t.y; });
+      var zona = toks.filter(function (t) { return t.y < top && t.y > stopY + 1; });
+      var anc = anclasDe(zona.filter(function (t) { return NUMRE.test(t.s); }), cfg.strat).sort(function (p, q) { return q.y - p.y; });
+      if (anc.length) {
+        var centrado = zona.some(function (t) { return t.y > anc[0].y + 4 && !NUMRE.test(t.s); });   // hay texto sobre la primera fila → celdas centradas verticalmente
+        if (cfg.centrado != null) centrado = cfg.centrado;
+        var filas = anc.map(function (a) { return { a: a, toks: [] }; });
+        zona.forEach(function (t) {
+          var k = -1;
+          if (centrado) { var bd = Infinity; anc.forEach(function (a, i) { var d = Math.abs(a.y - t.y); if (d < bd) { bd = d; k = i; } }); }
+          else { for (var i = 0; i < anc.length; i++) { if (anc[i].y + 4 >= t.y) k = i; else break; } }
+          if (k >= 0) filas[k].toks.push(t);
+        });
+        filas.forEach(function (f) { var it = filaDeItem(f, detX); if (it) items.push(it); });
+      }
+      if (stopY > -Infinity) abierta = false;
+    });
+    separarCodigos(items);
+    return items;
+  }
+  // Columnas de código: se agrupan por posición horizontal en TODA la tabla (código principal a la izquierda, auxiliar a su derecha)
+  function separarCodigos(items) {
+    var cs = []; items.forEach(function (it) { (it._izq || []).forEach(function (t) { cs.push(t.x + t.w / 2); }); });
+    cs.sort(function (a, b) { return a - b; });
+    var cortes = []; for (var i = 1; i < cs.length; i++) if (cs[i] - cs[i - 1] > 22) cortes.push((cs[i] + cs[i - 1]) / 2);
+    items.forEach(function (it) {
+      var col0 = [], resto = [];
+      (it._izq || []).forEach(function (t) { ((t.x + t.w / 2) < (cortes.length ? cortes[0] : Infinity) ? col0 : resto).push(t); });
+      col0 = ordenLectura(col0); resto = ordenLectura(resto);
+      it.cod = col0.map(function (t) { return t.s; }).join('');
+      it.aux = resto.map(function (t) { return t.s; }).join('');
+      delete it._izq;
+    });
+  }
+  function sumaOk(items, subtotal, total) {
+    if (!items.length) return false;
+    var sm = items.reduce(function (s, it) { return s + Math.abs(it.total); }, 0), tol = Math.max(0.05, 0.01 * items.length, subtotal * 0.002);
+    return Math.abs(sm - subtotal) <= tol || Math.abs(sm - total) <= tol;
+  }
+  function difSuma(a, ref) { return Math.abs(a.reduce(function (s, it) { return s + Math.abs(it.total); }, 0) - ref); }
+  function mejorPosicional(pages, subtotal, total) {
+    var ref = subtotal || total, mejor = null, mejorDif = Infinity, cfgs = [];
+    [null, 0, 1, 2].forEach(function (st) { [null, true, false].forEach(function (ce) { cfgs.push({ strat: st, centrado: ce }); }); });
+    for (var i = 0; i < cfgs.length; i++) {
+      var its = itemsPosicionales(pages, cfgs[i]);
+      if (!its.length) continue;
+      if (sumaOk(its, subtotal, total)) return its;
+      var d = difSuma(its, ref); if (d < mejorDif) { mejorDif = d; mejor = its; }
+    }
+    return mejor || [];
+  }
+  function elegirItems(pos, txt, subtotal, total) {
+    if (!pos.length) return txt;
+    if (!txt.length) return pos;
+    var okP = sumaOk(pos, subtotal, total), okT = sumaOk(txt, subtotal, total);
+    if (okP && !okT) return pos;
+    if (okT && !okP) return txt;
+    if (okP && okT) return pos.length >= txt.length ? pos : txt;
+    var ref = subtotal || total;
+    return difSuma(pos, ref) <= difSuma(txt, ref) ? pos : txt;
   }
 
   var STOP_ITEMS = /(subtotal|informacion adicional|forma de pago|valor total|total descuento|observaciones)/;
@@ -5342,7 +5537,12 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     arr.sort(function (a, b) { return b.length - a.length; });
     return new RegExp('\\b(?:' + arr.join('|') + ')(?:s|es)?\\b', 'g');
   }
-  function R(a, c, w, words) { return { a: a, c: c, w: w, re: rx(words) }; }
+  var VISTAS = {};
+  function R(a, c, w, words) {
+    var k = a + '|' + c, v = VISTAS[k] || (VISTAS[k] = {});
+    var nuevas = words.filter(function (x) { var n = norm(x); if (v[n]) return false; v[n] = 1; return true; });
+    return { a: a, c: c, w: w, re: rx(nuevas.length ? nuevas : ['\u0000nada\u0000']) };
+  }
   var G = 'Gastos Indirectos';
 
   var REGLAS = [
@@ -5369,6 +5569,13 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     R(A_PERS, 'Educación, Arte y Cultura', 3, ['colegio', 'unidad educativa', 'escuela', 'universidad', 'matricula', 'pension escolar', 'libro', 'cuaderno', 'uniforme escolar', 'uniformes escolares', 'utiles escolares', 'textos escolares', 'curso', 'seminario', 'capacitacion', 'academia', 'idiomas', 'guarderia', 'centro de desarrollo infantil', 'museo', 'teatro', 'concierto', 'cine', 'entrada al cine', 'instrumento musical', 'guitarra', 'piano', 'libreria', 'revista', 'danza', 'artesania', 'boleto de cine', 'transporte escolar', 'derechos de grado', 'tutorias']),
     R(A_PERS, 'Vestimenta', 3, ['ropa', 'camiseta', 'camisa', 'pantalon', 'jean', 'zapatos', 'calzado', 'zapatillas', 'sandalias', 'vestido', 'chompa', 'blusa', 'falda', 'medias', 'ropa interior', 'chaqueta', 'abrigo', 'sueter', 'buzo', 'short', 'bermuda', 'gorra', 'cinturon', 'bolso', 'corbata', 'pijama', 'bikini', 'tenis']),
     R(A_PERS, 'Vestimenta', 1, ['botas']),
+    R(A_PERS, 'Alimentación', 3, ['pan', 'refresco', 'energizante', 'licor', 'whisky', 'ron', 'aguardiente', 'botellon', 'chuleta', 'costilla', 'pernil', 'lomo', 'camaron', 'trucha', 'tilapia', 'mariscos', 'ajo', 'limon', 'naranja', 'banano', 'manzana', 'aguacate', 'mora', 'fresa', 'papaya', 'sandia', 'melon', 'zanahoria', 'brocoli', 'choclo', 'maiz', 'haba', 'arveja', 'quinua', 'granola', 'miel', 'mayonesa', 'ketchup', 'mostaza', 'vinagre', 'condimento', 'sazonador', 'flan', 'postre', 'dulce', 'caramelo', 'chicle', 'nestle', 'leche condensada', 'crema de leche', 'colada', 'empanada', 'tamal', 'encebollado', 'menestra', 'ceviche', 'bandeja', 'porcion', 'ensalada', 'nuggets', 'alitas', 'batido', 'capuchino', 'expreso', 'latte', 'croissant', 'donut', 'brownie', 'pollo frito', 'carne de res', 'carne molida', 'mortadela', 'salchichon', 'chorizo', 'atun', 'sal', 'refrigerio', 'catering', 'menu del dia']),
+    R(A_PERS, 'Salud', 3, ['acetaminofen', 'aspirina', 'omeprazol', 'amoxicilina', 'loratadina', 'diclofenaco', 'naproxeno', 'suero oral', 'jeringa', 'gasa', 'algodon', 'curitas', 'termometro', 'guantes quirurgicos', 'procedimiento', 'limpieza dental', 'ortodoncia', 'exodoncia', 'profilaxis', 'radiografia', 'biometria', 'hematologia', 'glucosa', 'chequeo', 'control medico', 'cita medica', 'atencion medica', 'emergencia', 'hospitalizacion', 'insumos medicos', 'material medico', 'medicamentos', 'receta']),
+    R(A_PERS, 'Educación, Arte y Cultura', 3, ['colegiatura', 'inscripcion', 'bachillerato', 'materiales escolares', 'mochila', 'lapiz', 'esfero', 'borrador', 'cartuchera', 'diccionario', 'novela', 'clases de', 'curso de', 'clases']),
+    R(A_PERS, 'Vestimenta', 3, ['polo', 'sudadera', 'leggins', 'licra', 'ropa deportiva', 'zapato', 'calcetines', 'vestimenta', 'lenceria', 'brasier', 'boxer', 'calzoncillo', 'traje', 'terno', 'blazer', 'cartera', 'billetera']),
+    R(A_PERS, 'Vivienda', 3, ['gas', 'servicio de gas', 'alcantarillado', 'recoleccion de basura', 'tasa de recoleccion', 'cortinas', 'alfombra', 'menaje', 'vajilla', 'sabanas', 'edredon', 'almohada']),
+    R(A_PERS, 'Turismo', 3, ['boleto aereo', 'tiquete', 'vuelo', 'zoologico', 'balneario', 'termas', 'entrada a parque']),
+    R(A_PERS, NO_DEDUCIBLE, 2, ['shampoo', 'jabon', 'desodorante', 'pasta dental', 'crema dental', 'cepillo dental', 'toallas higienicas', 'papel higienico', 'detergente', 'suavizante', 'cloro', 'desinfectante', 'servilleta', 'panal', 'protector solar', 'perfume', 'maquillaje', 'labial', 'cigarrillos', 'cigarrillo', 'juguete', 'juguetes']),
     R(A_PERS, 'Turismo', 3, ['hotel', 'hospedaje', 'hostal', 'hosteria', 'resort', 'pasaje aereo', 'pasaje terrestre', 'aerolinea', 'agencia de viajes', 'tour', 'turismo', 'cabana', 'camping', 'parque de atracciones', 'paquete turistico', 'alojamiento'])
   ];
 
@@ -5420,16 +5627,20 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       var c2 = puntuar(d.cuerpo || '') || provT;
       if (c2) suma(c2, v0);
     }
+    var sinIva = d.subtotal > 0 && (d.desglose.length ? d.desglose.every(function (x) { return num(String(x.tarifa).replace('%', '')) === 0; }) : d.iva === 0);
     var nada = !(mObra + mPers), ambito;
     if (contexto === 'personal') ambito = (mObra > 0 && mObra >= mPers) ? A_OBRA : A_PERS;                 // ante la duda con contenido de obra → obra
-    else if (contexto === 'obra') ambito = (mPers > mObra && mPers >= 0.5 * tot) ? A_PERS : A_OBRA;       // ante la duda → obra
+    else if (contexto === 'obra') {
+      ambito = (mPers > mObra && (mObra === 0 || mPers >= 0.5 * tot)) ? A_PERS : A_OBRA;   // sin ninguna señal de obra y con señal personal → personal; ante la duda con obra → obra
+      if (mObra === 0 && sinIva) { ambito = A_PERS; adv.push('Todo a tarifa 0% de IVA y sin ninguna señal de obra: alimentos, medicinas o servicios personales.'); }
+    }
     else ambito = nada ? A_OBRA : (mPers > mObra ? A_PERS : A_OBRA);
     var best = null, bv = -1;
     Object.keys(montos).forEach(function (k) { if (k.split('|')[0] === ambito && montos[k] > bv) { bv = montos[k]; best = k.split('|')[1]; } });
     var cat = best || (ambito === A_OBRA ? G : NO_DEDUCIBLE);
     if (nada) adv.push('Sin coincidencias de palabras clave: se asignó la categoría por defecto (' + cat + ').');
     if (mObra && mPers) adv.push('Comprobante mixto (obra $' + mObra.toFixed(2) + ' / personal $' + mPers.toFixed(2) + '): se eligió el de mayor valor.');
-    return { ambito: ambito, categoria: cat, revision: false, adv: adv };
+    return { ambito: ambito, categoria: cat, revision: false, adv: adv, razon: (ambito === A_OBRA ? 'obra' : 'personal') + ' · ' + cat + ' · obra $' + mObra.toFixed(2) + ' / personal $' + mPers.toFixed(2) + (provT ? ' · proveedor: ' + provT.c : '') + (sinIva ? ' · todo 0% IVA' : '') + (nada ? ' · sin coincidencias' : '') };
   }
 
   /* ───────── cierre común ───────── */
@@ -5459,7 +5670,8 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     var itemsSum = r2(d.items.reduce(function (s, it) { return s + it.total; }, 0));
     var tol = Math.max(0.05, 0.01 * d.items.length, d.subtotal * 0.002);
     var itemsWarn = d.items.length > 0 && d.subtotal > 0 && Math.abs(itemsSum - d.subtotal) > tol && Math.abs(itemsSum - d.total) > tol;
-    if (!d.items.length) adv.push('No se pudo leer la tabla de ítems.');
+    var sinItems = !d.items.length && d.subtotal > 0;
+    if (sinItems) { itemsWarn = true; adv.push('No se pudo leer la tabla de ítems.'); }
 
     var tipo = d.tipo || '01';
     if (/^\d{49}$/.test(d.autorizacion || '')) tipo = d.autorizacion.slice(8, 10);
@@ -5467,7 +5679,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
     var cl = clasificar(d, contexto), aplica = true, motivoNo = '';
     if (tipo === '06' || tipo === '07') { aplica = false; motivoNo = tipo === '07' ? 'Comprobante de retención: no es un gasto' : 'Guía de remisión: no es un gasto'; }
-    else if (contexto === 'obra' && cl.ambito === A_PERS) { aplica = false; motivoNo = 'Consumo personal (' + cl.categoria + '): no va en Gastos y facturas'; }
+    else if (contexto === 'obra' && cl.ambito === A_PERS) { aplica = false; motivoNo = cl.categoria === NO_DEDUCIBLE ? 'Parece consumo personal (sin ninguna señal de obra): no va en Gastos y facturas' : 'Consumo personal (' + cl.categoria + '): no va en Gastos y facturas'; }
     else if (contexto === 'personal' && cl.ambito === A_OBRA) { aplica = false; motivoNo = 'Gasto de obra o vehículo (' + cl.categoria + '): no va en Gastos personales'; }
 
     var o = {
@@ -5478,9 +5690,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       items: d.items.map(function (it) { return { cod: it.cod, aux: it.aux || '', desc: it.desc, det: it.det || '', cant: it.cant, pu: it.pu, dto: it.dto, total: it.total }; }),
       categoria: cl.categoria || '', aplica: aplica, motivoNoAplica: motivoNo,
       tipo: tipo, documento: DOCS[tipo], facModificada: d.facModificada, motivoNC: d.motivoNC,
-      truncated: false, warn: warn, itemsSum: itemsSum, itemsWarn: itemsWarn,
+      truncated: false, warn: warn, itemsSum: itemsSum, itemsWarn: itemsWarn, sinItems: sinItems,
       revisar: false, notaRevision: cl.adv.join(' '),
-      origen: 'PDF_LOCAL', advertencias: adv.concat(cl.adv)
+      origen: 'PDF_LOCAL', razonClasif: cl.razon, advertencias: adv.concat(cl.adv)
     };
     if (tipo === '04') {          // Nota de crédito: TODO negativo salvo el precio unitario
       ['subtotal', 'iva', 'total', 'descuento', 'subtotal0', 'noObjeto', 'exento', 'ice', 'propina', 'itemsSum'].forEach(function (k) { o[k] = r2(neg(o[k])); });
@@ -5510,7 +5722,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     var cab = cabecera(lec.texto, lec.izq, lec.lines);
     var d = cab.d, adv = cab.adv, tt = totales(lec.texto);
     Object.keys(tt).forEach(function (k) { d[k] = tt[k]; });
-    d.items = itemsDeTexto(lec.lines);
+    d.items = elegirItems(mejorPosicional(lec.pages, d.subtotal, d.total), itemsDeTexto(lec.lines), d.subtotal, d.total);
     d.cuerpo = zonaItems(lec.lines);
     return finalizar(d, contexto, adv, t0 || Date.now());
   }
@@ -5559,7 +5771,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     if (head !== '%PDF-') return null;
     var lec = await leerDoc(pdfjs, u8);
     if (lec.texto.replace(/\s/g, '').length < MIN_CHARS) return null;
-    return procesarLecturas(lec, contexto, t0);
+    var res = procesarLecturas(lec, contexto, t0);
+    try { console.log('[BM_SRI]', contexto, '|', res.proveedor, '| aplica:', res.aplica, '|', res.razonClasif); } catch (e) {}
+    return res;
   }
   async function extract(file, contexto) {
     try {
@@ -15343,7 +15557,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (!data.numero) faltan.push('N° de factura');
       if (!data.fecha) faltan.push('fecha');
       if (!(data.total > 0)) faltan.push('total');
-      if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
+      if (data.sinItems) setStatus('warn', 'Se leyeron los totales, pero no se pudo leer la lista de ítems de este PDF. Complétala antes de guardar.');
+      else if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
       else if (data.warn) setStatus('warn', 'Datos extraídos, pero Subtotal + IVA no coincide con el Total. Revisa los montos antes de guardar.');
       else if (data.truncated) setStatus('warn', 'La factura es muy larga y la lista de ítems pudo quedar incompleta (' + nIt + ' leídos). Revisa que estén todos.');
       else if (data.itemsWarn) setStatus('warn', 'Se leyeron ' + nIt + ' ítems, pero su suma (' + money(data.itemsSum) + ') no coincide con el subtotal (' + money(data.subtotal) + '): puede faltar alguno. Revisa la lista.');
@@ -16395,7 +16610,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
     if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
     if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
-    if (s === 'warn') return (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
+    if (s === 'warn') return o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
     return '';
   }
 
@@ -17962,7 +18177,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (!data.numero) faltan.push('N° de factura');
       if (!data.fecha) faltan.push('fecha');
       if (!(data.total > 0)) faltan.push('total');
-      if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
+      if (data.sinItems) setStatus('warn', 'Se leyeron los totales, pero no se pudo leer la lista de ítems de este PDF. Complétala antes de guardar.');
+      else if (data.revisar && !data.warn && !data.itemsWarn && !data.truncated) setStatus('warn', (data.notaRevision || 'Revisa la clasificación.') + ' Revisa los datos antes de guardar.');
       else if (data.warn) setStatus('warn', 'Datos extraídos, pero Subtotal + IVA no coincide con el Total. Revisa los montos antes de guardar.');
       else if (data.truncated) setStatus('warn', 'La factura es muy larga y la lista de ítems pudo quedar incompleta (' + nIt + ' leídos). Revisa que estén todos.');
       else if (data.itemsWarn) setStatus('warn', 'Se leyeron ' + nIt + ' ítems, pero su suma (' + money(data.itemsSum) + ') no coincide con el subtotal (' + money(data.subtotal) + '): puede faltar alguno. Revisa la lista.');
@@ -18980,7 +19196,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
     if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
     if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
-    if (s === 'warn') return (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
+    if (s === 'warn') return o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
     return '';
   }
 

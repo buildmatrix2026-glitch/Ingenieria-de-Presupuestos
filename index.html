@@ -7683,6 +7683,16 @@ function renderGG(q){
     gg.appendChild(btn);
   });
 }
+function fitGdetPanel(){
+  var gdet=$id('gdet');
+  if(!gdet||gdet.style.display==='none')return;
+  var rect=gdet.getBoundingClientRect();
+  var avail=Math.round(window.innerHeight-rect.top-24);
+  if(avail<240)avail=240;
+  gdet.style.height=avail+'px';
+  gdet.style.maxHeight=avail+'px';
+}
+window.addEventListener('resize',fitGdetPanel);
 function openGroup(name,targetCode){
   const g=BD.G.find(x=>x.n===name);if(!g)return;
   $id('ghome').style.display='none';
@@ -7692,6 +7702,7 @@ function openGroup(name,targetCode){
   window._grpDetGrpName = name;
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
   renderGrpDet(g,targetCode);
+  setTimeout(fitGdetPanel,0);
 }
 function openGroupRubro(name,code){
   const g=BD.G.find(x=>x.n===name);if(!g)return;
@@ -7705,6 +7716,7 @@ function openGroupRubro(name,code){
   const gIdx=BD.G.indexOf(g);
   const ri=g.r.findIndex(function(r){return r[0]===code;});
   if(ri>=0) openRubroEdit(gIdx,ri);
+  setTimeout(fitGdetPanel,0);
 }
 window._grpDetGrp = null;
 window._grpDetGrpName = null;
@@ -7712,6 +7724,8 @@ function grpBack(){
   $id('ghome').style.display='';
   $id('gdet').style.display='none';
   $id('v-grp').classList.remove('grp-open');
+  $id('gdet').style.height='';
+  $id('gdet').style.maxHeight='';
   window._grpDetGrp=null;
   window._grpDetGrpName=null;
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
@@ -8054,6 +8068,7 @@ function openRubroEdit(gIdx, rIdx){
   document.getElementById('gred-save').addEventListener('click', function(){ saveRubroEdit(gIdx,rIdx,a); });
 
   setTimeout(function(){ ed.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 80);
+  setTimeout(fitGdetPanel,0);
 }
 
 function saveRubroEdit(gIdx, rIdx, a){
@@ -8206,6 +8221,7 @@ function closeRubroEdit(){
   var backBtn=document.getElementById('gred-back'); if(backBtn) backBtn.remove();
   document.querySelectorAll('[id^="gdrow-"]').forEach(el=>el.style.background='');
   var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='';
+  setTimeout(fitGdetPanel,0);
 }
 
 // Eliminar fila del editor de grupos

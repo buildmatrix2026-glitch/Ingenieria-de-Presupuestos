@@ -1306,6 +1306,37 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
 .mn:has(#v-dash.ac),.mn:has(#v-apu.ac),.mn:has(#v-pia.ac),.mn:has(#v-admin.ac),.mn:has(#v-saved.ac){scrollbar-width:none;-ms-overflow-style:none}
 .mn:has(#v-dash.ac)::-webkit-scrollbar,.mn:has(#v-apu.ac)::-webkit-scrollbar,.mn:has(#v-pia.ac)::-webkit-scrollbar,.mn:has(#v-admin.ac)::-webkit-scrollbar,.mn:has(#v-saved.ac)::-webkit-scrollbar{display:none;width:0;height:0}
 
+/* ══════════ Fase 10 HUD: barra superior — logo de neón que se enciende por turnos, puntos que titilan y luz que recorre el borde ══════════ */
+@keyframes bmNeonHum{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
+@keyframes bmDotTw{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.42;transform:scale(.78)}}
+@keyframes bmDotCore{0%,100%{filter:drop-shadow(0 0 2px #00d4ff);transform:scale(1)}50%{filter:drop-shadow(0 0 7px #67e8f9);transform:scale(1.18)}}
+@keyframes bmHdrRun{from{background-position:-25% 0,0 0}to{background-position:125% 0,0 0}}
+#app .nav-logo-text .lg-b,#app .nav-logo-text .lg-m{display:inline-block;transition:color .3s,text-shadow .35s,opacity .3s}
+#app .nav-logo-text .lg-b{color:var(--ow)}
+html:not([data-theme="light"]) #app .nav-logo-text .lg-b{color:#f4feff;text-shadow:0 0 3px rgba(255,255,255,.95),0 0 9px rgba(186,242,255,.8),0 0 20px rgba(6,182,212,.55);animation:bmNeonHum 3.1s ease-in-out infinite}
+html:not([data-theme="light"]) #app .nav-logo-text .lg-m{color:#38e1ff;text-shadow:0 0 3px rgba(103,232,249,.95),0 0 10px rgba(6,182,212,.9),0 0 24px rgba(0,110,255,.7),0 0 42px rgba(0,82,255,.45);animation:bmNeonHum 4.3s ease-in-out infinite}
+html:not([data-theme="light"]) #app .nav-logo-text .lg-b.off{color:#5d6f8c;text-shadow:none;opacity:.6;animation:none}
+html:not([data-theme="light"]) #app .nav-logo-text .lg-m.off{color:#0c6f86;text-shadow:none;opacity:.55;animation:none}
+/* Puntos del logo: titilan de forma independiente y el núcleo cian late */
+#app .nav-logo svg{filter:drop-shadow(0 0 6px rgba(0,82,255,.55))}
+#app .nav-logo svg circle{transform-box:fill-box;transform-origin:center;animation:bmDotTw 4s ease-in-out infinite}
+#app .nav-logo svg circle:nth-child(1){animation-duration:3.3s;animation-delay:.2s}
+#app .nav-logo svg circle:nth-child(2){animation-duration:4.6s;animation-delay:1.1s}
+#app .nav-logo svg circle:nth-child(3){animation-duration:5.2s;animation-delay:.6s}
+#app .nav-logo svg circle:nth-child(4){animation-duration:3.8s;animation-delay:1.7s}
+#app .nav-logo svg circle:nth-child(5){animation:bmDotCore 2.6s ease-in-out infinite}
+#app .nav-logo svg circle:nth-child(6){animation-duration:4.9s;animation-delay:.9s}
+#app .nav-logo svg circle:nth-child(7){animation-duration:3.6s;animation-delay:2.2s}
+#app .nav-logo svg circle:nth-child(8){animation-duration:5.5s;animation-delay:.4s}
+#app .nav-logo svg circle:nth-child(9){animation-duration:4.2s;animation-delay:1.4s}
+/* Borde inferior de la barra: una luz recorre la línea de izquierda a derecha, sin parar */
+html:not([data-theme="light"]) #app .at::after{background:linear-gradient(90deg,transparent,#67e8f9,transparent) no-repeat,linear-gradient(90deg,transparent,rgba(0,212,255,.45),transparent);
+  background-size:18% 100%,100% 100%;background-position:-25% 0,0 0;animation:bmHdrRun 7s linear infinite}
+/* Botones de la barra con brillo de neón */
+html:not([data-theme="light"]) #app .at .btn-exp{color:#67e8f9;border-color:rgba(34,211,238,.5);text-shadow:0 0 8px rgba(6,182,212,.55);box-shadow:inset 0 0 16px -8px rgba(6,182,212,.6),0 0 18px -9px rgba(6,182,212,.65)}
+html:not([data-theme="light"]) #app .at .ib:hover{color:#67e8f9;box-shadow:0 0 14px -4px rgba(6,182,212,.7)}
+@media (prefers-reduced-motion:reduce){#app .nav-logo svg circle,#app .nav-logo-text .lg-b,#app .nav-logo-text .lg-m,#app .at::after{animation:none!important}}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -3646,7 +3677,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     </button>
     <a class="nav-logo" href="#" onclick="exitApp();return false" style="text-decoration:none">
       <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><circle cx="6" cy="6" r="3" fill="#0052FF"/><circle cx="16" cy="6" r="3" fill="#0052FF"/><circle cx="26" cy="6" r="3" fill="rgba(0,82,255,0.3)"/><circle cx="6" cy="16" r="3" fill="#0052FF"/><circle cx="16" cy="16" r="3" fill="#00D4FF"/><circle cx="26" cy="16" r="3" fill="#0052FF"/><circle cx="6" cy="26" r="3" fill="rgba(0,82,255,0.3)"/><circle cx="16" cy="26" r="3" fill="#0052FF"/><circle cx="26" cy="26" r="3" fill="#0052FF"/></svg>
-      <span class="nav-logo-text">Build<span>Matrix</span></span>
+      <span class="nav-logo-text"><span class="lg-b">Build</span><span class="lg-m">Matrix</span></span>
     </a>
     <div class="tp" id="tp-header" style="display:none"><span>Proyecto</span><b id="tpn"></b></div>
     <div class="ta">
@@ -18520,6 +18551,63 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   };
   window.bmGastosPersonalStart = cloudStart;
   window.bmGastosPersonalStop = cloudStop;
+})();
+</script>
+
+<script id="bm-logo-neon">
+/* Logo de neón: "Build" (blanco) y "Matrix" (azul) se encienden y se apagan por turnos, con parpadeos y tiempos
+   distintos cada vez (nunca el mismo ritmo). Se reinicia cada vez que se entra a la app. */
+(function () {
+  'use strict';
+  var b = document.querySelector('#app .nav-logo-text .lg-b'), m = document.querySelector('#app .nav-logo-text .lg-m');
+  if (!b || !m || !b.animate) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var timer = 0;
+  function rnd(a, z) { return a + Math.random() * (z - a); }
+  function after(ms, fn) { clearTimeout(timer); timer = setTimeout(fn, ms); }
+  function light() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+  // Parpadeo irregular de neón: alterna intensidad alta/baja y termina estable en "to"
+  function flicker(el, ms, from, to) {
+    if (light()) return;
+    var n = 4 + Math.floor(Math.random() * 5), pts = [], i;
+    for (i = 0; i < n; i++) pts.push(Math.random());
+    pts.sort(function (x, y) { return x - y; });
+    var kf = [{ opacity: from, offset: 0 }];
+    pts.forEach(function (p, k) { kf.push({ opacity: k % 2 ? rnd(0.05, 0.4) : rnd(0.7, 1), offset: 0.06 + p * 0.86 }); });
+    kf.push({ opacity: to, offset: 1 });
+    try { el.animate(kf, { duration: ms, easing: 'linear' }); } catch (e) {}
+  }
+  function on(el)  { el.classList.remove('off'); flicker(el, rnd(450, 1150), 0.15, 1); }
+  function off(el) { el.classList.add('off');    flicker(el, rnd(220, 560), 1, el === b ? 0.6 : 0.55); }
+  function blip(el) { flicker(el, rnd(300, 850), 1, 1); }
+  function relight(el) { off(el); after(rnd(500, 1500), function () { on(el); after(rnd(2500, 6000), event); }); }
+  // Ciclo completo: se apagan ambos; primero se enciende el blanco y después el azul
+  function full() {
+    off(b); off(m);
+    after(rnd(700, 1900), function () {
+      on(b);
+      after(rnd(500, 1700), function () { on(m); after(rnd(3500, 9000), event); });
+    });
+  }
+  // Eventos aleatorios mientras están encendidos (ritmo siempre distinto)
+  function event() {
+    if (document.hidden) { after(4000, event); return; }
+    var r = Math.random();
+    if (r < 0.34) { full(); return; }
+    if (r < 0.56) blip(b);
+    else if (r < 0.78) blip(m);
+    else if (r < 0.9) { relight(m); return; }
+    else { relight(b); return; }
+    after(rnd(2500, 7000), event);
+  }
+  var inApp = false;
+  function sync() {
+    var now = document.body.classList.contains('ia');
+    if (now && !inApp) { b.classList.add('off'); m.classList.add('off'); after(rnd(500, 1100), full); }
+    inApp = now;
+  }
+  new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  sync();
 })();
 </script>
 

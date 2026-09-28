@@ -16621,12 +16621,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function draftNote(d, s) {
     var o = d.data || {};
+    var nc = o.tipo === '04';
+    var ncTxt = nc ? ('Nota de crédito: restará ' + money(Math.abs(o.total || 0)) + ' de la factura ' + (o.facModificada || '(no indicada en el PDF)') + (o.motivoNC ? ' — ' + o.motivoNC : '') + '.') : '';
     if (s === 'processing') return d.retry ? 'Gemini está saturado: reintentando automáticamente (intento ' + (d.retry + 1) + ')...' : '';
     if (s === 'error') return d.err || 'No se pudo procesar.';
-    if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
-    if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
-    if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
-    if (s === 'warn') return o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
+    if (s === 'skip') return (nc ? ncTxt + ' ' : '') + 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
+    if (s === 'incomplete') return (nc ? ncTxt + ' ' : '') + 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
+    if (s === 'dup') return (nc ? ncTxt + ' ' : '') + 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
+    if (s === 'warn') return (nc ? ncTxt + ' ' : '') + (o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').');
+    if (nc) return ncTxt;
     return '';
   }
 
@@ -16654,7 +16657,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
-        (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
+        (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
           (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
@@ -19207,12 +19210,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function draftNote(d, s) {
     var o = d.data || {};
+    var nc = o.tipo === '04';
+    var ncTxt = nc ? ('Nota de crédito: restará ' + money(Math.abs(o.total || 0)) + ' de la factura ' + (o.facModificada || '(no indicada en el PDF)') + (o.motivoNC ? ' — ' + o.motivoNC : '') + '.') : '';
     if (s === 'processing') return d.retry ? 'Gemini está saturado: reintentando automáticamente (intento ' + (d.retry + 1) + ')...' : '';
     if (s === 'error') return d.err || 'No se pudo procesar.';
-    if (s === 'skip') return 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
-    if (s === 'incomplete') return 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
-    if (s === 'dup') return 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
-    if (s === 'warn') return o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').';
+    if (s === 'skip') return (nc ? ncTxt + ' ' : '') + 'No va en ' + SCOPE_NAME + ': ' + (o.motivoNoAplica || 'no corresponde a esta sección') + '. No se guardará.';
+    if (s === 'incomplete') return (nc ? ncTxt + ' ' : '') + 'Faltan datos (' + [!o.proveedor ? 'proveedor' : '', !o.fecha ? 'fecha' : '', !(o.total > 0) ? 'total' : ''].filter(Boolean).join(', ') + '). Usa "Revisar" para completarlos.';
+    if (s === 'dup') return (nc ? ncTxt + ' ' : '') + 'Ya existe una factura con ese N° y proveedor en este proyecto: no se guardará.';
+    if (s === 'warn') return (nc ? ncTxt + ' ' : '') + (o.sinItems ? 'No se pudo leer la lista de ítems de este PDF: usa “Revisar” y complétala.' : (o.revisar && !o.warn && !o.itemsWarn && !o.truncated) ? (o.notaRevision || 'Revisa la clasificación.') : o.warn ? 'Subtotal + IVA no coincide con el total.' : o.truncated ? 'Lista de ítems posiblemente incompleta.' : 'La suma de ítems (' + money(o.itemsSum) + ') no coincide con el subtotal (' + money(o.subtotal) + ').');
+    if (nc) return ncTxt;
     return '';
   }
 
@@ -19240,7 +19246,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
-        (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
+        (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
           (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +

@@ -1368,6 +1368,41 @@ html:not([data-theme="light"]) #app .kpi:hover .pill.a{color:#ffe7a3;border-colo
   box-shadow:0 0 6px 1px rgba(251,191,36,.85),0 0 18px 2px rgba(245,158,11,.6),0 0 34px rgba(245,158,11,.35)}
 @media (prefers-reduced-motion:reduce){#app .kpi:hover .pill{animation:none}}
 
+/* ══════════ Fase 13: landing — cubo, letras y titular con neón por turnos; menú con neón al pasar el cursor ══════════ */
+@keyframes bmLinkOn{0%{opacity:.45}10%{opacity:1}18%{opacity:.35}30%{opacity:1}42%{opacity:.7}55%,100%{opacity:1}}
+/* Cubo (cualquier lugar): caras con resplandor; apagadas se atenúan */
+.lg-cube{overflow:visible;flex:0 0 auto}
+.lg-cube .lgc{filter:url(#lgGlow);transition:opacity .3s}
+.lg-cube-big .lgc{filter:url(#lgGlowBig)}
+.lg-cube:not(.lg-static) .lgc-t{animation:bmFaceHum 3.3s ease-in-out infinite}
+.lg-cube:not(.lg-static) .lgc-l{animation:bmFaceHum 4.1s ease-in-out .6s infinite}
+.lg-cube:not(.lg-static) .lgc-r{animation:bmFaceHum 5.2s ease-in-out 1.3s infinite}
+.lg-cube .lgc.off{filter:none;opacity:.2;animation:none}
+.hero-logo-svg .lg-cube{display:block;margin:0 auto}
+@media (prefers-reduced-motion:reduce){.lg-cube .lgc{animation:none!important}}
+
+/* Letras del logo de la barra de la landing */
+#land nav .nav-logo-text .lg-b,#land nav .nav-logo-text .lg-m{display:inline-block;transition:color .3s,text-shadow .35s,opacity .3s}
+#land nav .nav-logo-text .lg-b{color:var(--white)}
+html:not([data-theme="light"]) #land nav .nav-logo-text .lg-b{color:#f4feff;text-shadow:0 0 3px rgba(255,255,255,.95),0 0 9px rgba(186,242,255,.8),0 0 20px rgba(6,182,212,.55);animation:bmNeonHum 3.1s ease-in-out infinite}
+html:not([data-theme="light"]) #land nav .nav-logo-text .lg-m{color:#38e1ff;text-shadow:0 0 3px rgba(103,232,249,.95),0 0 10px rgba(6,182,212,.9),0 0 24px rgba(0,110,255,.7),0 0 42px rgba(0,82,255,.45);animation:bmNeonHum 4.3s ease-in-out infinite}
+html:not([data-theme="light"]) #land nav .nav-logo-text .lg-b.off{color:#5d6f8c;text-shadow:none;opacity:.6;animation:none}
+html:not([data-theme="light"]) #land nav .nav-logo-text .lg-m.off{color:#0c6f86;text-shadow:none;opacity:.55;animation:none}
+
+/* Titular del héroe: "Ingeniería de Costos" en blanco neón y "Redefinida." en cian neón */
+#land .hero-title .word{transition:color .4s,text-shadow .45s}
+html:not([data-theme="light"]) #land .hero-title .word:not(.accent){color:#f4feff;text-shadow:0 0 6px rgba(255,255,255,.5),0 0 22px rgba(186,242,255,.42),0 0 50px rgba(6,182,212,.3)}
+html:not([data-theme="light"]) #land .hero-title .word.accent{color:#38e1ff;text-shadow:0 0 8px rgba(103,232,249,.8),0 0 26px rgba(6,182,212,.7),0 0 56px rgba(0,110,255,.5)}
+html:not([data-theme="light"]) #land .hero-title .word:not(.accent).off{color:#56688a;text-shadow:none}
+html:not([data-theme="light"]) #land .hero-title .word.accent.off{color:#0b6a80;text-shadow:none}
+
+/* Menú superior: títulos de sección se encienden con neón al pasar el cursor */
+#land nav .nav-links a{position:relative;transition:color .25s,text-shadow .3s}
+#land nav .nav-links a::after{content:'';position:absolute;left:0;right:0;bottom:-7px;height:2px;border-radius:2px;background:#22d3ee;box-shadow:0 0 10px #22d3ee,0 0 22px rgba(6,182,212,.7);transform:scaleX(0);transition:transform .35s cubic-bezier(.16,1,.3,1)}
+html:not([data-theme="light"]) #land nav .nav-links a:hover{color:#8ff1ff;text-shadow:0 0 6px rgba(103,232,249,.95),0 0 16px rgba(6,182,212,.8),0 0 32px rgba(6,182,212,.5);animation:bmLinkOn .55s ease-out}
+html:not([data-theme="light"]) #land nav .nav-links a:hover::after{transform:scaleX(1)}
+@media (prefers-reduced-motion:reduce){#land nav .nav-logo-text .lg-b,#land nav .nav-logo-text .lg-m{animation:none!important}#land nav .nav-links a:hover{animation:none}}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -2872,7 +2907,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
   window._fbSocialSignIn       = null;
 </script>
 </head>
-<body>
+<body><svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true" focusable="false"><defs><filter id="lgGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="lgGlowBig" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
 <!-- Cursor custom — fuera de #land para que persista en la app -->
 <div id="cursor"></div>
@@ -2888,8 +2923,8 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 <!-- NAV -->
 <nav>
   <a class="nav-logo" href="#">
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><circle cx="6" cy="6" r="3" fill="#0052FF"/><circle cx="16" cy="6" r="3" fill="#0052FF"/><circle cx="26" cy="6" r="3" fill="rgba(0,82,255,0.3)"/><circle cx="6" cy="16" r="3" fill="#0052FF"/><circle cx="16" cy="16" r="3" fill="#00D4FF"/><circle cx="26" cy="16" r="3" fill="#0052FF"/><circle cx="6" cy="26" r="3" fill="rgba(0,82,255,0.3)"/><circle cx="16" cy="26" r="3" fill="#0052FF"/><circle cx="26" cy="26" r="3" fill="#0052FF"/></svg>
-    <span class="nav-logo-text">Build<span>Matrix</span></span>
+    <svg class="lg-cube" width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
+    <span class="nav-logo-text"><span class="lg-b">Build</span><span class="lg-m">Matrix</span></span>
   </a>
   <ul class="nav-links">
     <li><a href="#apu-section">Motor APU</a></li>
@@ -2918,7 +2953,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
     <!-- Logo -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:24px">
-      <div style="width:32px;height:32px;background:linear-gradient(135deg,#0052FF,#00D4FF);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;font-family:var(--f-mo)">B</div>
+      <svg class="lg-cube lg-static" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
       <span style="font-size:16px;font-weight:700;letter-spacing:-.3px">Build<span style="color:#00D4FF">Matrix</span></span>
     </div>
 
@@ -3045,39 +3080,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
   <!-- Logo grande animado -->
   <div class="hero-logo-svg">
-    <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="glow1" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.3"/>
-          <stop offset="100%" stop-color="#00D4FF" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <circle cx="50" cy="50" r="48" fill="url(#glow1)" opacity="0.5"/>
-      <!-- Nodos 3x3 -->
-      <circle cx="20" cy="20" r="5" fill="#0052FF" class="node-anim"/>
-      <circle cx="50" cy="20" r="5" fill="#0052FF" class="node-anim"/>
-      <circle cx="80" cy="20" r="4" fill="#0052FF" opacity="0.3" class="node-anim"/>
-      <circle cx="20" cy="50" r="5" fill="#0052FF" class="node-anim"/>
-      <circle cx="50" cy="50" r="7" fill="#00D4FF" class="node-center"/>
-      <circle cx="80" cy="50" r="5" fill="#0052FF" class="node-anim"/>
-      <circle cx="20" cy="80" r="4" fill="#0052FF" opacity="0.3" class="node-anim"/>
-      <circle cx="50" cy="80" r="5" fill="#0052FF" class="node-anim"/>
-      <circle cx="80" cy="80" r="5" fill="#0052FF" class="node-anim"/>
-      <!-- Líneas horizontales -->
-      <line x1="25" y1="20" x2="45" y2="20" stroke="#0052FF" stroke-width="1.5" opacity="0.6"/>
-      <line x1="55" y1="20" x2="75" y2="20" stroke="#0052FF" stroke-width="1" opacity="0.25"/>
-      <line x1="25" y1="50" x2="43" y2="50" stroke="#00D4FF" stroke-width="2" opacity="0.9"/>
-      <line x1="57" y1="50" x2="75" y2="50" stroke="#00D4FF" stroke-width="2" opacity="0.9"/>
-      <line x1="25" y1="80" x2="45" y2="80" stroke="#0052FF" stroke-width="1.5" opacity="0.6"/>
-      <line x1="55" y1="80" x2="75" y2="80" stroke="#0052FF" stroke-width="1.5" opacity="0.6"/>
-      <!-- Líneas verticales -->
-      <line x1="20" y1="25" x2="20" y2="45" stroke="#0052FF" stroke-width="1.5" opacity="0.6"/>
-      <line x1="20" y1="55" x2="20" y2="74" stroke="#0052FF" stroke-width="1" opacity="0.25"/>
-      <line x1="50" y1="25" x2="50" y2="43" stroke="#00D4FF" stroke-width="2" opacity="0.9"/>
-      <line x1="50" y1="57" x2="50" y2="75" stroke="#00D4FF" stroke-width="2" opacity="0.9"/>
-      <line x1="80" y1="25" x2="80" y2="45" stroke="#0052FF" stroke-width="1" opacity="0.25"/>
-      <line x1="80" y1="55" x2="80" y2="75" stroke="#0052FF" stroke-width="1.5" opacity="0.6"/>
-    </svg>
+    <svg class="lg-cube lg-cube-big" width="112" height="112" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
   </div>
 
   <div class="hero-eyebrow">
@@ -3372,15 +3375,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 
 <footer>
   <div class="footer-brand">
-    <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-      <circle cx="6" cy="6" r="3" fill="#0052FF"/>
-      <circle cx="16" cy="6" r="3" fill="#0052FF"/>
-      <circle cx="6" cy="16" r="3" fill="#0052FF"/>
-      <circle cx="16" cy="16" r="4" fill="#00D4FF"/>
-      <circle cx="26" cy="16" r="3" fill="#0052FF"/>
-      <circle cx="16" cy="26" r="3" fill="#0052FF"/>
-      <circle cx="26" cy="26" r="3" fill="#0052FF"/>
-    </svg>
+    <svg class="lg-cube lg-static" width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
     <span style="font-size:14px;font-weight:700;color:var(--white)">BuildMatrix</span>
   </div>
   <p class="footer-copy">© 2026 BuildMatrix · Ingeniería de Costos · Imbabura, Ecuador</p>
@@ -3707,7 +3702,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
     <a class="nav-logo" href="#" onclick="exitApp();return false" style="text-decoration:none">
-      <svg class="lg-cube" width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><defs><filter id="lgGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
+      <svg class="lg-cube" width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
       <span class="nav-logo-text"><span class="lg-b">Build</span><span class="lg-m">Matrix</span></span>
     </a>
     <div class="tp" id="tp-header" style="display:none"><span>Proyecto</span><b id="tpn"></b></div>
@@ -18586,20 +18581,22 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 </script>
 
 <script id="bm-logo-neon">
-/* Logo animado (cubo + letras). El cubo enciende sus caras por turnos (arriba, izquierda y derecha, en órdenes distintos);
-   "Build" y "Matrix" se encienden por separado. Todo con parpadeos y tiempos aleatorios que nunca se repiten. */
+/* Neón por turnos (barra de la app y landing): el cubo enciende sus caras en órdenes distintos; las letras "Build" (blanco)
+   y "Matrix" (azul) y el titular del héroe ("Ingeniería de Costos" en blanco, "Redefinida." en cian) se encienden por separado.
+   Todo con parpadeos y tiempos aleatorios que nunca se repiten. */
 (function () {
   'use strict';
-  var b = document.querySelector('#app .nav-logo-text .lg-b'), m = document.querySelector('#app .nav-logo-text .lg-m');
-  var ft = document.querySelector('#app .lg-cube .lgc-t'), fl = document.querySelector('#app .lg-cube .lgc-l'), fr = document.querySelector('#app .lg-cube .lgc-r');
-  if (!b || !m || !b.animate) return;
+  if (!Element.prototype.animate) return;
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var faces = (ft && fl && fr) ? [ft, fl, fr] : [];
-  var tLetters = 0, tCube = 0, cTimers = [];
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
   function rnd(a, z) { return a + Math.random() * (z - a); }
   function light() { return document.documentElement.getAttribute('data-theme') === 'light'; }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function shuffle(arr) { var a = arr.slice(), i, j, t; for (i = a.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function inApp() { return document.body.classList.contains('ia'); }
+  function inLand() { return !inApp(); }
+
   // Parpadeo irregular de neón: alterna intensidad alta/baja y termina estable en "to"
   function flicker(el, ms, from, to) {
     if (light()) return;
@@ -18615,74 +18612,103 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function off(el, dim) { el.classList.add('off'); flicker(el, rnd(200, 520), 1, dim); }
   function blip(el)     { flicker(el, rnd(300, 850), 1, 1); }
 
-  /* ── Letras: primero "Build" (blanco), luego "Matrix" (azul) ── */
-  function lAfter(ms, fn) { clearTimeout(tLetters); tLetters = setTimeout(fn, ms); }
-  function lRelight(el) { off(el, el === b ? 0.6 : 0.55); lAfter(rnd(500, 1500), function () { on(el); lAfter(rnd(2500, 6000), lEvent); }); }
-  function lFull() {
-    off(b, 0.6); off(m, 0.55);
-    lAfter(rnd(700, 1900), function () {
-      on(b);
-      lAfter(rnd(500, 1700), function () { on(m); lAfter(rnd(3500, 9000), lEvent); });
-    });
-  }
-  function lEvent() {
-    if (document.hidden) { lAfter(4000, lEvent); return; }
-    var r = Math.random();
-    if (r < 0.34) { lFull(); return; }
-    if (r < 0.56) blip(b);
-    else if (r < 0.78) blip(m);
-    else if (r < 0.9) { lRelight(m); return; }
-    else { lRelight(b); return; }
-    lAfter(rnd(2500, 7000), lEvent);
+  /* ── Dos grupos que se encienden uno tras otro (letras del logo, titular): primero g1, luego g2 ── */
+  function Pair(g1, g2, d1, d2, active) {
+    var t = 0;
+    function after(ms, fn) { clearTimeout(t); t = setTimeout(fn, ms); }
+    function offG(g, d) { g.forEach(function (e) { off(e, d); }); }
+    function onG(g) { g.forEach(function (e, i) { setTimeout(function () { on(e); }, i * rnd(60, 220)); }); }
+    function blipG(g) { g.forEach(blip); }
+    function relight(g, d) { offG(g, d); after(rnd(500, 1500), function () { onG(g); after(rnd(2500, 6000), ev); }); }
+    function full() {
+      offG(g1, d1); offG(g2, d2);
+      after(rnd(700, 1900), function () { onG(g1); after(rnd(500, 1700), function () { onG(g2); after(rnd(3500, 9000), ev); }); });
+    }
+    function ev() {
+      if (!active() || document.hidden) { after(2500, ev); return; }
+      var r = Math.random();
+      if (r < 0.34) { full(); return; }
+      if (r < 0.56) blipG(g1);
+      else if (r < 0.78) blipG(g2);
+      else if (r < 0.9) { relight(g2, d2); return; }
+      else { relight(g1, d1); return; }
+      after(rnd(2500, 7000), ev);
+    }
+    return {
+      start: function (delay) { g1.concat(g2).forEach(function (e) { e.classList.add('off'); }); after((delay || 0) + rnd(500, 1100), full); },
+      stop: function () { clearTimeout(t); }
+    };
   }
 
   /* ── Cubo: las caras se encienden por turnos, siempre con otro ritmo y a veces en otro orden ── */
-  function cAfter(ms, fn) { clearTimeout(tCube); tCube = setTimeout(fn, ms); }
-  function cAfter0(ms, fn) { cTimers.push(setTimeout(fn, ms)); }
-  function cClear() { clearTimeout(tCube); cTimers.forEach(clearTimeout); cTimers = []; }
-  function cFull() {                                   // se apaga todo y se enciende cara por cara
-    faces.forEach(function (f) { off(f, 0.2); });
-    var order = shuffle(faces), t = rnd(600, 1600);
-    order.forEach(function (f, i) {
-      var last = i === order.length - 1;
-      cAfter0(t, function () { on(f); if (last) cAfter(rnd(3000, 8500), cEvent); });
-      t += rnd(350, 1400);
-    });
-  }
-  function cWave() {                                   // ola: cada cara se apaga y vuelve en cadena
-    var order = shuffle(faces), t = 0;
-    order.forEach(function (f, i) {
-      var last = i === order.length - 1;
-      cAfter0(t, function () { off(f, 0.2); });
-      cAfter0(t + rnd(400, 900), function () { on(f); if (last) cAfter(rnd(2500, 6500), cEvent); });
-      t += rnd(250, 650);
-    });
-  }
-  function cRelight(f) { off(f, 0.2); cAfter(rnd(500, 1500), function () { on(f); cAfter(rnd(2500, 6000), cEvent); }); }
-  function cEvent() {
-    if (document.hidden) { cAfter(4000, cEvent); return; }
-    var r = Math.random();
-    if (r < 0.28) { cClear(); cFull(); return; }
-    if (r < 0.48) { cWave(); return; }
-    if (r < 0.7) blip(pick(faces));
-    else if (r < 0.88) { cRelight(pick(faces)); return; }
-    else {
-      var two = shuffle(faces).slice(0, 2);
-      two.forEach(function (f) { off(f, 0.2); });
-      cAfter(rnd(500, 1200), function () { on(two[0]); cAfter(rnd(400, 1100), function () { on(two[1]); cAfter(rnd(2500, 6000), cEvent); }); });
-      return;
+  function Cube(faces, active) {
+    var t = 0, list = [];
+    function after(ms, fn) { clearTimeout(t); t = setTimeout(fn, ms); }
+    function after0(ms, fn) { list.push(setTimeout(fn, ms)); }
+    function clear() { clearTimeout(t); list.forEach(clearTimeout); list = []; }
+    function full() {
+      faces.forEach(function (f) { off(f, 0.2); });
+      var order = shuffle(faces), tt = rnd(600, 1600);
+      order.forEach(function (f, i) {
+        var last = i === order.length - 1;
+        after0(tt, function () { on(f); if (last) after(rnd(3000, 8500), ev); });
+        tt += rnd(350, 1400);
+      });
     }
-    cAfter(rnd(2500, 7000), cEvent);
+    function wave() {
+      var order = shuffle(faces), tt = 0;
+      order.forEach(function (f, i) {
+        var last = i === order.length - 1;
+        after0(tt, function () { off(f, 0.2); });
+        after0(tt + rnd(400, 900), function () { on(f); if (last) after(rnd(2500, 6500), ev); });
+        tt += rnd(250, 650);
+      });
+    }
+    function relight(f) { off(f, 0.2); after(rnd(500, 1500), function () { on(f); after(rnd(2500, 6000), ev); }); }
+    function ev() {
+      if (!active() || document.hidden) { after(2500, ev); return; }
+      var r = Math.random();
+      if (r < 0.28) { clear(); full(); return; }
+      if (r < 0.48) { wave(); return; }
+      if (r < 0.7) blip(pick(faces));
+      else if (r < 0.88) { relight(pick(faces)); return; }
+      else {
+        var two = shuffle(faces).slice(0, 2);
+        two.forEach(function (f) { off(f, 0.2); });
+        after(rnd(500, 1200), function () { on(two[0]); after(rnd(400, 1100), function () { on(two[1]); after(rnd(2500, 6000), ev); }); });
+        return;
+      }
+      after(rnd(2500, 7000), ev);
+    }
+    return {
+      start: function () { clear(); faces.forEach(function (f) { f.classList.add('off'); }); after(rnd(300, 900), full); },
+      stop: clear
+    };
   }
 
-  var inApp = false;
+  function faces(root) { var f = [root.querySelector('.lgc-t'), root.querySelector('.lgc-l'), root.querySelector('.lgc-r')]; return f[0] && f[1] && f[2] ? f : null; }
+  var appG = [], landG = [], heroTitle = null;
+
+  var appCube = $('#app .lg-cube'), appB = $('#app .nav-logo-text .lg-b'), appM = $('#app .nav-logo-text .lg-m');
+  if (appCube && faces(appCube)) appG.push(Cube(faces(appCube), inApp));
+  if (appB && appM) appG.push(Pair([appB], [appM], 0.6, 0.55, inApp));
+
+  var navCube = $('#land nav .lg-cube'), navB = $('#land nav .nav-logo-text .lg-b'), navM = $('#land nav .nav-logo-text .lg-m');
+  if (navCube && faces(navCube)) landG.push(Cube(faces(navCube), inLand));
+  if (navB && navM) landG.push(Pair([navB], [navM], 0.6, 0.55, inLand));
+  var heroCube = $('#land .hero-logo-svg .lg-cube');
+  if (heroCube && faces(heroCube)) landG.push(Cube(faces(heroCube), inLand));
+  var words = $$('#land .hero-title .word');
+  var wWhite = words.filter(function (w) { return !w.classList.contains('accent'); }), wAccent = words.filter(function (w) { return w.classList.contains('accent'); });
+  if (wWhite.length && wAccent.length) heroTitle = Pair(wWhite, wAccent, 1, 1, inLand);   // el titular no baja su opacidad final (GSAP la controla)
+
+  var mode = '';
   function sync() {
-    var now = document.body.classList.contains('ia');
-    if (now && !inApp) {
-      b.classList.add('off'); m.classList.add('off'); lAfter(rnd(500, 1100), lFull);
-      if (faces.length) { cClear(); faces.forEach(function (f) { f.classList.add('off'); }); cAfter(rnd(300, 900), cFull); }
-    }
-    inApp = now;
+    var now = inApp() ? 'app' : 'land';
+    if (now === mode) return;
+    mode = now;
+    if (now === 'app') { landG.forEach(function (g) { g.stop(); }); if (heroTitle) heroTitle.stop(); appG.forEach(function (g) { g.start(); }); }
+    else { appG.forEach(function (g) { g.stop(); }); landG.forEach(function (g) { g.start(); }); if (heroTitle) heroTitle.start(3000); }   // el titular espera a que termine su entrada
   }
   new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   sync();

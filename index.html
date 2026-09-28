@@ -1290,18 +1290,19 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
 #v-apu #ae:empty{display:none}
 
 /* ── Grupos y rubros ── */
+.mn:has(#v-grp.ac #gdet:not([style*="none"])){overflow-y:hidden;display:flex;flex-direction:column;padding-bottom:0}
 #v-grp:has(#gdet:not([style*="none"])).ac{display:flex;flex-direction:column;height:100%;min-height:0}
-.mn:has(#v-grp #gdet:not([style*="none"])){display:flex;flex-direction:column;padding-bottom:0}
 #v-grp:has(#gdet:not([style*="none"]))>.vh{flex-shrink:0}
-#v-grp #gdet:not([style*="none"]){display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0;margin-bottom:0;overflow:hidden}
-#v-grp #gdet>div:first-child,#v-grp #gdet>.vh{flex-shrink:0}
-#v-grp #gdet-list{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#v-grp #gdet:not([style*="none"]){display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;margin-bottom:24px}
+#v-grp #gdet>div:first-child{flex-shrink:0}
+#v-grp #gdet-list{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #v-grp #gdet-list>.vh{flex-shrink:0}
-#v-grp #gdet-list>.card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0!important}
+#v-grp #gdet-list>.card{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0!important}
 #v-grp #gdet-list>.card>div{flex:1;min-height:0;overflow:auto}
-#v-grp #gdet #gdet-editor{flex:1 1 auto;min-height:0;overflow-y:auto}
-#v-grp #gdet #gdet-editor:empty{display:none;flex:0 0 auto}
+#v-grp #gdet-editor{flex:1;min-height:0;overflow-y:auto}
+#v-grp #gdet-editor:empty{display:none;flex:0 0 auto}
 #v-grp #gdet .tbl thead th{position:sticky;top:0;z-index:2;background:rgba(11,15,25,.98)}
+#gdet-nav-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
 /* Fase 9b: sin barra de desplazamiento exterior en Panel general, Constructor APU, Grupos y rubros, Presupuesto IA, Usuarios y Mis proyectos
    (ya tienen desplazamiento en sus ventanas internas). La rueda y el toque siguen funcionando por si el contenido excede la pantalla. */
@@ -7736,9 +7737,11 @@ function renderGrpDet(g,targetCode){
   });
   $id('gdet').innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">'
+    +'<div id="gdet-nav-left">'
     +'<button class="btn ghost" style="padding:8px 16px;font-size:13px" onclick="grpBack()">'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a grupos'
     +'</button>'
+    +'</div>'
     +'<span style="font-size:12px;color:var(--sld);font-family:var(--f-mo)">'+esc(g.p)+' · '+g.r.length+' rubros</span>'
     +'</div>'
     +'<div id="gdet-list">'
@@ -7829,8 +7832,12 @@ function openRubroEdit(gIdx, rIdx){
   if(!ed) return;
   var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='none';
 
-  var html='<button class="btn ghost" style="padding:8px 16px;font-size:13px;margin-bottom:12px" id="gred-back">'    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a la lista'    +'</button>';
-  html+='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
+  var navLeft=document.getElementById('gdet-nav-left');
+  if(navLeft){
+    var oldBack=document.getElementById('gred-back'); if(oldBack) oldBack.remove();
+    navLeft.insertAdjacentHTML('beforeend','<button class="btn ghost" style="padding:8px 16px;font-size:13px" id="gred-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a la lista</button>');
+  }
+  var html='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
 
   // Header
   html+='<div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:10px">';
@@ -8193,6 +8200,7 @@ function grRecalc(){
 function closeRubroEdit(){
   const ed=document.getElementById('gdet-editor');
   if(ed) ed.innerHTML='';
+  var backBtn=document.getElementById('gred-back'); if(backBtn) backBtn.remove();
   document.querySelectorAll('[id^="gdrow-"]').forEach(el=>el.style.background='');
   var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='';
 }

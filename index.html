@@ -5221,10 +5221,21 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     return '01';
   }
 
+  function nombreComercial(izq) {
+    var out = [];
+    for (var i = 0; i < izq.length && out.length < 2; i++) {
+      var l = limpia(izq[i]);
+      if ((l.match(/[A-Za-zÁÉÍÓÚÑáéíóúñ]/g) || []).length < 3) continue;
+      if (EXCL_PROV.test(sinTildes(l)) || /^\d/.test(l)) continue;
+      out.push(l);
+    }
+    return out;
+  }
   function cabecera(texto, izq, lines) {
     var adv = [], m;
     var c = buscarClave(texto);
-    var d = { autorizacion: c, proveedor: proveedorDe(izq) };
+    var nc = nombreComercial(izq);
+    var d = { autorizacion: c, proveedor: nc[0] || '', provComercial: limpia(nc.join(' ')) };
     if (c) {
       var dc = desdeClave(c); d.fecha = dc.fecha; d.tipo = dc.tipo; d.ruc = dc.ruc; d.numero = dc.numero;
       if (!claveValida(c)) adv.push('La clave de acceso no pasa la verificación módulo 11: revisar el PDF');
@@ -5251,7 +5262,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     }
     if (!d.clienteId) { m = texto.match(/Identificaci[oó]n\s*:?\s*([0-9A-Za-z]{5,13})/i); d.clienteId = m ? m[1] : ''; }
     m = texto.replace(/\s+\d+[.,]\d{2}(?=\s|$)/g, ' ').match(FORMAS); d.formaPago = m ? limpia(m[0]).toUpperCase() : '';
-    m = texto.match(/Comprobante\s+que\s+se\s+modifica\s*:?\s*(?:[A-ZÁÉÍÓÚ ]*?)\s*(\d{3}-\d{3}-\d{9})/i);
+    m = texto.match(/Comprobante\s+que\s+se\s+modifica\s*:?\s*(?:[A-ZÁÉÍÓÚ :]*?)\s*(\d{3}-\d{3}-\d{9})/i);
     d.facModificada = m ? m[1] : '';
     m = texto.match(/Raz[oó]n\s+de\s+Modificaci[oó]n\s*:?\s*(.+)/i);
     d.motivoNC = m ? limpia(m[1]) : '';
@@ -5347,7 +5358,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         if (esHead && l.y < bottom) bottom = l.y;
       });
       var dt = band.filter(function (t) { return norm(t.s) === 'detalle'; })[0];
-      return { y: c.y, bottom: bottom, detX: dt ? dt.x : null };
+      var dc = band.filter(function (t) { return norm(t.s) === 'descuento'; })[0];
+      var pu = band.filter(function (t) { return norm(t.s) === 'unitario'; })[0];
+      return { y: c.y, bottom: bottom, detX: dt ? dt.x : null, dtoX: dc ? dc.x : null, dtoX2: pu ? pu.x : null };
     }
     return null;
   }
@@ -5387,7 +5400,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     });
     return segs;
   }
-  function filaDeItem(f, detX) {
+  function filaDeItem(f, detX, dtoX, dtoX2) {
     var tot = f.a, total = Math.abs(num(tot.s)), toks = f.toks;
     var N = toks.filter(function (t) { return NUMRE.test(t.s) && t !== tot; }).sort(function (p, q) { return p.x - q.x; });
     if (N.length + 1 < 3) return null;
@@ -5409,6 +5422,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     toks.forEach(function (t) {
       if (usados.indexOf(t) >= 0) return;
       if (cx != null && t.x < cx - 2) { izq.push(t); return; }
+      if (NUMRE.test(t.s) && dtoX != null && (t.x + t.w / 2) >= dtoX - 3 && (t.x + t.w / 2) < (dtoX2 != null ? dtoX2 - 3 : dtoX + 50)) return;   // número suelto de la columna Descuento sin reclamar (p.ej. 0.00): no es texto
       if (NUMRE.test(t.s) && px != null && t.x >= px - 12) return;
       cuerpo.push(t);
     });
@@ -5434,10 +5448,10 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
   }
   function itemsPosicionales(pages, cfg) {
     cfg = cfg || {};
-    var items = [], abierta = false, detX = null;
+    var items = [], abierta = false, detX = null, dtoX = null, dtoX2 = null;
     (pages || []).forEach(function (pg) {
       var toks = tokenizar(pg.cells), hdr = detectarHeader(toks);
-      if (hdr) { abierta = true; detX = hdr.detX; } else if (!abierta) return;
+      if (hdr) { abierta = true; detX = hdr.detX; dtoX = hdr.dtoX; dtoX2 = hdr.dtoX2; } else if (!abierta) return;
       var top = hdr ? hdr.bottom - 2 : pg.H - 40, stopY = -Infinity;
       var minX = Math.min.apply(null, toks.map(function (t) { return t.x; }));
       toks.forEach(function (t) { if (t.y < top && STOPT[norm(t.s)] && t.y > stopY && esCorte(t, toks, minX)) stopY = t.y; });
@@ -5453,7 +5467,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           else { for (var i = 0; i < anc.length; i++) { if (anc[i].y + 4 >= t.y) k = i; else break; } }
           if (k >= 0) filas[k].toks.push(t);
         });
-        filas.forEach(function (f) { var it = filaDeItem(f, detX); if (it) items.push(it); });
+        filas.forEach(function (f) { var it = filaDeItem(f, detX, dtoX, dtoX2); if (it) items.push(it); });
       }
       if (stopY > -Infinity) abierta = false;
     });
@@ -5556,9 +5570,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     R(A_OBRA, 'Subcontratos', 3, ['subcontrato', 'contrato de obra', 'obra civil', 'instalacion electrica', 'instalaciones electricas', 'instalaciones sanitarias', 'sistema contra incendios', 'estructura metalica', 'impermeabilizacion', 'fiscalizacion', 'diseno estructural', 'estudio de suelos', 'aluminio y vidrio']),
     R(A_OBRA, 'Gastos Trámites', 3, ['licencia de construccion', 'aprobacion de planos', 'planos', 'registro de la propiedad', 'notaria', 'escritura', 'peritaje', 'topografia', 'topografico', 'tasa municipal', 'tasas municipales', 'permiso', 'patente', 'catastro', 'municipio', 'bomberos', 'abogado', 'contador', 'asesoria', 'tramite', 'registro mercantil', 'impuesto predial de obra']),
     R(A_OBRA, 'Gastos Trámites', 2, ['honorarios', 'certificado', 'impuesto', 'tasa']),
-    R(A_OBRA, G, 4, ['diesel', 'gasolina', 'combustible', 'ecopais', 'gasoil', 'glp', 'lubricante', 'aceite de motor', 'aceite hidraulico', 'llanta', 'neumatico', 'peaje', 'repuesto', 'mantenimiento vehicular', 'mantenimiento de vehiculo', 'cambio de aceite', 'alineacion', 'balanceo', 'lavado de vehiculo', 'mecanica', 'filtro de aceite', 'filtro de aire', 'bateria', 'pastillas de freno', 'seguro vehicular', 'matricula vehicular', 'lubricado']),
+    R(A_OBRA, G, 4, ['diesel', 'gasolina', 'combustible', 'ecopais', 'gasoil', 'glp', 'lubricante', 'aceite de motor', 'aceite hidraulico', 'llanta', 'neumatico', 'peaje', 'repuesto', 'mantenimiento vehicular', 'mantenimiento de vehiculo', 'cambio de aceite', 'alineacion', 'balanceo', 'lavado de vehiculo', 'mecanica', 'filtro de aceite', 'filtro de aire', 'bateria', 'pastillas de freno', 'seguro vehicular', 'matricula vehicular', 'lubricado', 'turbo', 'motul', 'castrol', 'valvulina', 'amortiguador', 'radiador', 'embrague', 'alternador', 'inyector', 'correa de distribucion', 'empaque de motor', 'motorcraft', 'repuesto automotriz', 'autoparte']),
     R(A_OBRA, G, 4, ['casco', 'chaleco', 'guantes', 'botas de punta de acero', 'botas punta de acero', 'botas de seguridad', 'zapatos de seguridad', 'botas de caucho', 'epp', 'arnes', 'lentes de seguridad', 'gafas de seguridad', 'uniforme de trabajo', 'uniformes de trabajo', 'ropa de trabajo', 'overol', 'impermeable', 'proteccion auditiva', 'respirador']),
-    R(A_OBRA, G, 3, ['flete', 'acarreo', 'transporte de materiales', 'transporte de personal', 'papeleria', 'toner', 'resma', 'disco de corte', 'piola', 'marcador', 'herramienta menor', 'herramientas menores', 'guaipe', 'cinta de peligro', 'cono', 'extintor', 'hospedaje de personal', 'agua de obra', 'luz de obra', 'internet de obra', 'servicio de obra']),
+    R(A_OBRA, G, 3, ['flete', 'acarreo', 'transporte de materiales', 'transporte de personal', 'envio a domicilio', 'servicio de envio', 'papeleria', 'toner', 'resma', 'disco de corte', 'piola', 'marcador', 'herramienta menor', 'herramientas menores', 'guaipe', 'cinta de peligro', 'cono', 'extintor', 'hospedaje de personal', 'agua de obra', 'luz de obra', 'internet de obra', 'servicio de obra']),
     R(A_OBRA, G, 2, ['transporte', 'mascarilla', 'herramienta', 'broca', 'disco']),
     R(A_OBRA, G, 1, ['limpieza']),
     /* ── PERSONAL (Anexo de Gastos Personales SRI) ── */
@@ -5567,7 +5581,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     R(A_PERS, 'Vivienda', 3, ['alicuota', 'predial', 'energia electrica', 'luz electrica', 'agua potable', 'servicio de agua', 'internet', 'telefono', 'telefonia', 'hipoteca', 'interes hipotecario', 'cilindro de gas', 'gas domestico', 'gas licuado', 'mueble', 'colchon', 'sofa', 'refrigeradora', 'lavadora', 'electrodomestico', 'televisor', 'microondas', 'licuadora', 'comedor', 'cama', 'tv cable', 'condominio', 'cocina a gas', 'closet', 'escritorio', 'silla', 'mesa', 'plan movil', 'plan de datos']),
     R(A_PERS, 'Vivienda', 2, ['arriendo']),
     R(A_PERS, 'Educación, Arte y Cultura', 3, ['colegio', 'unidad educativa', 'escuela', 'universidad', 'matricula', 'pension escolar', 'libro', 'cuaderno', 'uniforme escolar', 'uniformes escolares', 'utiles escolares', 'textos escolares', 'curso', 'seminario', 'capacitacion', 'academia', 'idiomas', 'guarderia', 'centro de desarrollo infantil', 'museo', 'teatro', 'concierto', 'cine', 'entrada al cine', 'instrumento musical', 'guitarra', 'piano', 'libreria', 'revista', 'danza', 'artesania', 'boleto de cine', 'transporte escolar', 'derechos de grado', 'tutorias']),
-    R(A_PERS, 'Vestimenta', 3, ['ropa', 'camiseta', 'camisa', 'pantalon', 'jean', 'zapatos', 'calzado', 'zapatillas', 'sandalias', 'vestido', 'chompa', 'blusa', 'falda', 'medias', 'ropa interior', 'chaqueta', 'abrigo', 'sueter', 'buzo', 'short', 'bermuda', 'gorra', 'cinturon', 'bolso', 'corbata', 'pijama', 'bikini', 'tenis']),
+    R(A_PERS, 'Vestimenta', 3, ['ropa', 'camiseta', 'camisa', 'pantalon', 'jean', 'zapatos', 'zapato', 'calzado', 'zapatillas', 'sandalias', 'vestido', 'chompa', 'blusa', 'falda', 'medias', 'ropa interior', 'chaqueta', 'abrigo', 'sueter', 'buzo', 'short', 'bermuda', 'gorra', 'cinturon', 'bolso', 'corbata', 'pijama', 'bikini', 'tenis', 'botines', 'botin', 'mocasines', 'mocasin', 'tacones', 'tacon', 'zapatilla deportiva', 'sneakers', 'sneaker', 'sandalia']),
     R(A_PERS, 'Vestimenta', 1, ['botas']),
     R(A_PERS, 'Alimentación', 3, ['pan', 'refresco', 'energizante', 'licor', 'whisky', 'ron', 'aguardiente', 'botellon', 'chuleta', 'costilla', 'pernil', 'lomo', 'camaron', 'trucha', 'tilapia', 'mariscos', 'ajo', 'limon', 'naranja', 'banano', 'manzana', 'aguacate', 'mora', 'fresa', 'papaya', 'sandia', 'melon', 'zanahoria', 'brocoli', 'choclo', 'maiz', 'haba', 'arveja', 'quinua', 'granola', 'miel', 'mayonesa', 'ketchup', 'mostaza', 'vinagre', 'condimento', 'sazonador', 'flan', 'postre', 'dulce', 'caramelo', 'chicle', 'nestle', 'leche condensada', 'crema de leche', 'colada', 'empanada', 'tamal', 'encebollado', 'menestra', 'ceviche', 'bandeja', 'porcion', 'ensalada', 'nuggets', 'alitas', 'batido', 'capuchino', 'expreso', 'latte', 'croissant', 'donut', 'brownie', 'pollo frito', 'carne de res', 'carne molida', 'mortadela', 'salchichon', 'chorizo', 'atun', 'sal', 'refrigerio', 'catering', 'menu del dia']),
     R(A_PERS, 'Salud', 3, ['acetaminofen', 'aspirina', 'omeprazol', 'amoxicilina', 'loratadina', 'diclofenaco', 'naproxeno', 'suero oral', 'jeringa', 'gasa', 'algodon', 'curitas', 'termometro', 'guantes quirurgicos', 'procedimiento', 'limpieza dental', 'ortodoncia', 'exodoncia', 'profilaxis', 'radiografia', 'biometria', 'hematologia', 'glucosa', 'chequeo', 'control medico', 'cita medica', 'atencion medica', 'emergencia', 'hospitalizacion', 'insumos medicos', 'material medico', 'medicamentos', 'receta']),
@@ -5588,16 +5602,18 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     P(A_OBRA, 'Gastos Trámites', ['municipio', 'gad municipal', 'notaria', 'registro de la propiedad', 'colegio de arquitectos', 'colegio de ingenieros', 'cuerpo de bomberos', 'estudio juridico', 'abogados']),
     P(A_PERS, 'Alimentación', ['supermaxi', 'megamaxi', 'santa maria', 'corporacion favorita', 'corporacion el rosado', 'mi comisariato', 'comisariato', 'tiendas industriales asociadas', 'tia', 'aki', 'gran aki', 'coral hipermercados', 'tuti', 'oki doki', 'supermercado', 'minimarket', 'mini market', 'panaderia', 'pasteleria', 'heladeria', 'restaurante', 'cafeteria', 'pizzeria', 'picanteria', 'asadero', 'sangucheria', 'kfc', 'mcdonald', 'burger king', 'subway', 'pollo gus', 'juan valdez', 'sweet coffee', 'tropiburger', 'papa johns', 'pizza hut', 'domino', 'parrilla', 'cevicheria', 'bar', 'cerveceria', 'fritada', 'delicatessen', 'hipermercado', 'abarrotes', 'mercado']),
     P(A_PERS, 'Salud', ['farmacia', 'fybeca', 'sana sana', 'cruz azul', 'pharmacys', 'medicity', 'botica', 'clinica', 'hospital', 'laboratorio', 'consultorio', 'odontologic', 'optica', 'veterinaria', 'veterinario', 'centro medico', 'vozandes', 'axxis', 'eskala', 'humana', 'ecuasanitas', 'saludsa', 'medicina prepagada']),
-    P(A_PERS, 'Vestimenta', ['de prati', 'etafashion', 'marathon sports', 'zapateria', 'boutique', 'textil', 'moda', 'pat primo', 'lacoste', 'zara', 'adidas', 'nike', 'ropa', 'tennis']),
+    P(A_PERS, 'Vestimenta', ['de prati', 'etafashion', 'marathon sports', 'zapateria', 'boutique', 'textil', 'moda', 'pat primo', 'lacoste', 'zara', 'adidas', 'nike', 'ropa', 'tennis', 'calzado', 'shoes', 'footwear', 'new balance', 'puma', 'skechers']),
     P(A_PERS, 'Vivienda', ['cnel', 'empresa electrica', 'epmaps', 'agua potable', 'netlife', 'puntonet', 'xtrim', 'claro', 'movistar', 'cnt', 'administracion de edificio', 'condominio', 'artefacta', 'la ganga', 'marcimex', 'jaher', 'muebles', 'electrodomesticos', 'colchones', 'duragas', 'austrogas', 'lojagas', 'tropigas', 'directv']),
     P(A_PERS, 'Educación, Arte y Cultura', ['colegio', 'unidad educativa', 'escuela', 'universidad', 'instituto', 'libreria', 'mr books', 'cinemark', 'supercines', 'multicines', 'teatro', 'museo', 'academia', 'guarderia']),
     P(A_PERS, 'Turismo', ['hotel', 'hostal', 'hosteria', 'resort', 'agencia de viajes', 'aerolinea', 'avianca', 'latam', 'turismo', 'tours', 'cabanas'])
   ];
   var RX_CUADRILLA = /\b(cuadrilla|obreros?|trabajadores|personal de obra|maestros?)\b/, RX_COMIDA = /\b(alimentacion|almuerzos?|desayunos?|refrigerios?|comida|meriendas?|viveres)\b/;
+  var RX_PROMO_LLEVAR = /\bpromo\b/, RX_LLEVAR = /\bllevar\b/;
 
   function puntuar(txt) {
     var t = norm(txt); if (!t) return null;
-    if (RX_CUADRILLA.test(t) && RX_COMIDA.test(t)) return { a: A_OBRA, c: G, s: 99 };   // alimentación de la cuadrilla = gasto de obra
+    if (RX_CUADRILLA.test(t) && RX_COMIDA.test(t)) return { a: A_OBRA, c: G, s: 99 };
+    if (RX_PROMO_LLEVAR.test(t) && RX_LLEVAR.test(t)) return { a: A_PERS, c: 'Alimentación', s: 5 };   // "promo para llevar": pedido de comida a un local pequeño   // alimentación de la cuadrilla = gasto de obra
     var res = {}, best = null, bs = 0;
     REGLAS.forEach(function (r) {
       var n = (t.match(r.re) || []).length; if (!n) return;
@@ -5614,7 +5630,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
   }
 
   function clasificar(d, contexto) {
-    var provT = tipoProveedor(d.proveedor), montos = {}, mObra = 0, mPers = 0, tot = 0, adv = [];
+    var provT = tipoProveedor((d.provComercial || d.proveedor)), montos = {}, mObra = 0, mPers = 0, tot = 0, adv = [];
     function suma(c, v) { var k = c.a + '|' + c.c; montos[k] = (montos[k] || 0) + v; if (c.a === A_OBRA) mObra += v; else mPers += v; }
     d.items.forEach(function (it) {
       var v = Math.abs(it.total) || 0.01; tot += v;

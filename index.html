@@ -13668,11 +13668,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
-    'CONTEXTO: este comprobante fue emitido al RUC del contratista/empresa de construcción, para gastos de EJECUCIÓN, LOGÍSTICA, ADMINISTRACIÓN, PERMISOS o MANTENIMIENTO de un proyecto de obra (nunca gasto de consumo personal o familiar). ' +
-    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos de OBRA / proyectos de construcción del RUC del contratista. ' +
+    'CONTEXTO: este comprobante es para gastos de EJECUCIÓN, LOGÍSTICA, ADMINISTRACIÓN, PERMISOS o MANTENIMIENTO de un proyecto de obra (nunca gasto de consumo personal o familiar). ' +
+    'IMPORTANTE SOBRE LA IDENTIFICACIÓN DEL CLIENTE: TODAS las facturas de este usuario (de obra y personales) se emiten con su mismo RUC, así que cliente_identificacion NO sirve para decidir si el gasto es de obra o personal (no uses si son 10 o 13 dígitos). Decide ÚNICAMENTE por lo que se compró o el servicio contratado, mirando los ítems y el tipo de proveedor. ' +
+    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos de OBRA / proyectos de construcción. ' +
     'Pon aplica=true si el comprobante es un gasto de obra: materiales de construcción, mano de obra, alquiler de equipos y maquinaria, subcontratos, trámites y permisos de obra, y gastos indirectos de obra (combustible y mantenimiento de vehículos de obra, EPP y ropa de trabajo, alimentación de la cuadrilla, fletes, papelería, servicios de la obra). ' +
     'Pon aplica=false y explica en motivo_no_aplica (una frase corta en español, ej. "Factura de supermercado: es un gasto personal") si es claramente un gasto PERSONAL o FAMILIAR: supermercado o víveres del hogar, restaurantes familiares, farmacia, consultas médicas, ropa o calzado casual, educación o colegio, cine o entretenimiento, hoteles o viajes turísticos, servicios básicos del hogar (agua, luz, internet de casa), arriendo de vivienda, mascotas y cualquier compra de consumo personal. ' +
-    'Ayuda para casos dudosos (comida, ropa, combustible): si cliente_identificacion tiene 13 dígitos (RUC) y el contexto es de trabajo, aplica=true; si tiene 10 dígitos (cédula) y es consumo familiar, aplica=false. Si dudas y el contenido es de construcción u obra, aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
+    'En casos dudosos (comida, ropa) decide por el contexto del ítem: cantidades de obra, obreros, cuadrilla, EPP, materiales o transporte de materiales → aplica=true; consumo familiar o de hogar → aplica=false. Si dudas y el contenido es de construcción u obra, aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
     'PASO FINAL — campo "categoria": lee los ítems de la factura que acabas de extraer y determina a cuál de estas 6 categorías pertenece el gasto. ' +
     'Elige UNO de estos valores exactos (respeta mayúsculas y tildes): ' +
     '"Materiales" → materiales físicos de construcción: cemento, hierro, varilla, bloque, madera, pintura, tubería PVC, cable eléctrico, arena, ripio, cerámica, vidrio, empaste, gypsum, perfiles, aditivos, clavos, encofrado, mortero, impermeabilizante, etc. NUNCA ropa, calzado ni EPP (eso va en Gastos Indirectos). ' +
@@ -16116,15 +16117,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
-    'CONTEXTO: este comprobante fue emitido a la CÉDULA (persona natural), para gasto de consumo PERSONAL o FAMILIAR — nunca gasto de un RUC de empresa ni de ejecución de obra. ' +
-    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos PERSONALES o FAMILIARES de la persona natural (cédula). Pon aplica=false y explica en motivo_no_aplica (una frase corta en español) si el comprobante es: ' +
-    '(1) gasto de OBRA o de proyectos de construcción: materiales de construcción (cemento, hierro, arena, ripio, bloques, pintura de obra, tubería, cable, cerámica), mano de obra o jornales, alquiler de maquinaria o equipos, subcontratos, trámites y permisos de obra, EPP o ropa de trabajo, o cualquier gasto de empresa emitido a un RUC de 13 dígitos por trabajo; ' +
+    'CONTEXTO: este comprobante es para gasto de consumo PERSONAL o FAMILIAR de la persona (nunca gasto de ejecución de obra). ' +
+    'IMPORTANTE SOBRE LA IDENTIFICACIÓN DEL CLIENTE: TODAS las facturas de este usuario (de obra y personales) se emiten con su mismo RUC, así que cliente_identificacion NO sirve para decidir si el gasto es de obra o personal (no uses si son 10 o 13 dígitos). Decide ÚNICAMENTE por lo que se compró o el servicio contratado, mirando los ítems y el tipo de proveedor. ' +
+    'PROCESO DE DECISIÓN COMO UN EXPERTO: (a) identifica el tipo de proveedor (ferretería, gasolinera, taller, supermercado, farmacia, restaurante, tienda de ropa, etc.); (b) lee CADA ítem: un material, accesorio, repuesto o herramienta NO es un gasto del hogar aunque lo compre una persona natural o el proveedor sea una persona (ej. "SIFON 1 1/4 ACORDEON LAVABO MANOS" es un accesorio de plomería = material de obra); (c) emite el veredicto aplica; (d) solo si aplica=true elige la categoría. Ante la duda entre material de obra y gasto del hogar con piezas de ferretería, plomería, eléctricos o construcción, decide aplica=false. ' +
+    'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos PERSONALES o FAMILIARES de la persona. Pon aplica=false y explica en motivo_no_aplica (una frase corta en español) si el comprobante es: ' +
+    '(1) gasto de OBRA o de proyectos de construcción: cualquier material, accesorio, repuesto o herramienta de construcción, plomería, electricidad, carpintería, pintura y acabados, AUNQUE parezca de uso doméstico (cemento, hierro, arena, ripio, bloques, ladrillos, pintura, tubería y accesorios PVC, sifones, codos, llaves de paso, grifería, válvulas, cables, tomacorrientes, breakers, cerámica, porcelanato, tornillos, clavos, silicón, cerraduras, herramientas) o cualquier compra en una FERRETERÍA, corralón, almacén de materiales, vidriería, maderera o proveedor de plomería, eléctricos o acabados; mano de obra o jornales, alquiler de maquinaria o equipos, subcontratos, trámites y permisos de obra, EPP o ropa de trabajo, o cualquier gasto de trabajo o de proyectos; ' +
     '(2) COMBUSTIBLE de cualquier tipo (gasolina, diesel, extra, súper, ecopaís, GLP vehicular) o compra en gasolineras / estaciones de servicio; ' +
     '(3) MANTENIMIENTO Y GASTOS DE VEHÍCULOS: mecánica, cambio de aceite y lubricantes, llantas, repuestos y accesorios de auto, alineación y balanceo, lavado y lubricado, taller automotriz, seguro o matrícula vehicular. ' +
     'Ejemplo de motivo_no_aplica: "Factura de combustible: no va en gastos personales". En cualquier otro caso pon aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
     'PASO FINAL — campo "categoria": lee los ítems del comprobante que acabas de extraer y determina a cuál de estas 7 categorías pertenece el gasto. Las primeras 6 son EXACTAMENTE las categorías oficiales del Anexo de Gastos Personales del SRI Ecuador (Reglamento LORTI vigente y ficha "Gastos personales: conceptos y ejemplos" del SRI), deducibles de Impuesto a la Renta; la 7ª es para lo que NO califica en ninguna de esas 6. ' +
     'Elige UNO de estos valores exactos (respeta mayúsculas, tildes y comas): ' +
-    '"Vivienda" → arriendo de un único inmueble; intereses de préstamos hipotecarios (ampliación, remodelación, restauración, adquisición o construcción); servicios básicos del hogar (agua, luz/electricidad, gas, teléfono convencional) y alícuota de condominio; impuesto predial; pensión alimenticia; y otros gastos de adquisición, construcción, remodelación, ampliación, mejora o mantenimiento de la vivienda (muebles, ferretería del hogar). ' +
+    '"Vivienda" → arriendo de un único inmueble; intereses de préstamos hipotecarios (ampliación, remodelación, restauración, adquisición o construcción); servicios básicos del hogar (agua, luz/electricidad, gas, teléfono convencional) y alícuota de condominio; impuesto predial; pensión alimenticia; muebles y electrodomésticos del hogar. IMPORTANTE: los materiales, accesorios y herramientas de construcción, plomería, electricidad, carpintería, pintura y acabados, y cualquier compra de ferretería (sifones, tuberías, llaves de paso, grifería, cables, tomacorrientes, pintura, cemento, tornillos, herramientas, etc.) NO son Vivienda: son materiales de obra y se marcan aplica=false. ' +
     '"Salud" → honorarios de médicos y profesionales de salud; servicios de clínicas, hospitales, laboratorios y farmacias; medicinas, insumos médicos, lentes, órtesis, prótesis; medicina prepagada y prima de seguro médico (individual o corporativo); deducible de seguro privado; pensión alimenticia; también gastos de salud de MASCOTAS (veterinaria, medicinas veterinarias). ' +
     '"Alimentación" → compras de alimentos para consumo humano (supermercado, mercado, víveres); restaurantes y centros de expendio de comida preparada; pensión alimenticia; también alimento de MASCOTAS. ' +
     '"Vestimenta" → cualquier prenda de vestir y calzado de uso personal o de dependientes del hogar; pensión alimenticia. NUNCA botas de punta de acero, cascos, chalecos reflectivos, guantes de cuero ni ropa/uniformes de TRABAJO de obra — eso es gasto de obra y se marca aplica=false. Los UNIFORMES ESCOLARES van en "Educación, Arte y Cultura", no aquí. ' +
@@ -16373,6 +16376,36 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return it;
   }
 
+  // ── Red de seguridad determinista (además de la IA): detecta materiales de obra, combustible y
+  //    gastos de vehículo por el tipo de proveedor y la descripción de los ítems, para que no dependa
+  //    solo del criterio del modelo. Solo puede DESCARTAR (nunca fuerza que algo entre).
+  var NET_PROV_OBRA = /ferreter|corral[oó]n|materiales? de construcci|almac[eé]n de materiales|vidrier|maderera|pinturas\b|cementos?\b|acabados de construcci/i;
+  var NET_ITEM_OBRA = /sif[oó]n|tuber[ií]a|\bpvc\b|\bcodo\b|\btee\b|neplo|uni[oó]n (?:pvc|universal|americana)|llave de paso|grifer|v[aá]lvula|flotador|inodoro|lavabo|fregadero|teflon|teflón|silic[oó]n|empaste|masilla|gypsum|cemento|varilla|hierro|ladrillo|bloque|arena|ripio|grava|hormig[oó]n|cer[aá]mica|porcelanato|pintura (?:l[aá]tex|esmalte|caucho|el[aá]stica|anticorrosiva|para (?:exteriores|interiores))|brocha|rodillo|thinner|tornillo|clavo|taco fisher|perno|tuerca|arandela|bisagra|cerradura|disco de corte|\bbroca\b|\blija\b|amoladora|taladro|martillo|alicate|destornillador|flex[oó]metro|cable (?:el[eé]ctrico|thhn|gemelo|n[°º.]?\s*\d)|tomacorriente|interruptor|breaker|disyuntor|canaleta|conduit|cinta aislante|impermeabilizante|sellador|mortero|adhesivo cer/i;
+  var NET_COMB = /gasolina|di[eé]sel|combustible|\bglp\b|ecopa[ií]s|\bnafta\b/i;
+  var NET_PROV_COMB = /gasolinera|estaci[oó]n de servicio|petrocomercial|primax|terpel|petroecuador/i;
+  var NET_VEH = /aceite (?:de )?motor|cambio de aceite|filtro de (?:aceite|aire|combustible)|pastillas? de freno|\bllantas?\b|neum[aá]tic|alineaci[oó]n|balanceo|lubricad|lavado de (?:auto|veh[ií]culo|carro)|bater[ií]a de auto|repuesto|amortiguador|rectificaci[oó]n|matr[ií]cula vehicular|seguro vehicular/i;
+  var NET_PROV_VEH = /taller|mec[aá]nica|automotriz|lubricadora|llantera|vulcanizadora|autopartes|autolavado/i;
+  function scopeNet(o) {
+    if (!o || o.aplica === false) return;
+    var prov = o.proveedor || '', items = o.items || [];
+    function share(re) {
+      if (!items.length) return 0;
+      var hit = 0, tot = 0;
+      items.forEach(function (it) { var w = it.total > 0 ? it.total : 1; tot += w; if (re.test((it.desc || '') + ' ' + (it.det || ''))) hit += w; });
+      return tot ? hit / tot : 0;
+    }
+    function first(re) { for (var i = 0; i < items.length; i++) if (re.test((items[i].desc || '') + ' ' + (items[i].det || ''))) return items[i].desc; return ''; }
+    var why = '';
+    if (NET_PROV_OBRA.test(prov) || share(NET_ITEM_OBRA) >= 0.5) {
+      why = 'Material de obra (ferretería, plomería, eléctricos o acabados)' + (first(NET_ITEM_OBRA) ? ': ' + first(NET_ITEM_OBRA) : '') + '. Va en Gastos y facturas';
+    } else if (share(NET_COMB) >= 0.5 || (NET_PROV_COMB.test(prov) && (!items.length || share(NET_COMB) > 0))) {
+      why = 'Factura de combustible: no va en gastos personales';
+    } else if (share(NET_VEH) >= 0.5 || (NET_PROV_VEH.test(prov) && share(NET_VEH) > 0)) {
+      why = 'Mantenimiento o gasto de vehículo: no va en gastos personales';
+    }
+    if (why) { o.aplica = false; o.motivoNoAplica = why; o.netFlag = true; }
+  }
+
   // Texto de la IA → objeto normalizado (cabecera, montos, desglose de IVA e ítems)
   function parseAI(text) {
     var t = String(text || '').replace(/```(?:json)?/gi, '').trim();
@@ -16422,6 +16455,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var tol = Math.max(0.05, 0.01 * o.items.length, o.subtotal * 0.002);
     o.itemsWarn = o.items.length > 0 && o.subtotal > 0 &&
       Math.abs(o.itemsSum - o.subtotal) > tol && Math.abs(o.itemsSum - o.total) > tol;
+    scopeNet(o);   // segunda opinión determinista: materiales de obra, combustible, vehículos
     return o;
   }
 
@@ -17285,7 +17319,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       wsR.mergeCells('B' + rn + ':F' + rn);
       var b = r.getCell(2); b.value = value; b.font = xf(true, XL.NEGRO, 10); b.alignment = { horizontal: 'left', vertical: 'middle' };
     }
-    info(3, 'Registro', 'Gastos personales (Cédula) — Anexo de Gastos Personales SRI');
+    info(3, 'Registro', 'Gastos personales — Anexo de Gastos Personales SRI');
     info(4, 'Generado', now.toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' }) + ' ' + now.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }));
     info(5, 'Usuario', meta.usuario || '—');
     info(6, 'Período', rows.length ? fmtDateEs(minF) + ' al ' + fmtDateEs(maxF) : '—');
@@ -18378,7 +18412,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 /* ═══════════════════════════════════════════════════════════════════════
    BuildMatrix · Panel HUD analítico con DATOS REALES
    - "gxh-"  → Gastos y facturas (obra)   · lee window.BMGastos.load()
-   - "gxph-" → Gastos personales (cédula) · lee window.BMGastosPersonal.load()
+   - "gxph-" → Gastos personales · lee window.BMGastosPersonal.load()
    Cada panel usa solo los datos de su propio módulo (contabilidades separadas).
    Se redibuja solo cuando cambian los datos (guardar, borrar, sincronizar) o
    cuando se cambia la temporalidad.
@@ -18637,7 +18671,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     cats: ['Materiales', 'Mano de Obra', 'Equipos y Maquinaria', 'Subcontratos', 'Gastos Indirectos', 'Gastos Trámites'],
     catColors: { 'Materiales': '#0052FF', 'Mano de Obra': '#10B981', 'Equipos y Maquinaria': '#F59E0B', 'Subcontratos': '#8B5CF6', 'Gastos Indirectos': '#EC4899', 'Gastos Trámites': '#06B6D4' }
   });
-  // Personal (cédula)
+  // Personal
   initHud({
     prefix: 'gxph', api: 'BMGastosPersonal', globalName: '__renderGxphHud', lineColor: '#a855f7',
     cats: ['Alimentación', 'Vestimenta', 'Vivienda', 'Salud', 'Educación, Arte y Cultura', 'Turismo', 'Otros (no deducible SRI)'],

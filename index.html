@@ -1152,6 +1152,38 @@ html:not([data-theme="light"]) #app .bt i::before,html:not([data-theme="light"])
   background:radial-gradient(circle at 80% 50%,#fff,rgba(255,255,255,.55) 40%,transparent 75%);opacity:.9}
 @media (prefers-reduced-motion:reduce){#app .bt i,.gx-scope .gx-bar .t i{animation:none!important}}
 
+/* ══════════ Fase 6 HUD: fuera los fondos sólidos dentro de las ventanas flotantes ══════════
+   Las franjas de pestañas/fechas, los campos, "Más datos" y los paneles de detalle pasan a
+   cristal translúcido para que se vea el fondo con líneas de escáner y resplandor de la ventana. */
+html:not([data-theme="light"]) .gx-scope .mo .gx-cattabs,html:not([data-theme="light"]) .gx-scope .mo .gx-daterange{background-color:transparent!important;background-image:none!important}
+html:not([data-theme="light"]) .gx-scope .mo .gx-cattabs{background-image:linear-gradient(180deg,rgba(6,182,212,.05),transparent)!important}
+html:not([data-theme="light"]) .gx-scope .mo .gx-daterange{background-image:linear-gradient(0deg,rgba(6,182,212,.05),transparent)!important;border-bottom-color:rgba(6,182,212,.3)}
+html:not([data-theme="light"]) #v-gasp .mo .gx-cattabs{background-image:linear-gradient(180deg,rgba(139,92,246,.07),transparent)!important}
+html:not([data-theme="light"]) #v-gasp .mo .gx-daterange{background-image:linear-gradient(0deg,rgba(139,92,246,.07),transparent)!important;border-bottom-color:rgba(139,92,246,.32)}
+/* la tarjeta interna del formulario no debe dibujar un panel propio dentro de la ventana */
+html:not([data-theme="light"]) .gx-scope .mo .gx-card{box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0;background-image:none}
+html:not([data-theme="light"]) .gx-scope .mo .gx-card:hover{box-shadow:none}
+/* campos, selector, "más datos" y detalle: cristal translúcido con borde de neón */
+html:not([data-theme="light"]) .gx-scope .gx-in,html:not([data-theme="light"]) .gx-scope .gx-dd-trigger{background-color:rgba(6,182,212,.05);border-color:rgba(6,182,212,.28);box-shadow:inset 0 0 16px -9px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) .gx-scope .gx-in:focus,html:not([data-theme="light"]) .gx-scope .gx-dd-trigger:hover{border-color:rgba(34,211,238,.75);box-shadow:0 0 0 3px rgba(6,182,212,.18),inset 0 0 16px -8px rgba(6,182,212,.6)}
+html:not([data-theme="light"]) .gx-scope .gx-in.gx-ai{background-color:rgba(6,182,212,.14);border-color:rgba(34,211,238,.6)}
+html:not([data-theme="light"]) .gx-scope .gx-more,html:not([data-theme="light"]) .gx-scope .gx-det{background:rgba(6,182,212,.04);border-color:rgba(6,182,212,.26)}
+html:not([data-theme="light"]) .gx-scope .gx-dd-panel{background:rgba(11,15,25,.96);border-color:rgba(6,182,212,.4);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 24px -10px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #v-gasp .gx-in,html:not([data-theme="light"]) #v-gasp .gx-dd-trigger{background-color:rgba(139,92,246,.06);border-color:rgba(139,92,246,.32);box-shadow:inset 0 0 16px -9px rgba(139,92,246,.55)}
+html:not([data-theme="light"]) #v-gasp .gx-in:focus,html:not([data-theme="light"]) #v-gasp .gx-dd-trigger:hover{border-color:rgba(167,139,250,.8);box-shadow:0 0 0 3px rgba(139,92,246,.2),inset 0 0 16px -8px rgba(139,92,246,.65)}
+html:not([data-theme="light"]) #v-gasp .gx-in.gx-ai{background-color:rgba(139,92,246,.16);border-color:rgba(167,139,250,.65)}
+html:not([data-theme="light"]) #v-gasp .gx-more,html:not([data-theme="light"]) #v-gasp .gx-det{background:rgba(139,92,246,.05);border-color:rgba(139,92,246,.3)}
+html:not([data-theme="light"]) #v-gasp .gx-dd-panel{border-color:rgba(139,92,246,.42);box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 24px -10px rgba(139,92,246,.55)}
+
+/* Fase 6 (cont.): tarjetas de ítems, filas del lote y avisos también en cristal */
+html:not([data-theme="light"]) .gx-scope .gx-it,html:not([data-theme="light"]) .gx-scope .gx-dr2{background:rgba(6,182,212,.04);border-color:rgba(6,182,212,.26);box-shadow:inset 0 0 18px -12px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) .gx-scope .gx-status{background:rgba(6,182,212,.06)}
+html:not([data-theme="light"]) .gx-scope .gx-prog{background:rgba(255,255,255,.06)}
+html:not([data-theme="light"]) #v-gasp .gx-it,html:not([data-theme="light"]) #v-gasp .gx-dr2{background:rgba(139,92,246,.05);border-color:rgba(139,92,246,.3);box-shadow:inset 0 0 18px -12px rgba(139,92,246,.55)}
+html:not([data-theme="light"]) #v-gasp .gx-status{background:rgba(139,92,246,.07)}
+html:not([data-theme="light"]) .gx-scope .gx-dr2.err{border-color:var(--gx-err)}
+html:not([data-theme="light"]) .gx-scope .gx-dr2.warn,html:not([data-theme="light"]) .gx-scope .gx-dr2.incomplete{border-color:var(--gx-warn)}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}

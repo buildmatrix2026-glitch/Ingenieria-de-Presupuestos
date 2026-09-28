@@ -1132,6 +1132,26 @@ html:not([data-theme="light"]) #app .ni{border-radius:12px}
 html:not([data-theme="light"]) #app .ni:hover{transform:translateX(3px);transition:all .25s}
 @media (prefers-reduced-motion:reduce){#app .sd,#app .sd::after,#app .sd::before{animation:none!important}}
 
+/* ══════════ Fase 5 HUD: barras neón y nombres de capítulos en monoespaciada ══════════ */
+@keyframes bmBarPulse{0%,100%{filter:brightness(1) saturate(1.15)}50%{filter:brightness(1.28) saturate(1.4)}}
+/* Nombres de capítulos y de las listas del panel general */
+#app .cah .cname{font-family:var(--f-mo);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+#app .br2 .bl{font-family:var(--f-mo);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+#app .br2{grid-template-columns:minmax(150px,220px) 1fr 64px}
+html:not([data-theme="light"]) #app .cah .cname{color:#7ee9f9;text-shadow:0 0 8px rgba(6,182,212,.5)}
+html:not([data-theme="light"]) #app .br2 .bl{color:#8feaf8;text-shadow:0 0 8px rgba(6,182,212,.45)}
+html:not([data-theme="light"]) #app .br2 .bv{color:#e5faff;text-shadow:0 0 8px rgba(6,182,212,.4)}
+/* Barras: el riel deja escapar el brillo, el relleno es neón con punta luminosa y pulso */
+html:not([data-theme="light"]) #app .bt,html:not([data-theme="light"]) .gx-scope .gx-bar .t{overflow:visible;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(6,182,212,.14),inset 0 0 8px rgba(0,0,0,.5)}
+html:not([data-theme="light"]) #app .bt{height:7px;border-radius:99px}
+html:not([data-theme="light"]) .gx-scope .gx-bar .t{height:9px}
+html:not([data-theme="light"]) #app .bt i{background:linear-gradient(90deg,#1d6bff,#22d3ee 70%,#a5f3fc);border-radius:99px;
+  box-shadow:0 0 6px #22d3ee,0 0 16px rgba(6,182,212,.85),0 0 32px rgba(6,182,212,.5);animation:bmBarPulse 3.2s ease-in-out infinite}
+html:not([data-theme="light"]) .gx-scope .gx-bar .t i{border-radius:99px;animation:bmBarPulse 3.2s ease-in-out infinite}
+html:not([data-theme="light"]) #app .bt i::before,html:not([data-theme="light"]) .gx-scope .gx-bar .t i::before{content:'';position:absolute;right:0;top:0;bottom:0;width:10px;border-radius:99px;
+  background:radial-gradient(circle at 80% 50%,#fff,rgba(255,255,255,.55) 40%,transparent 75%);opacity:.9}
+@media (prefers-reduced-motion:reduce){#app .bt i,.gx-scope .gx-bar .t i{animation:none!important}}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -14175,7 +14195,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       html += '<div class="gx-bars">' + cats.map(function (c) {
         var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
         return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
-          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 12px ' + col + '99"></i></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }
@@ -16592,7 +16612,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       html += '<div class="gx-bars">' + cats.map(function (c) {
         var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
         return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
-          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 12px ' + col + '99"></i></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }

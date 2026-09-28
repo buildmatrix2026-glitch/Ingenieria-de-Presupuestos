@@ -1253,6 +1253,57 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
   body.ia #cursor-ring{display:none!important}
 }
 
+/* ══════════ Fase 9: las ventanas de Panel general, Constructor APU y Grupos y rubros se ajustan a la pantalla
+   igual que Insumos: la tarjeta ocupa el alto disponible, termina con su borde visible y desplaza su contenido por dentro.
+   Si la pantalla es muy baja, la página desplaza (nunca recorta). ══════════ */
+
+/* Barras de desplazamiento internas finas, con acento neón */
+#dbars,#dgrps,#gg,#gdet .card>div,#v-apu #apu-new-panel>div:nth-child(2),#v-apu #ae,#ivw{scrollbar-width:thin;scrollbar-color:rgba(6,182,212,.45) transparent}
+#dbars::-webkit-scrollbar,#dgrps::-webkit-scrollbar,#gg::-webkit-scrollbar,#gdet .card>div::-webkit-scrollbar,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar,#v-apu #ae::-webkit-scrollbar{width:8px;height:8px}
+#dbars::-webkit-scrollbar-thumb,#dgrps::-webkit-scrollbar-thumb,#gg::-webkit-scrollbar-thumb,#gdet .card>div::-webkit-scrollbar-thumb,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar-thumb,#v-apu #ae::-webkit-scrollbar-thumb{background:rgba(6,182,212,.4);border-radius:8px}
+
+/* ── Panel general ── */
+@media(min-width:961px){
+  #v-dash.ac{display:flex;flex-direction:column;height:100%}
+  .mn:has(#v-dash.ac){display:flex;flex-direction:column;padding-bottom:0}
+  #v-dash .vh,#v-dash .dg{flex-shrink:0}
+  #v-dash .dt{flex:1;min-height:240px;margin-bottom:24px;grid-template-rows:minmax(0,1fr)}
+  #v-dash .dt>.card{display:flex;flex-direction:column;min-height:0}
+  #v-dash .dt>.card>.ph{flex-shrink:0}
+  #dbars,#dgrps{flex:1;min-height:0;overflow-y:auto}
+}
+@media(max-width:960px){
+  #v-dash .dt>.card{display:flex;flex-direction:column;max-height:min(62dvh,520px)}
+  #v-dash .dt>.card>.ph{flex-shrink:0}
+  #dbars,#dgrps{flex:1;min-height:0;overflow-y:auto}
+}
+
+/* ── Constructor APU ── */
+#v-apu.ac{display:flex;flex-direction:column;height:100%;min-height:0}
+.mn:has(#v-apu.ac){display:flex;flex-direction:column;padding-bottom:0}
+#v-apu>.vh{flex-shrink:0}
+#v-apu>div:not(.vh){flex:1 1 auto;min-height:min(560px,70dvh);display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+#v-apu #apu-new-panel{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0;margin-bottom:0!important}
+#v-apu #apu-new-panel>div:first-child{flex-shrink:0}
+#v-apu #apu-new-panel>div:nth-child(2){flex:1;min-height:0;overflow-y:auto}
+#v-apu #ae{flex:0 1 auto;min-height:0;max-height:55%;overflow-y:auto}
+#v-apu #ae:empty{display:none}
+
+/* ── Grupos y rubros ── */
+#v-grp.ac{display:flex;flex-direction:column;height:100%;min-height:0}
+.mn:has(#v-grp.ac){display:flex;flex-direction:column;padding-bottom:0}
+#v-grp>.vh{flex-shrink:0}
+#v-grp #ghome{flex:1 1 auto;min-height:min(420px,60dvh);display:flex;flex-direction:column;margin-bottom:24px}
+#v-grp #ghome>.card{flex-shrink:0}
+#v-grp #gg{flex:1;min-height:0;overflow-y:auto;align-content:start;padding-bottom:4px}
+#v-grp #gdet:not([style*="none"]){display:flex!important;flex-direction:column;flex:1 1 auto;min-height:min(420px,60dvh);margin-bottom:24px}
+#v-grp #gdet>div:first-child,#v-grp #gdet>.vh{flex-shrink:0}
+#v-grp #gdet>.card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0!important}
+#v-grp #gdet>.card>div{flex:1;min-height:0;overflow:auto}
+#v-grp #gdet #gdet-editor{flex:0 1 auto;min-height:0;max-height:50%;overflow-y:auto}
+#v-grp #gdet #gdet-editor:empty{display:none}
+#v-grp #gdet .tbl thead th{position:sticky;top:0;z-index:2;background:rgba(11,15,25,.98)}
+
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}

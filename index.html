@@ -1156,10 +1156,8 @@ html:not([data-theme="light"]) #app .bt i::before,html:not([data-theme="light"])
    Las franjas de pestañas/fechas, los campos, "Más datos" y los paneles de detalle pasan a
    cristal translúcido para que se vea el fondo con líneas de escáner y resplandor de la ventana. */
 html:not([data-theme="light"]) .gx-scope .mo .gx-cattabs,html:not([data-theme="light"]) .gx-scope .mo .gx-daterange{background-color:transparent!important;background-image:none!important}
-html:not([data-theme="light"]) .gx-scope .mo .gx-cattabs{background-image:linear-gradient(180deg,rgba(6,182,212,.05),transparent)!important}
-html:not([data-theme="light"]) .gx-scope .mo .gx-daterange{background-image:linear-gradient(0deg,rgba(6,182,212,.05),transparent)!important;border-bottom-color:rgba(6,182,212,.3)}
-html:not([data-theme="light"]) #v-gasp .mo .gx-cattabs{background-image:linear-gradient(180deg,rgba(139,92,246,.07),transparent)!important}
-html:not([data-theme="light"]) #v-gasp .mo .gx-daterange{background-image:linear-gradient(0deg,rgba(139,92,246,.07),transparent)!important;border-bottom-color:rgba(139,92,246,.32)}
+html:not([data-theme="light"]) .gx-scope .mo .gx-daterange{border-bottom-color:rgba(6,182,212,.22)}
+html:not([data-theme="light"]) #v-gasp .mo .gx-daterange{border-bottom-color:rgba(139,92,246,.24)}
 /* la tarjeta interna del formulario no debe dibujar un panel propio dentro de la ventana */
 html:not([data-theme="light"]) .gx-scope .mo .gx-card{box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0;background-image:none}
 html:not([data-theme="light"]) .gx-scope .mo .gx-card:hover{box-shadow:none}
@@ -1183,6 +1181,32 @@ html:not([data-theme="light"]) #v-gasp .gx-it,html:not([data-theme="light"]) #v-
 html:not([data-theme="light"]) #v-gasp .gx-status{background:rgba(139,92,246,.07)}
 html:not([data-theme="light"]) .gx-scope .gx-dr2.err{border-color:var(--gx-err)}
 html:not([data-theme="light"]) .gx-scope .gx-dr2.warn,html:not([data-theme="light"]) .gx-scope .gx-dr2.incomplete{border-color:var(--gx-warn)}
+
+/* ══════════ Fase 7 HUD: botones acordes, TOTAL GENERAL y cifras con neón fino ══════════ */
+/* Botón Escanear: morado en Gastos personales, cian neón de cristal en Gastos y facturas */
+html:not([data-theme="light"]) .gx-scope .gx-scan{background:rgba(6,182,212,.10);border-color:rgba(34,211,238,.55);color:#22d3ee;text-shadow:0 0 10px rgba(6,182,212,.55);box-shadow:inset 0 0 20px -9px rgba(6,182,212,.6)}
+html:not([data-theme="light"]) .gx-scope .gx-scan:hover{background:rgba(6,182,212,.18);box-shadow:0 8px 28px -10px rgba(6,182,212,.6),inset 0 0 20px -9px rgba(6,182,212,.7)}
+html:not([data-theme="light"]) #v-gasp .gx-scan{background:rgba(139,92,246,.11);border-color:rgba(167,139,250,.6);color:#d8b4fe;text-shadow:0 0 10px rgba(168,85,247,.55);box-shadow:inset 0 0 20px -9px rgba(139,92,246,.65)}
+html:not([data-theme="light"]) #v-gasp .gx-scan:hover{background:rgba(139,92,246,.2);box-shadow:0 8px 28px -10px rgba(139,92,246,.65),inset 0 0 20px -9px rgba(139,92,246,.75)}
+
+/* Botones principales (antes azules): cristal cian con neón, en Presupuesto IA y en el resto de la app */
+html:not([data-theme="light"]) #v-pia .pia-btn-primary,html:not([data-theme="light"]) #app .btn:not(.ghost){background:linear-gradient(135deg,rgba(6,182,212,.26),rgba(34,211,238,.10));border:1px solid rgba(34,211,238,.6);color:#b5f5ff;
+  text-shadow:0 0 10px rgba(6,182,212,.6);box-shadow:inset 0 0 20px -8px rgba(6,182,212,.65),0 0 22px -10px rgba(6,182,212,.7)}
+html:not([data-theme="light"]) #v-pia .pia-btn-primary:hover:not(:disabled),html:not([data-theme="light"]) #app .btn:not(.ghost):hover{background:linear-gradient(135deg,rgba(6,182,212,.38),rgba(34,211,238,.16));border-color:rgba(103,232,249,.85);
+  box-shadow:inset 0 0 22px -8px rgba(6,182,212,.75),0 8px 30px -10px rgba(6,182,212,.75)}
+
+/* Presupuesto: TOTAL GENERAL en cristal neón (cian + violeta) con destello lento */
+html:not([data-theme="light"]) #app .fc.hl{position:relative;overflow:hidden;border-top:none;
+  background:radial-gradient(circle at 100% 0%,rgba(34,211,238,.30),transparent 62%),radial-gradient(circle at 0% 100%,rgba(139,92,246,.28),transparent 62%),linear-gradient(180deg,rgba(11,15,25,.97),rgba(15,23,42,.97));
+  box-shadow:inset 0 0 0 1px rgba(34,211,238,.55),inset 0 0 34px -10px rgba(6,182,212,.55)}
+html:not([data-theme="light"]) #app .fc.hl::after{content:'';position:absolute;top:0;bottom:0;left:0;width:38%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);transform:translateX(-130%);animation:bmShine 5s 1s ease-in-out infinite}
+html:not([data-theme="light"]) #app .fc.hl .fl{color:#a5f3fc;text-shadow:0 0 8px rgba(34,211,238,.6)}
+/* Cifras de la franja financiera: degradado blanco→cian con neón fino (sin destellar) */
+html:not([data-theme="light"]) #app .fc .fv{background:linear-gradient(180deg,#f4feff 8%,#7ff0ff 95%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:none;
+  filter:drop-shadow(0 0 4px rgba(34,211,238,.45)) drop-shadow(0 0 12px rgba(6,182,212,.22));font-weight:800}
+html:not([data-theme="light"]) #app .fc.hl .fv{background:linear-gradient(180deg,#ffffff 5%,#a5f3fc 95%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:none;
+  filter:drop-shadow(0 0 5px rgba(34,211,238,.6)) drop-shadow(0 0 16px rgba(139,92,246,.35))}
+@media (prefers-reduced-motion:reduce){#app .fc.hl::after{animation:none}}
 
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}

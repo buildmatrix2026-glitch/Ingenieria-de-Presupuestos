@@ -7739,6 +7739,7 @@ function renderGrpDet(g,targetCode){
     +'</button>'
     +'<span style="font-size:12px;color:var(--sld);font-family:var(--f-mo)">'+esc(g.p)+' · '+g.r.length+' rubros</span>'
     +'</div>'
+    +'<div id="gdet-list">'
     +'<div class="vh"><div><h2>'+esc(g.n)+'</h2><div class="sub">Haz clic en cualquier fila para editarla</div></div></div>'
     +'<div class="card" style="overflow:hidden;margin-bottom:14px"><div style="overflow-x:auto">'
     +'<table class="tbl"><thead><tr>'
@@ -7749,6 +7750,7 @@ function renderGrpDet(g,targetCode){
     +'<th style="width:28px"></th>'
     +'<th style="width:28px"></th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>'
+    +'</div>'
     +'<div id="gdet-editor"></div>';
   // Attach click + hover events via JS (no inline quote conflicts)
   $id('gdet').querySelectorAll('.gdet-tr').forEach(function(tr){
@@ -7823,9 +7825,10 @@ function openRubroEdit(gIdx, rIdx){
   var a=BD.A[code]; // APU data
   var ed=document.getElementById('gdet-editor');
   if(!ed) return;
+  var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='none';
 
-  // ── Build the editor HTML ──────────────────────────────────────────
-  var html='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
+  var html='<button class="btn ghost" style="padding:8px 16px;font-size:13px;margin-bottom:12px" id="gred-back">'    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a la lista'    +'</button>';
+  html+='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
 
   // Header
   html+='<div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:10px">';
@@ -8034,6 +8037,7 @@ function openRubroEdit(gIdx, rIdx){
 
   // ── Wire up buttons ──
   document.getElementById('gred-close').addEventListener('click', closeRubroEdit);
+  document.getElementById('gred-back').addEventListener('click', closeRubroEdit);
   document.getElementById('gred-cancel').addEventListener('click', closeRubroEdit);
   document.getElementById('gred-save').addEventListener('click', function(){ saveRubroEdit(gIdx,rIdx,a); });
 
@@ -8188,6 +8192,7 @@ function closeRubroEdit(){
   const ed=document.getElementById('gdet-editor');
   if(ed) ed.innerHTML='';
   document.querySelectorAll('[id^="gdrow-"]').forEach(el=>el.style.background='');
+  var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='';
 }
 
 // Eliminar fila del editor de grupos

@@ -5213,8 +5213,7 @@ window.BM_CONFIRM = function (msg) {
     });
     return out;
   }
-  async function leerDoc(pdfjs, u8, rango) {
-    var doc = await pdfjs.getDocument({ data: u8, isEvalSupported: false }).promise;
+  async function leerDoc(doc, rango) {
     var lines = [], izq = null, pages = [];
     var ini = rango ? rango[0] : 1, fin = rango ? Math.min(rango[1], doc.numPages) : Math.min(doc.numPages, MAX_PAGES);
     for (var p = ini; p <= fin; p++) {
@@ -5223,7 +5222,6 @@ window.BM_CONFIRM = function (msg) {
       pages.push({ cells: tc.items, W: vp.width, H: vp.height });
       if (izq == null) izq = lineasIzquierda(tokenizar(tc.items), vp.width, vp.height);
     }
-    try { doc.destroy(); } catch (e) {}
     return { lines: lines, izq: izq || [], pages: pages, texto: lines.join('\n') };
   }
 
@@ -5256,15 +5254,12 @@ window.BM_CONFIRM = function (msg) {
   }
   async function detectarComprobantes(file, maxPag) {
     if (!(/pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || ''))) return null;
-    var buf = await leerArchivo(file);
     var pdfjs = await cargarPdfjs();
-    var doc = await pdfjs.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+    var doc = await abrirDoc(file, pdfjs);
     var n = doc.numPages;
-    try {
-      if (n < 2) return null;
-      var rangos = await detectarInicios(pdfjs, doc, Math.min(n, maxPag || 2000));
-      return (rangos.length > 1) ? { total: n, rangos: rangos } : null;
-    } finally { try { doc.destroy(); } catch (e) {} }
+    if (n < 2) return null;
+    var rangos = await detectarInicios(pdfjs, doc, Math.min(n, maxPag || 2000));
+    return (rangos.length > 1) ? { total: n, rangos: rangos } : null;
   }
 
   /* ───────── cabecera ───────── */
@@ -5843,6 +5838,18 @@ window.BM_CONFIRM = function (msg) {
     return _pdfjsP;
   }
 
+  var _docCache = (typeof WeakMap !== 'undefined') ? new WeakMap() : null;
+  async function abrirDoc(file, pdfjs) {
+    if (_docCache && _docCache.has(file)) {
+      var ent = _docCache.get(file);
+      try { return await ent.p; } catch (e) { _docCache.delete(file); }
+    }
+    var buf = await leerArchivo(file);
+    var p = pdfjs.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+    if (_docCache) _docCache.set(file, { p: p });
+    return p;
+  }
+
   function leerArchivo(file) {
     if (file.arrayBuffer) return file.arrayBuffer();
     return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsArrayBuffer(file); });
@@ -5854,7 +5861,8 @@ window.BM_CONFIRM = function (msg) {
     var t0 = Date.now();
     var head = String.fromCharCode.apply(null, Array.prototype.slice.call(u8.subarray(0, 5)));
     if (head !== '%PDF-') return null;
-    var lec = await leerDoc(pdfjs, u8, rango);
+    var doc = await pdfjs.getDocument({ data: u8, isEvalSupported: false }).promise;
+    var lec; try { lec = await leerDoc(doc, rango); } finally { try { doc.destroy(); } catch (e) {} }
     if (lec.texto.replace(/\s/g, '').length < MIN_CHARS) return null;
     var res = procesarLecturas(lec, contexto, t0);
     try { console.log('[BM_SRI]', contexto, '|', res.proveedor, '| aplica:', res.aplica, '|', res.razonClasif); } catch (e) {}
@@ -5864,9 +5872,15 @@ window.BM_CONFIRM = function (msg) {
     try {
       if (!file || !(/pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || ''))) return null;
       if (!rango && file.size > 15 * 1024 * 1024) return null;
-      var buf = await leerArchivo(file);
       var pdfjs = await cargarPdfjs();
-      return await extractBuffer(new Uint8Array(buf), contexto, pdfjs, rango);
+      var doc = await abrirDoc(file, pdfjs);
+      if (rango && rango[1] - rango[0] > 60) return null;   // tramo enorme sin clave detectada: mejor no combinarlo en un solo comprobante
+      var t0 = Date.now();
+      var lec = await leerDoc(doc, rango);
+      if (lec.texto.replace(/\s/g, '').length < MIN_CHARS) return null;
+      var res = procesarLecturas(lec, contexto, t0);
+      try { console.log('[BM_SRI]', contexto, '|', res.proveedor, '| aplica:', res.aplica, '|', res.razonClasif); } catch (e) {}
+      return res;
     } catch (e) {
       try { console.warn('[BM_SRI] lectura local no disponible, se usa IA:', e && e.message ? e.message : e); } catch (x) {}
       return null;
@@ -15620,6 +15634,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!/^image\//i.test(file.type || '') && !isPdf(file) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '')) { setStatus('err', 'El archivo seleccionado no es una imagen ni un PDF.'); return; }
     if (typeof navigator !== 'undefined' && navigator.onLine === false && !isPdf(file)) { setStatus('err', 'Sin conexión a internet. Puedes ingresar los datos manualmente.'); return; }
     if (!getKey() && !isPdf(file)) { setStatus('err', friendly({ code: 'NO_KEY' })); renderKeyInfo(); return; }
+    if (isPdf(file) && window.BM_SRI) {
+      var loteK = await BM_SRI.detectarLote(file, 2000);
+      if (loteK && loteK.rangos.length > 1) {
+        setStatus('warn', 'Este PDF trae ' + loteK.rangos.length + ' comprobantes juntos: se agregaron a la cola de abajo para leerlos todos por separado.');
+        addFilesToBatch([file]);
+        return;
+      }
+    }
     setBusy(true);
     var t0 = Date.now(), tok = newTok(), base = 'Procesando comprobante con IA...';
     st.scanTok = tok; st.lastFile = file;
@@ -18252,6 +18274,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!/^image\//i.test(file.type || '') && !isPdf(file) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '')) { setStatus('err', 'El archivo seleccionado no es una imagen ni un PDF.'); return; }
     if (typeof navigator !== 'undefined' && navigator.onLine === false && !isPdf(file)) { setStatus('err', 'Sin conexión a internet. Puedes ingresar los datos manualmente.'); return; }
     if (!getKey() && !isPdf(file)) { setStatus('err', friendly({ code: 'NO_KEY' })); renderKeyInfo(); return; }
+    if (isPdf(file) && window.BM_SRI) {
+      var loteK = await BM_SRI.detectarLote(file, 2000);
+      if (loteK && loteK.rangos.length > 1) {
+        setStatus('warn', 'Este PDF trae ' + loteK.rangos.length + ' comprobantes juntos: se agregaron a la cola de abajo para leerlos todos por separado.');
+        addFilesToBatch([file]);
+        return;
+      }
+    }
     setBusy(true);
     var t0 = Date.now(), tok = newTok(), base = 'Procesando comprobante con IA...';
     st.scanTok = tok; st.lastFile = file;

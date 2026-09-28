@@ -1403,13 +1403,6 @@ html:not([data-theme="light"]) #land nav .nav-links a:hover{color:#8ff1ff;text-s
 html:not([data-theme="light"]) #land nav .nav-links a:hover::after{transform:scaleX(1)}
 @media (prefers-reduced-motion:reduce){#land nav .nav-logo-text .lg-b,#land nav .nav-logo-text .lg-m{animation:none!important}#land nav .nav-links a:hover{animation:none}}
 
-/* ══════════ Fase 14: notas de crédito (04) ══════════ */
-.gx-scope .gx-chip.gx-nc{color:#fca5a5;border-color:rgba(248,113,113,.65)!important;background:rgba(248,113,113,.12);font-weight:700;letter-spacing:.04em}
-.gx-scope .gx-item .v.neg,.gx-scope .gx-dr2 .v.neg{color:#fca5a5}
-.gx-scope .gx-status.on.warn{}
-#gx-nc-row,#gxp-nc-row{padding:0}
-@media(max-width:520px){#gx-nc-row>div,#gxp-nc-row>div{grid-template-columns:1fr!important}}
-
 /* ── LANDING ── */
 nav{position:fixed;top:0;left:0;right:0;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,48px);z-index:100;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--br);background:rgba(6,11,20,.76)}
 [data-theme="light"] nav{background:rgba(230,238,252,.92)}
@@ -4269,25 +4262,6 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                   <label for="gx-proveedor">Proveedor</label>
                   <input class="gx-in" id="gx-proveedor" type="text" autocomplete="off" placeholder="Razón social del proveedor">
                 </div>
-                <div class="gx-f full">
-                  <label for="gx-tipo">Tipo de comprobante</label>
-                  <select class="gx-in" id="gx-tipo">
-                    <option value="01">Factura (01)</option>
-                    <option value="04">Nota de crédito (04) — resta del total</option>
-                  </select>
-                </div>
-                <div class="gx-f full" id="gx-nc-row" style="display:none">
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="gx-f">
-                      <label for="gx-facmod">Factura que modifica</label>
-                      <input class="gx-in m" id="gx-facmod" type="text" autocomplete="off" placeholder="001-002-000012345">
-                    </div>
-                    <div class="gx-f">
-                      <label for="gx-motivo">Motivo de la devolución</label>
-                      <input class="gx-in" id="gx-motivo" type="text" autocomplete="off" placeholder="Devolución de mercadería">
-                    </div>
-                  </div>
-                </div>
                 <div class="gx-f">
                   <label for="gx-ruc">RUC</label>
                   <input class="gx-in m" id="gx-ruc" type="text" inputmode="numeric" autocomplete="off" placeholder="1790000000001">
@@ -4516,25 +4490,6 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
                 <div class="gx-f full">
                   <label for="gxp-proveedor">Proveedor</label>
                   <input class="gx-in" id="gxp-proveedor" type="text" autocomplete="off" placeholder="Razón social del proveedor">
-                </div>
-                <div class="gx-f full">
-                  <label for="gxp-tipo">Tipo de comprobante</label>
-                  <select class="gx-in" id="gxp-tipo">
-                    <option value="01">Factura (01)</option>
-                    <option value="04">Nota de crédito (04) — resta del total</option>
-                  </select>
-                </div>
-                <div class="gx-f full" id="gxp-nc-row" style="display:none">
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="gx-f">
-                      <label for="gxp-facmod">Factura que modifica</label>
-                      <input class="gx-in m" id="gxp-facmod" type="text" autocomplete="off" placeholder="001-002-000012345">
-                    </div>
-                    <div class="gx-f">
-                      <label for="gxp-motivo">Motivo de la devolución</label>
-                      <input class="gx-in" id="gxp-motivo" type="text" autocomplete="off" placeholder="Devolución de mercadería">
-                    </div>
-                  </div>
                 </div>
                 <div class="gx-f">
                   <label for="gxp-ruc">RUC</label>
@@ -13739,7 +13694,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
   function say(m) { if (typeof toast === 'function') { try { toast(m); } catch (e) {} } }
   function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
-  function money(n) { n = Number(n || 0); return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function money(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function todayISO() {
     var d = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
@@ -13839,7 +13794,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Analiza TODO el documento y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con exactamente estas claves ' +
     '(la clave "items" va siempre al final): ' +
     '{"proveedor": "", "ruc": "", "numero_factura": "", "autorizacion": "", "fecha": "YYYY-MM-DD", ' +
-    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", "tipo_comprobante": "01", "documento": "", "factura_modificada": "", "motivo": "", ' +
+    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", ' +
     '"subtotal": 0.00, "descuento": 0.00, ' +
     '"desglose_iva": [{"tarifa": "15%", "base": 0.00, "iva": 0.00}], ' +
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
@@ -13865,8 +13820,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
     'CONTEXTO: este comprobante es para gastos de EJECUCIÓN, LOGÍSTICA, ADMINISTRACIÓN, PERMISOS o MANTENIMIENTO de un proyecto de obra (nunca gasto de consumo personal o familiar). ' +
     'IMPORTANTE SOBRE LA IDENTIFICACIÓN DEL CLIENTE: TODAS las facturas de este usuario (de obra y personales) se emiten con su mismo RUC, así que cliente_identificacion NO sirve para decidir si el gasto es de obra o personal (no uses si son 10 o 13 dígitos). Decide ÚNICAMENTE por lo que se compró o el servicio contratado, mirando los ítems y el tipo de proveedor. ' +
-    'TIPO DE COMPROBANTE (lee PRIMERO la cabecera del documento SRI y la clave de acceso de 49 dígitos; los dígitos 9 y 10 son el tipo): 01 = FACTURA; 04 = NOTA DE CRÉDITO (devolución, anulación o descuento posterior); 05 = NOTA DE DÉBITO; 03 = LIQUIDACIÓN DE COMPRA; 06 = GUÍA DE REMISIÓN; 07 = COMPROBANTE DE RETENCIÓN. Pon en tipo_comprobante SOLO el código de 2 dígitos y en documento el título impreso (ej. FACTURA, NOTA DE CRÉDITO). ' +
-    'Extrae SIEMPRE todos los montos, cantidades e ítems como números POSITIVOS tal como están impresos en el PDF (el sistema aplica el signo negativo a las notas de crédito). Si es NOTA DE CRÉDITO (04): en factura_modificada pon el número del comprobante que modifica (campo Comprobante que se modifica, con formato 001-002-000012345) y en motivo la razón impresa (devolución de mercadería, anulación, descuento, etc.); el desglose_iva, subtotal, iva, total e ítems son los valores DEVUELTOS, en positivo. Si es 06 (guía de remisión) o 07 (retención) no es un gasto: pon aplica=false y explica en motivo_no_aplica de qué documento se trata. ' +
     'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos de OBRA / proyectos de construcción. ' +
     'Pon aplica=true si el comprobante es un gasto de obra: materiales de construcción, mano de obra, alquiler de equipos y maquinaria, subcontratos, trámites y permisos de obra, y gastos indirectos de obra (combustible y mantenimiento de vehículos de obra, EPP y ropa de trabajo, alimentación de la cuadrilla, fletes, papelería, servicios de la obra). ' +
     'Pon aplica=false y explica en motivo_no_aplica (una frase corta en español, ej. "Factura de supermercado: es un gasto personal") si es claramente un gasto PERSONAL o FAMILIAR: supermercado o víveres del hogar, restaurantes familiares, farmacia, consultas médicas, ropa o calzado casual, educación o colegio, cine o entretenimiento, hoteles o viajes turísticos, servicios básicos del hogar (agua, luz, internet de casa), arriendo de vivienda, mascotas y cualquier compra de consumo personal. ' +
@@ -13938,7 +13891,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function modelList() {
     var out = [], seen = {}, saved = '';
     try { saved = localStorage.getItem('bm_gemini_model_ok') || ''; } catch (e) {}
-    [GEMINI_MODEL, saved].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
+    [saved, GEMINI_MODEL].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
     return out;
   }
 
@@ -13946,16 +13899,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 3, maxConc: 4, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 25, concurrency: 2, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
-    cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
+    cool: { server: 45000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
   };
 
   // Estado de cada modelo durante la sesión: uno que acaba de responder "saturado" se deja en pausa
   // y se prueba primero con los que están sanos.
   var HEALTH = {};
-  var okStreak = 0;   // aciertos seguidos: al llegar a 3 se sube el paralelismo otra vez
   function cool(m, ms) { HEALTH[m] = { until: Date.now() + ms }; }
   function orderModels() {
     var now = Date.now(), all = modelList();
@@ -14126,40 +14078,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return it;
   }
 
-  // ── Tipo de comprobante del SRI: 01 factura · 03 liquidación · 04 NOTA DE CRÉDITO · 05 nota de débito · 06 guía · 07 retención ──
-  function docTipo(j, aut) {
-    var claveTipo = /^\d{49}$/.test(aut) ? aut.substr(8, 2) : '';                    // dígitos 9-10 de la clave de acceso
-    var ai = String(j.tipo_comprobante == null ? '' : j.tipo_comprobante).replace(/\D/g, '');
-    if (ai.length === 1) ai = '0' + ai;
-    var doc = String(j.documento || '');
-    var byText = /nota\s+de\s+cr[eé]dito/i.test(doc) ? '04' : /nota\s+de\s+d[eé]bito/i.test(doc) ? '05' : /retenci[oó]n/i.test(doc) ? '07' :
-                 /gu[ií]a\s+de\s+remisi[oó]n/i.test(doc) ? '06' : /liquidaci[oó]n/i.test(doc) ? '03' : /factura/i.test(doc) ? '01' : '';
-    var valid = ['01', '03', '04', '05', '06', '07'];
-    if (valid.indexOf(claveTipo) >= 0) return claveTipo;                              // la clave de acceso manda
-    if (valid.indexOf(ai) >= 0) return ai;
-    return byText || '01';
-  }
-  function isNC(g) { var e = g && g.extra; return !!((e && e.tipo === '04') || (g && g.total < 0)); }
-  function tipoLabel(g) { var t = (g && g.extra && g.extra.tipo) || (g && g.total < 0 ? '04' : '01'); return t === '04' ? 'Nota de crédito (04)' : t === '05' ? 'Nota de débito (05)' : t === '03' ? 'Liquidación de compra (03)' : 'Factura (01)'; }
-  // Signo contable de una nota de crédito: importes y cantidades NEGATIVOS, precio unitario POSITIVO. Idempotente.
-  function ncApply(g) {
-    if (!(g && g.extra && g.extra.tipo === '04')) return g;
-    var N = function (v) { v = Number(v) || 0; return v ? -Math.abs(v) : 0; };
-    g.subtotal = round2(N(g.subtotal)); g.iva = round2(N(g.iva)); g.total = round2(N(g.total));
-    var e = g.extra;
-    ['subtotal0', 'noObjeto', 'exento', 'descuento', 'ice', 'propina'].forEach(function (k) { if (e[k] != null) e[k] = round2(N(e[k])); });
-    e.desglose = (e.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: round2(N(d.base)), iva: round2(N(d.iva)) }; });
-    g.items = (g.items || []).map(function (it) { it.cant = round6(N(it.cant)); it.pu = round6(Math.abs(Number(it.pu) || 0)); it.dto = round2(N(it.dto)); it.total = round2(N(it.total)); return it; });
-    return g;
-  }
-  // Igual, pero sobre el resultado de la IA (montos planos)
-  function ncParsed(o) {
-    var N = function (v) { v = Number(v) || 0; return v ? -Math.abs(v) : 0; };
-    ['subtotal', 'iva', 'total', 'descuento', 'subtotal0', 'noObjeto', 'exento', 'ice', 'propina', 'itemsSum'].forEach(function (k) { o[k] = round2(N(o[k])); });
-    o.desglose = (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: round2(N(d.base)), iva: round2(N(d.iva)) }; });
-    o.items = (o.items || []).map(function (it) { it.cant = round6(N(it.cant)); it.pu = round6(Math.abs(Number(it.pu) || 0)); it.dto = round2(N(it.dto)); it.total = round2(N(it.total)); return it; });
-  }
-
   // Texto de la IA → objeto normalizado (cabecera, montos, desglose de IVA e ítems)
   function parseAI(text) {
     var t = String(text || '').replace(/```(?:json)?/gi, '').trim();
@@ -14193,10 +14111,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       categoria: String(j.categoria || '').trim(),
       aplica: !(j.aplica === false || /^(false|no)$/i.test(String(j.aplica == null ? '' : j.aplica).trim())),
       motivoNoAplica: String(j.motivo_no_aplica || '').replace(/\s+/g, ' ').trim(),
-      tipo: docTipo(j, String(j.autorizacion || '').replace(/[^\d]/g, '')),
-      documento: String(j.documento || '').replace(/\s+/g, ' ').trim(),
-      facModificada: String(j.factura_modificada || j.documento_modificado || '').replace(/\s+/g, ' ').trim(),
-      motivoNC: String(j.motivo || '').replace(/\s+/g, ' ').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -14213,9 +14127,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var tol = Math.max(0.05, 0.01 * o.items.length, o.subtotal * 0.002);
     o.itemsWarn = o.items.length > 0 && o.subtotal > 0 &&
       Math.abs(o.itemsSum - o.subtotal) > tol && Math.abs(o.itemsSum - o.total) > tol;
-    // Tipo SRI: 06/07 no son gasto; 04 = nota de crédito → montos y cantidades en negativo (precio unitario positivo)
-    if (o.tipo === '06' || o.tipo === '07') { o.aplica = false; o.motivoNoAplica = o.tipo === '07' ? 'Comprobante de retención: no es un gasto' : 'Guía de remisión: no es un gasto'; }
-    if (o.tipo === '04') ncParsed(o);
     return o;
   }
 
@@ -14502,7 +14413,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       html += '<div class="gx-bars">' + cats.map(function (c) {
         var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
         return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
-          '<div class="t"><i style="width:' + (Math.max(0, v) / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }
@@ -14515,7 +14426,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var ex = g.extra || {};
     function line(k, v) { return v ? '<div><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>' : ''; }
     var h = '<div class="gx-dm">' +
-      line('Tipo', isNC(g) ? 'Nota de crédito (04)' : '') + line('Factura que modifica', ex.facModificada) + line('Motivo', ex.motivoNC) + line('Proyecto', g.proyecto) + line('RUC', g.ruc) + line('N° autorización', g.autorizacion) +
+      line('Proyecto', g.proyecto) + line('RUC', g.ruc) + line('N° autorización', g.autorizacion) +
       line('Cliente', (g.cliente || '') + (g.clienteId ? ' · ' + g.clienteId : '')) + line('Forma de pago', g.formaPago) +
       line('Subtotal · IVA · Total', money(g.subtotal) + ' · ' + money(g.iva) + ' · ' + money(g.total)) +
       desgloseText(ex).map(function (s) { var k = s.indexOf(':'); return line(s.slice(0, k), s.slice(k + 2)); }).join('') +
@@ -14546,10 +14457,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         return '<div class="gx-item" data-id="' + esc(g.id) + '">' +
           '<div class="a" data-tog="' + esc(g.id) + '"><div class="n">' + (open ? '▾ ' : '▸ ') + esc(g.proveedor) + '</div>' +
           '<div class="d"><span>' + esc(g.fecha) + '</span>' + (g.numero ? '<span>N° ' + esc(g.numero) + '</span>' : '') +
-          (st.filter === ALL ? '<span>' + esc(g.proyecto) + '</span>' : '') + (isNC(g) && (g.extra || {}).facModificada ? '<span>Modifica N° ' + esc(g.extra.facModificada) + '</span>' : '') + '</div>' +
-          '<div class="d2">' + (isNC(g) ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO</span>' : '') + '<span class="gx-chip" style="border-color:' + col + '">' + esc(g.categoria) + '</span>' +
+          (st.filter === ALL ? '<span>' + esc(g.proyecto) + '</span>' : '') + '</div>' +
+          '<div class="d2"><span class="gx-chip" style="border-color:' + col + '">' + esc(g.categoria) + '</span>' +
           (n ? '<span class="gx-chip">' + n + ' ítem' + (n === 1 ? '' : 's') + '</span>' : '') + '</div></div>' +
-          '<div class="v' + (isNC(g) ? ' neg' : '') + '">' + money(g.total) + '</div>' +
+          '<div class="v">' + money(g.total) + '</div>' +
           '<button type="button" class="gx-del" data-del="' + esc(g.id) + '" title="Eliminar comprobante" aria-label="Eliminar comprobante">×</button>' +
           (open ? '<div class="gx-det">' + detailHtml(g) + '</div>' : '') + '</div>';
       }).join('');
@@ -14651,42 +14562,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     updateItemsSum();
   }
 
-  // Muestra u oculta los campos propios de la nota de crédito (factura que modifica y motivo)
-  function syncTipoUI() {
-    var nc = val('gx-tipo') === '04', row = $('gx-nc-row');
-    if (row) row.style.display = nc ? '' : 'none';
-  }
   function fillForm(o) {
-    var nc = o.tipo === '04', AB = function (v) { return Math.abs(toNum(v)); };   // el formulario siempre muestra positivos
-    setVal('gx-tipo', nc ? '04' : '01', false);
-    setVal('gx-facmod', nc ? (o.facModificada || '') : '', !!(nc && o.facModificada));
-    setVal('gx-motivo', nc ? (o.motivoNC || '') : '', !!(nc && o.motivoNC));
-    syncTipoUI();
     setVal('gx-proveedor', o.proveedor, !!o.proveedor);
     setVal('gx-ruc', o.ruc, !!o.ruc);
     setVal('gx-numero', o.numero, !!o.numero);
     setVal('gx-fecha', o.fecha || todayISO(), !!o.fecha);
-    setVal('gx-subtotal', fmtIn(AB(o.subtotal)), AB(o.subtotal) > 0);
-    setVal('gx-iva', fmtIn(AB(o.iva)), AB(o.iva) > 0);
-    setVal('gx-total', fmtIn(AB(o.total)), AB(o.total) > 0);
+    setVal('gx-subtotal', fmtIn(o.subtotal), o.subtotal > 0);
+    setVal('gx-iva', fmtIn(o.iva), o.iva > 0);
+    setVal('gx-total', fmtIn(o.total), o.total > 0);
     setVal('gx-auth', o.autorizacion || '', !!o.autorizacion);
     setVal('gx-cliente', o.cliente || '', !!o.cliente);
     setVal('gx-cliente-id', o.clienteId || '', !!o.clienteId);
     setVal('gx-fpago', o.formaPago || '', !!o.formaPago);
-    st.totalTouched = AB(o.total) > 0;
+    st.totalTouched = o.total > 0;
     if (o.categoria && CATS.indexOf(o.categoria) >= 0) { setVal('gx-cat', o.categoria, false); var elCat = $('gx-cat'); if (elCat) elCat.classList.add('gx-ai'); }
-    st.items = (o.items || []).map(function (it) {
-      var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; });
-      if (nc) { c.cant = Math.abs(Number(c.cant) || 0); c.pu = Math.abs(Number(c.pu) || 0); c.dto = Math.abs(Number(c.dto) || 0); c.total = Math.abs(Number(c.total) || 0); }
-      c._t = true; return c;
-    });
-    st.extra = { tipo: o.tipo || '01', desglose: (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: AB(d.base), iva: AB(d.iva) }; }),
-                 subtotal0: AB(o.subtotal0), noObjeto: AB(o.noObjeto), exento: AB(o.exento), descuento: AB(o.descuento), ice: AB(o.ice), propina: AB(o.propina) };
+    st.items = (o.items || []).map(function (it) { var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; }); c._t = true; return c; });
+    st.extra = { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 };
     renderItems(); renderDesglose();
   }
 
   function resetForm() {
-    setVal('gx-tipo', '01', false); ['gx-facmod', 'gx-motivo'].forEach(function (id) { setVal(id, '', false); }); syncTipoUI();
     ['gx-proveedor', 'gx-ruc', 'gx-numero', 'gx-subtotal', 'gx-iva', 'gx-total', 'gx-auth', 'gx-cliente', 'gx-cliente-id', 'gx-fpago'].forEach(function (id) { setVal(id, '', false); });
     setVal('gx-fecha', todayISO(), false);
     ['gx-fecha', 'gx-cat'].forEach(function (id) { var el = $(id); if (el) el.classList.remove('gx-ai'); });
@@ -14709,8 +14604,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function saveGasto() {
     var proyecto = val('gx-proyecto');
     if (!proyecto || proyecto === OTHER) { say('Selecciona un proyecto'); return; }
-    var nc = val('gx-tipo') === '04';
-    var pos = function (v) { v = toNum(v); return round2(nc ? Math.abs(v) : Math.max(0, v)); };   // el formulario trabaja en positivo; ncApply() aplica el signo
     var g = {
       id: 'gx' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       proyecto: proyecto,
@@ -14718,24 +14611,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       ruc: val('gx-ruc').replace(/[^\d]/g, ''),
       numero: val('gx-numero').trim(),
       fecha: normDate(val('gx-fecha')),
-      subtotal: pos(val('gx-subtotal')),
-      iva: pos(val('gx-iva')),
-      total: pos(val('gx-total')),
+      subtotal: round2(Math.max(0, toNum(val('gx-subtotal')))),
+      iva: round2(Math.max(0, toNum(val('gx-iva')))),
+      total: round2(Math.max(0, toNum(val('gx-total')))),
       categoria: val('gx-cat'),
       autorizacion: val('gx-auth').replace(/[^\d]/g, ''),
       cliente: val('gx-cliente').trim(),
       clienteId: val('gx-cliente-id').trim(),
       formaPago: val('gx-fpago').trim(),
       extra: JSON.parse(JSON.stringify(st.extra || {})),
-      items: st.items.filter(function (it) { return (it.desc && String(it.desc).trim()) || Math.abs(it.total) > 0; }).map(function (it) {
+      items: st.items.filter(function (it) { return (it.desc && String(it.desc).trim()) || it.total > 0; }).map(function (it) {
         return { cod: String(it.cod || '').trim(), aux: String(it.aux || '').trim(), desc: String(it.desc || '').trim(), det: it.det || '',
                  cant: round6(Number(it.cant) || 0), pu: round6(Number(it.pu) || 0), dto: round2(Number(it.dto) || 0), total: round2(Number(it.total) || 0) };
       }),
       creado: Date.now()
     };
-    g.extra = g.extra || {};
-    g.extra.tipo = nc ? '04' : '01';
-    if (nc) { g.extra.facModificada = val('gx-facmod').trim(); g.extra.motivoNC = val('gx-motivo').trim(); } else { delete g.extra.facModificada; delete g.extra.motivoNC; }
     if (!g.proveedor) { say('Ingresa el proveedor'); var p = $('gx-proveedor'); if (p) p.focus(); return; }
     if (!g.fecha) { say('Ingresa una fecha válida'); return; }
     if (CATS.indexOf(g.categoria) < 0) { say('Selecciona la categoría del gasto'); return; }
@@ -14743,7 +14633,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!(g.total > 0)) { say('El monto total debe ser mayor a 0'); var t = $('gx-total'); if (t) t.focus(); return; }
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
 
-    ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
       if (!confirm('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
@@ -14756,7 +14645,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (fromDraft) removeDraft(fromDraft);
     closeManualModal();
     render();
-    say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));
+    say('Gasto guardado: ' + money(g.total));
   }
 
   function deleteGasto(id) {
@@ -14855,7 +14744,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   /* ─────────────── Exportar a Excel (ExcelJS) ─────────────── */
   var XL = { AZUL: 'FF0052FF', AZUL_OSC: 'FF001B6B', AZUL_CLR: 'FFEEF3FF', AZUL_MED: 'FFD0DEFF', BLANC: 'FFFFFFFF',
              GRIS2: 'FFF5F8FF', NEGRO: 'FF060B14', SUB: 'FF6B7280', OK: 'FF0D8A50', ERR: 'FFB91C1C' };
-  var F_USD = '"$"#,##0.00;[Red]-"$"#,##0.00', F_PU = '"$"#,##0.00####', F_QTY = '#,##0.####', F_DATE = 'dd/mm/yyyy', F_PCT = '0.0%';
+  var F_USD = '"$"#,##0.00', F_PU = '"$"#,##0.00####', F_QTY = '#,##0.####', F_DATE = 'dd/mm/yyyy', F_PCT = '0.0%';
   var THIN = { style: 'thin', color: { argb: 'FFCCCCCC' } };
   var BORDER = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 
@@ -14938,10 +14827,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       (meta.usuario ? '  ·  Usuario: ' + meta.usuario : '');
 
     /* ══════════ COMPROBANTES ══════════ */
-    var CC = { fecha: 2, proyecto: 3, proveedor: 4, ruc: 5, numero: 6, auth: 7, cat: 8, cliente: 9, cid: 10, fpago: 11, sub: 12, dto: 13, iva: 14, tot: 15, nit: 16, mes: 17, tipo: 18, fmod: 19, motivo: 20 };
-    var lastCC = 'T', first = 6, last = 5 + n;
+    var CC = { fecha: 2, proyecto: 3, proveedor: 4, ruc: 5, numero: 6, auth: 7, cat: 8, cliente: 9, cid: 10, fpago: 11, sub: 12, dto: 13, iva: 14, tot: 15, nit: 16, mes: 17 };
+    var lastCC = 'Q', first = 6, last = 5 + n;
     titleBlock(wsC, lastCC, 'Comprobantes de gasto — ' + projName, sub);
-    headerRow(wsC, 5, ['N°', 'Fecha', 'Proyecto', 'Proveedor', 'RUC proveedor', 'N° de factura', 'N° de autorización', 'Categoría', 'Cliente', 'Identificación cliente', 'Forma de pago', 'Subtotal sin IVA', 'Descuento', 'IVA', 'Total', 'N° ítems', 'Mes', 'Tipo de comprobante', 'Factura que modifica', 'Motivo (nota de crédito)'], 12);
+    headerRow(wsC, 5, ['N°', 'Fecha', 'Proyecto', 'Proveedor', 'RUC proveedor', 'N° de factura', 'N° de autorización', 'Categoría', 'Cliente', 'Identificación cliente', 'Forma de pago', 'Subtotal sin IVA', 'Descuento', 'IVA', 'Total', 'N° ítems', 'Mes'], 12);
     rows.forEach(function (g, i) {
       var r = wsC.getRow(first + i), z = (i % 2) ? XL.GRIS2 : null, ex = g.extra || {};
       dataCell(r, 1, i + 1, { h: 'center', fill: z });
@@ -14961,9 +14850,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       dataCell(r, CC.tot, round2(g.total), { fmt: F_USD, h: 'right', fill: z, bold: true });
       dataCell(r, CC.nit, (g.items || []).length, { h: 'center', fill: z });
       dataCell(r, CC.mes, monthOf(g), { fmt: '@', h: 'center', fill: z });
-      dataCell(r, CC.tipo, tipoLabel(g), { fill: z, bold: isNC(g) });
-      dataCell(r, CC.fmod, String(ex.facModificada || ''), { fmt: '@', h: 'center', fill: z });
-      dataCell(r, CC.motivo, String(ex.motivoNC || ''), { fill: z, wrap: true });
       r.height = 16;
     });
     var sums = {}; ['sub', 'dto', 'iva', 'tot', 'nit'].forEach(function (k) {
@@ -14971,7 +14857,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       sums[k] = k === 'nit' ? sums[k] : round2(sums[k]);
     });
     var tr = wsC.getRow(last + 1); tr.height = 20;
-    for (var cI = 1; cI <= 20; cI++) { var tc = tr.getCell(cI); tc.fill = xfill(XL.AZUL_MED); tc.border = BORDER; tc.font = xf(true, XL.NEGRO, 9); }
+    for (var cI = 1; cI <= 17; cI++) { var tc = tr.getCell(cI); tc.fill = xfill(XL.AZUL_MED); tc.border = BORDER; tc.font = xf(true, XL.NEGRO, 9); }
     tr.getCell(CC.proveedor).value = 'TOTAL (respeta los filtros aplicados)';
     ['sub', 'dto', 'iva', 'tot', 'nit'].forEach(function (k) {
       var col = colL(CC[k]);
@@ -14979,9 +14865,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       c.value = { formula: 'SUBTOTAL(109,' + col + first + ':' + col + last + ')', result: sums[k] };
       c.numFmt = k === 'nit' ? '0' : F_USD; c.alignment = { horizontal: k === 'nit' ? 'center' : 'right', vertical: 'middle' };
     });
-    var widthsC = [6, 12, 22, 34, 16, 20, 52, 20, 26, 16, 34, 15, 12, 12, 14, 9, 10, 22, 22, 36];
+    var widthsC = [6, 12, 22, 34, 16, 20, 52, 20, 26, 16, 34, 15, 12, 12, 14, 9, 10];
     widthsC.forEach(function (w, i) { wsC.getColumn(i + 1).width = w; });
-    if (n) wsC.autoFilter = 'A5:T' + last;
+    if (n) wsC.autoFilter = 'A5:Q' + last;
     wsC.views = [{ state: 'frozen', ySplit: 5, xSplit: 0 }];
     setup(wsC); footer(wsC, lastCC);
     var rg = function (k) { var col = colL(CC[k]); return 'Comprobantes!$' + col + '$' + first + ':$' + col + '$' + last; };
@@ -15255,7 +15141,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
      Reutiliza los componentes de los PDFs de presupuesto: fuente Outfit, logo de puntos, portada
      inferior, encabezado/pie por página, tablas de cabecera azul oscuro y una página por documento
      (como el PDF de APUs, aquí una página por factura). */
-  function pMoney(n) { n = Number(n) || 0; return (n < 0 ? '-' : '') + ((typeof fmtUSD === 'function') ? fmtUSD(Math.abs(n)) : money(Math.abs(n))); }
+  function pMoney(n) { return (typeof fmtUSD === 'function') ? fmtUSD(n) : money(n); }
   function pPct(v) { return (Math.round(v * 1000) / 10).toLocaleString('es-EC', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; }
   function pQty(n) { return Number(n || 0).toLocaleString('es-EC', { maximumFractionDigits: 4 }); }
   function pPU(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 6 }); }
@@ -15519,17 +15405,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     doc.addPage();
     ctx.sub = 'Comprobante ' + (idx + 1) + ' de ' + n;
     var mx = ctx.mx, tableW = ctx.tableW, y = pHeader(doc, ctx.proj, ctx.sub);
-    y = pHeading(doc, mx, y, (isNC(g) ? 'NOTA DE CRÉDITO N° ' : 'Comprobante N° ') + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
+    y = pHeading(doc, mx, y, 'Comprobante N° ' + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
 
     var mono = { font: 'courier', fontStyle: 'bold', textColor: [0, 51, 160] };
-    y = pFicha(doc, ctx, y, ['FECHA', isNC(g) ? 'N° NOTA DE CRÉDITO' : 'N° DE FACTURA', 'CATEGORÍA', 'FORMA DE PAGO'],
+    y = pFicha(doc, ctx, y, ['FECHA', 'N° DE FACTURA', 'CATEGORÍA', 'FORMA DE PAGO'],
       [pDate(g.fecha), Object.assign({ content: g.numero || '—' }, { styles: mono }), g.categoria || '—', g.formaPago || '—'], [0.16, 0.27, 0.21, 0.36]);
     y = pFicha(doc, ctx, y, ['PROVEEDOR', 'RUC', 'CLIENTE', 'IDENTIFICACIÓN'],
       [{ content: String(g.proveedor || '').trim() || '—', styles: { fontStyle: 'bold' } }, { content: g.ruc || '—', styles: mono }, g.cliente || '—', { content: g.clienteId || '—', styles: mono }], [0.34, 0.18, 0.30, 0.18]);
     y = pFicha(doc, ctx, y, ['PROYECTO', 'N° DE AUTORIZACIÓN'],
-      [g.proyecto || '—', { content: g.autorizacion || '—', styles: { font: 'courier', fontSize: 7.2, textColor: [26, 26, 46] } }], [0.30, 0.70]);
-    if (isNC(g)) y = pFicha(doc, ctx, y, ['FACTURA QUE MODIFICA', 'MOTIVO DE LA NOTA DE CRÉDITO'], [{ content: (g.extra || {}).facModificada || '—', styles: mono }, (g.extra || {}).motivoNC || '—'], [0.34, 0.66]);
-    y += 6;
+      [g.proyecto || '—', { content: g.autorizacion || '—', styles: { font: 'courier', fontSize: 7.2, textColor: [26, 26, 46] } }], [0.30, 0.70]) + 6;
 
     var items = g.items || [], W = tableW;
     var cols = [{ label: 'CÓDIGO', w: W * 0.13, code: true }, { label: 'DESCRIPCIÓN', w: W * 0.41 }, { label: 'CANT.', w: W * 0.10, align: 'right' },
@@ -15655,7 +15539,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     y = pHeading(doc, mx, y, 'Listado de comprobantes', ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
     var lb = rows.map(function (g) {
-      return [pDate(g.fecha), String(g.proveedor || '').trim() + (multi ? '\n' + (g.proyecto || '') : ''), { content: (isNC(g) ? 'NC ' : '') + (g.numero || '—'), styles: { font: 'courier', textColor: isNC(g) ? [185, 28, 28] : [0, 82, 255], fontSize: 7.5 } },
+      return [pDate(g.fecha), String(g.proveedor || '').trim() + (multi ? '\n' + (g.proyecto || '') : ''), { content: g.numero || '—', styles: { font: 'courier', textColor: [0, 82, 255], fontSize: 7.5 } },
         g.categoria || '', pMoney(g.subtotal), pMoney(g.iva), pMoney(g.total), String((g.items || []).length)];
     });
     lb.push([{ content: 'TOTAL', colSpan: 4, styles: P_TOTAL }, { content: pMoney(sums.sub), styles: Object.assign({ halign: 'right' }, P_TOTAL) },
@@ -15837,7 +15721,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var transient = (c === 'QUOTA' || c === 'SERVER' || c === 'TIMEOUT') && attempt < 1;
         var soft = (c === 'PARSE' || c === 'EMPTY') && attempt < 1;
         if ((transient || soft) && !st.batchCancel) {
-          if (transient) { CFG.concurrency = Math.max(1, CFG.concurrency - 1); okStreak = 0; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
+          if (transient) { CFG.concurrency = 1; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
           continue;
         }
         throw e;
@@ -15850,7 +15734,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
     if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
-    if (!o.proveedor || !(Math.abs(o.total) > 0) || !o.fecha) return 'incomplete';
+    if (!o.proveedor || !(o.total > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
       var dup = saved.some(function (g) { return g.numero && (g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase() === key; }) || seen[key];
@@ -15890,13 +15774,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var title = o.proveedor || d.name;
       var note = draftNote(d, s);
       var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
-        '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
+        '<div class="d"><span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
       var showCat = canEdit && s !== 'skip';
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
-        '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
+        '<div style="text-align:right"><div class="v">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
@@ -15930,30 +15814,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function runBatch() {
     if (st.batchBusy) return;
     st.batchBusy = true; st.batchCancel = false; setBusy(true); setBatchMsg('');
-    CFG.concurrency = 3; okStreak = 0;   // cada lote arranca con 3 en paralelo
-    var tick = setInterval(function () {
-      st.drafts.forEach(function (d) {
-        if (d.status !== 'processing' || !d.t0) return;
-        var el = document.querySelector('[data-did="' + d.id + '"] .gx-st');
-        if (el && el.lastChild && el.lastChild.nodeType === 3) el.lastChild.nodeValue = ST_LABEL.processing + ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s';
-      });
-    }, 1000);   // contador de segundos (solo cambia el texto; no redibuja la lista)
+    var tick = setInterval(function () { if (st.drafts.some(function (d) { return d.status === 'processing'; })) renderBatch(); }, 1000);   // contador de segundos
     renderBatch();
-    var running = 0;
     async function worker() {
       for (;;) {
         if (st.batchCancel) return;
-        while (running >= CFG.concurrency) { await sleep(250); if (st.batchCancel) return; }     // paralelismo adaptativo: se ajusta solo según la presión de Gemini
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
-        running++;
         d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
         try {
-          try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Materiales');
           d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated) ? 'warn' : 'ok';
-          okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
           if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
@@ -15963,13 +15835,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             st.batchCancel = true; setBatchMsg('warn', 'Se agotó la cuota gratuita de Gemini. Espera unos minutos y pulsa "Procesar pendientes".');
           }
         }
-          } finally { running--; }
         d.tok = null; renderBatch();
         if (!st.batchCancel) await sleep(CFG.gap);
       }
     }
     try {
-      var n = Math.max(1, Math.min(CFG.maxConc, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
+      var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
       var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });
@@ -16019,26 +15890,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Dato de IA → registro de gasto (misma normalización que el guardado manual)
   function gastoFromData(o, proyecto, cat) {
-    var nc = o.tipo === '04';
-    var pos = function (v) { v = toNum(v); return round2(nc ? Math.abs(v) : Math.max(0, v)); };   // se calcula en positivo; ncApply() aplica el signo
     var g = {
       id: newId(), proyecto: proyecto, proveedor: String(o.proveedor || '').trim(), ruc: String(o.ruc || '').replace(/[^\d]/g, ''),
       numero: String(o.numero || '').trim(), fecha: normDate(o.fecha),
-      subtotal: pos(o.subtotal), iva: pos(o.iva), total: pos(o.total),
+      subtotal: round2(Math.max(0, toNum(o.subtotal))), iva: round2(Math.max(0, toNum(o.iva))), total: round2(Math.max(0, toNum(o.total))),
       categoria: cat, autorizacion: String(o.autorizacion || '').replace(/[^\d]/g, ''), cliente: o.cliente || '', clienteId: o.clienteId || '', formaPago: o.formaPago || '',
-      extra: { tipo: o.tipo || '01', facModificada: o.facModificada || '', motivoNC: o.motivoNC || '',
-               desglose: (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: pos(d.base), iva: pos(d.iva) }; }),
-               subtotal0: pos(o.subtotal0), noObjeto: pos(o.noObjeto), exento: pos(o.exento), descuento: pos(o.descuento), ice: pos(o.ice), propina: pos(o.propina) },
-      items: (o.items || []).filter(function (it) { return (it.desc && String(it.desc).trim()) || Math.abs(it.total) > 0; }).map(function (it) {
-        var ab = function (v, k) { v = Number(v) || 0; return nc ? Math.abs(v) : v; };
+      extra: { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 },
+      items: (o.items || []).filter(function (it) { return (it.desc && String(it.desc).trim()) || it.total > 0; }).map(function (it) {
         return { cod: String(it.cod || '').trim(), aux: String(it.aux || '').trim(), desc: String(it.desc || '').trim(), det: it.det || '',
-                 cant: round6(ab(it.cant)), pu: round6(ab(it.pu)), dto: round2(ab(it.dto)), total: round2(ab(it.total)) };
+                 cant: round6(Number(it.cant) || 0), pu: round6(Number(it.pu) || 0), dto: round2(Number(it.dto) || 0), total: round2(Number(it.total) || 0) };
       }),
       creado: Date.now()
     };
     if (!g.total && g.subtotal) g.total = round2(g.subtotal + g.iva);
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
-    return ncApply(g);
+    return g;
   }
 
   function saveAllDrafts() {
@@ -16165,7 +16031,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (rb && st.lastFile && !st.busy) handleFile(st.lastFile);
     });
     $('gx-save').addEventListener('click', saveGasto);
-    var tpSel = $('gx-tipo'); if (tpSel) tpSel.addEventListener('change', syncTipoUI);
     $('gx-clear').addEventListener('click', function () { st.editing = null; resetForm(); });
     $('gx-btn-iva').addEventListener('click', function () {
       var iva = round2(toNum(val('gx-subtotal')) * ivaRate() / 100);
@@ -16290,7 +16155,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
   function say(m) { if (typeof toast === 'function') { try { toast(m); } catch (e) {} } }
   function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
-  function money(n) { n = Number(n || 0); return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function money(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function todayISO() {
     var d = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
@@ -16390,7 +16255,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Analiza TODO el documento y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con exactamente estas claves ' +
     '(la clave "items" va siempre al final): ' +
     '{"proveedor": "", "ruc": "", "numero_factura": "", "autorizacion": "", "fecha": "YYYY-MM-DD", ' +
-    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", "tipo_comprobante": "01", "documento": "", "factura_modificada": "", "motivo": "", ' +
+    '"cliente": "", "cliente_identificacion": "", "forma_pago": "", "aplica": true, "motivo_no_aplica": "", ' +
     '"subtotal": 0.00, "descuento": 0.00, ' +
     '"desglose_iva": [{"tarifa": "15%", "base": 0.00, "iva": 0.00}], ' +
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
@@ -16415,8 +16280,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
     'CONTEXTO: este comprobante es para gasto de consumo PERSONAL o FAMILIAR de la persona (nunca gasto de ejecución de obra). ' +
     'IMPORTANTE SOBRE LA IDENTIFICACIÓN DEL CLIENTE: TODAS las facturas de este usuario (de obra y personales) se emiten con su mismo RUC, así que cliente_identificacion NO sirve para decidir si el gasto es de obra o personal (no uses si son 10 o 13 dígitos). Decide ÚNICAMENTE por lo que se compró o el servicio contratado, mirando los ítems y el tipo de proveedor. ' +
-    'TIPO DE COMPROBANTE (lee PRIMERO la cabecera del documento SRI y la clave de acceso de 49 dígitos; los dígitos 9 y 10 son el tipo): 01 = FACTURA; 04 = NOTA DE CRÉDITO (devolución, anulación o descuento posterior); 05 = NOTA DE DÉBITO; 03 = LIQUIDACIÓN DE COMPRA; 06 = GUÍA DE REMISIÓN; 07 = COMPROBANTE DE RETENCIÓN. Pon en tipo_comprobante SOLO el código de 2 dígitos y en documento el título impreso (ej. FACTURA, NOTA DE CRÉDITO). ' +
-    'Extrae SIEMPRE todos los montos, cantidades e ítems como números POSITIVOS tal como están impresos en el PDF (el sistema aplica el signo negativo a las notas de crédito). Si es NOTA DE CRÉDITO (04): en factura_modificada pon el número del comprobante que modifica (campo Comprobante que se modifica, con formato 001-002-000012345) y en motivo la razón impresa (devolución de mercadería, anulación, descuento, etc.); el desglose_iva, subtotal, iva, total e ítems son los valores DEVUELTOS, en positivo. Si es 06 (guía de remisión) o 07 (retención) no es un gasto: pon aplica=false y explica en motivo_no_aplica de qué documento se trata. ' +
     'PROCESO DE DECISIÓN COMO UN EXPERTO: (a) identifica el tipo de proveedor (ferretería, gasolinera, taller, supermercado, farmacia, restaurante, tienda de ropa, etc.); (b) lee CADA ítem: un material, accesorio, repuesto o herramienta NO es un gasto del hogar aunque lo compre una persona natural o el proveedor sea una persona (ej. "SIFON 1 1/4 ACORDEON LAVABO MANOS" es un accesorio de plomería = material de obra); (c) emite el veredicto aplica; (d) solo si aplica=true elige la categoría. Ante la duda entre material de obra y gasto del hogar con piezas de ferretería, plomería, eléctricos o construcción, decide aplica=false. ' +
     'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos PERSONALES o FAMILIARES de la persona. Pon aplica=false y explica en motivo_no_aplica (una frase corta en español) si el comprobante es: ' +
     '(1) gasto de OBRA o de proyectos de construcción: cualquier material, accesorio, repuesto o herramienta de construcción, plomería, electricidad, carpintería, pintura y acabados, AUNQUE parezca de uso doméstico (cemento, hierro, arena, ripio, bloques, ladrillos, pintura, tubería y accesorios PVC, sifones, codos, llaves de paso, grifería, válvulas, cables, tomacorrientes, breakers, cerámica, porcelanato, tornillos, clavos, silicón, cerraduras, herramientas) o cualquier compra en una FERRETERÍA, corralón, almacén de materiales, vidriería, maderera o proveedor de plomería, eléctricos o acabados; mano de obra o jornales, alquiler de maquinaria o equipos, subcontratos, trámites y permisos de obra, EPP o ropa de trabajo, o cualquier gasto de trabajo o de proyectos; ' +
@@ -16487,7 +16350,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function modelList() {
     var out = [], seen = {}, saved = '';
     try { saved = localStorage.getItem('bm_gemini_model_ok') || ''; } catch (e) {}
-    [GEMINI_MODEL, saved].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
+    [saved, GEMINI_MODEL].concat(GEMINI_MODEL_FALLBACKS).forEach(function (m) { if (m && !seen[m]) { seen[m] = 1; out.push(m); } });
     return out;
   }
 
@@ -16495,16 +16358,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Configuración de velocidad/robustez (ajustable)
   var CFG = {
-    gap: 400, retryWait: 12000, max: 25, concurrency: 3, maxConc: 4, timeoutMs: 0, serverWait: 1500,
+    gap: 400, retryWait: 12000, max: 25, concurrency: 2, timeoutMs: 0, serverWait: 1500,
     maxTries: 3,                                   // intentos (modelos) por ronda; los 404 no cuentan
     maxRounds: 4, backoff: [2000, 4000, 7000, 10000], deadlineMs: 75000,   // rondas con espera creciente hasta 75 s
-    cool: { server: 20000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
+    cool: { server: 45000, quota: 20000, timeout: 20000, daily: 3600000 }  // "enfriamiento" de un modelo tras fallar
   };
 
   // Estado de cada modelo durante la sesión: uno que acaba de responder "saturado" se deja en pausa
   // y se prueba primero con los que están sanos.
   var HEALTH = {};
-  var okStreak = 0;   // aciertos seguidos: al llegar a 3 se sube el paralelismo otra vez
   function cool(m, ms) { HEALTH[m] = { until: Date.now() + ms }; }
   function orderModels() {
     var now = Date.now(), all = modelList();
@@ -16705,40 +16567,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (why) { o.aplica = false; o.motivoNoAplica = why; o.netFlag = true; }
   }
 
-  // ── Tipo de comprobante del SRI: 01 factura · 03 liquidación · 04 NOTA DE CRÉDITO · 05 nota de débito · 06 guía · 07 retención ──
-  function docTipo(j, aut) {
-    var claveTipo = /^\d{49}$/.test(aut) ? aut.substr(8, 2) : '';                    // dígitos 9-10 de la clave de acceso
-    var ai = String(j.tipo_comprobante == null ? '' : j.tipo_comprobante).replace(/\D/g, '');
-    if (ai.length === 1) ai = '0' + ai;
-    var doc = String(j.documento || '');
-    var byText = /nota\s+de\s+cr[eé]dito/i.test(doc) ? '04' : /nota\s+de\s+d[eé]bito/i.test(doc) ? '05' : /retenci[oó]n/i.test(doc) ? '07' :
-                 /gu[ií]a\s+de\s+remisi[oó]n/i.test(doc) ? '06' : /liquidaci[oó]n/i.test(doc) ? '03' : /factura/i.test(doc) ? '01' : '';
-    var valid = ['01', '03', '04', '05', '06', '07'];
-    if (valid.indexOf(claveTipo) >= 0) return claveTipo;                              // la clave de acceso manda
-    if (valid.indexOf(ai) >= 0) return ai;
-    return byText || '01';
-  }
-  function isNC(g) { var e = g && g.extra; return !!((e && e.tipo === '04') || (g && g.total < 0)); }
-  function tipoLabel(g) { var t = (g && g.extra && g.extra.tipo) || (g && g.total < 0 ? '04' : '01'); return t === '04' ? 'Nota de crédito (04)' : t === '05' ? 'Nota de débito (05)' : t === '03' ? 'Liquidación de compra (03)' : 'Factura (01)'; }
-  // Signo contable de una nota de crédito: importes y cantidades NEGATIVOS, precio unitario POSITIVO. Idempotente.
-  function ncApply(g) {
-    if (!(g && g.extra && g.extra.tipo === '04')) return g;
-    var N = function (v) { v = Number(v) || 0; return v ? -Math.abs(v) : 0; };
-    g.subtotal = round2(N(g.subtotal)); g.iva = round2(N(g.iva)); g.total = round2(N(g.total));
-    var e = g.extra;
-    ['subtotal0', 'noObjeto', 'exento', 'descuento', 'ice', 'propina'].forEach(function (k) { if (e[k] != null) e[k] = round2(N(e[k])); });
-    e.desglose = (e.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: round2(N(d.base)), iva: round2(N(d.iva)) }; });
-    g.items = (g.items || []).map(function (it) { it.cant = round6(N(it.cant)); it.pu = round6(Math.abs(Number(it.pu) || 0)); it.dto = round2(N(it.dto)); it.total = round2(N(it.total)); return it; });
-    return g;
-  }
-  // Igual, pero sobre el resultado de la IA (montos planos)
-  function ncParsed(o) {
-    var N = function (v) { v = Number(v) || 0; return v ? -Math.abs(v) : 0; };
-    ['subtotal', 'iva', 'total', 'descuento', 'subtotal0', 'noObjeto', 'exento', 'ice', 'propina', 'itemsSum'].forEach(function (k) { o[k] = round2(N(o[k])); });
-    o.desglose = (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: round2(N(d.base)), iva: round2(N(d.iva)) }; });
-    o.items = (o.items || []).map(function (it) { it.cant = round6(N(it.cant)); it.pu = round6(Math.abs(Number(it.pu) || 0)); it.dto = round2(N(it.dto)); it.total = round2(N(it.total)); return it; });
-  }
-
   // Texto de la IA → objeto normalizado (cabecera, montos, desglose de IVA e ítems)
   function parseAI(text) {
     var t = String(text || '').replace(/```(?:json)?/gi, '').trim();
@@ -16772,10 +16600,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       categoria: String(j.categoria || '').trim(),
       aplica: !(j.aplica === false || /^(false|no)$/i.test(String(j.aplica == null ? '' : j.aplica).trim())),
       motivoNoAplica: String(j.motivo_no_aplica || '').replace(/\s+/g, ' ').trim(),
-      tipo: docTipo(j, String(j.autorizacion || '').replace(/[^\d]/g, '')),
-      documento: String(j.documento || '').replace(/\s+/g, ' ').trim(),
-      facModificada: String(j.factura_modificada || j.documento_modificado || '').replace(/\s+/g, ' ').trim(),
-      motivoNC: String(j.motivo || '').replace(/\s+/g, ' ').trim(),
       truncated: truncated
     };
     // IVA = suma del desglose si la IA no lo dio o no cuadra
@@ -16792,9 +16616,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var tol = Math.max(0.05, 0.01 * o.items.length, o.subtotal * 0.002);
     o.itemsWarn = o.items.length > 0 && o.subtotal > 0 &&
       Math.abs(o.itemsSum - o.subtotal) > tol && Math.abs(o.itemsSum - o.total) > tol;
-    // Tipo SRI: 06/07 no son gasto; 04 = nota de crédito → montos y cantidades en negativo (precio unitario positivo)
-    if (o.tipo === '06' || o.tipo === '07') { o.aplica = false; o.motivoNoAplica = o.tipo === '07' ? 'Comprobante de retención: no es un gasto' : 'Guía de remisión: no es un gasto'; }
-    if (o.tipo === '04') ncParsed(o);
     scopeNet(o);   // segunda opinión determinista: materiales de obra, combustible, vehículos
     return o;
   }
@@ -17072,7 +16893,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       html += '<div class="gx-bars">' + cats.map(function (c) {
         var v = s.byCat[c] || 0, pct = s.total ? (v / s.total * 100) : 0, col = CAT_COLORS[c] || '#0052FF';
         return '<div class="gx-bar' + (v ? '' : ' is-zero') + '"><div class="h"><span><i class="gx-dot" style="background:' + col + '"></i>' + esc(c) + '</span><b>' + money(v) + '</b></div>' +
-          '<div class="t"><i style="width:' + (Math.max(0, v) / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
+          '<div class="t"><i style="width:' + (v / max * 100).toFixed(1) + '%;background:' + col + ';box-shadow:0 0 6px ' + col + ',0 0 16px ' + col + 'aa,0 0 32px ' + col + '55"></i></div>' +
           '<div class="p">' + pct.toFixed(1) + '% del total</div></div>';
       }).join('') + '</div>';
     }
@@ -17085,7 +16906,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var ex = g.extra || {};
     function line(k, v) { return v ? '<div><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>' : ''; }
     var h = '<div class="gx-dm">' +
-      line('Tipo', isNC(g) ? 'Nota de crédito (04)' : '') + line('Factura que modifica', ex.facModificada) + line('Motivo', ex.motivoNC) + line('Proyecto', g.proyecto) + line('RUC', g.ruc) + line('N° autorización', g.autorizacion) +
+      line('Proyecto', g.proyecto) + line('RUC', g.ruc) + line('N° autorización', g.autorizacion) +
       line('Cliente', (g.cliente || '') + (g.clienteId ? ' · ' + g.clienteId : '')) + line('Forma de pago', g.formaPago) +
       line('Subtotal · IVA · Total', money(g.subtotal) + ' · ' + money(g.iva) + ' · ' + money(g.total)) +
       desgloseText(ex).map(function (s) { var k = s.indexOf(':'); return line(s.slice(0, k), s.slice(k + 2)); }).join('') +
@@ -17116,10 +16937,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         return '<div class="gx-item" data-id="' + esc(g.id) + '">' +
           '<div class="a" data-tog="' + esc(g.id) + '"><div class="n">' + (open ? '▾ ' : '▸ ') + esc(g.proveedor) + '</div>' +
           '<div class="d"><span>' + esc(g.fecha) + '</span>' + (g.numero ? '<span>N° ' + esc(g.numero) + '</span>' : '') +
-          (st.filter === ALL ? '<span>' + esc(g.proyecto) + '</span>' : '') + (isNC(g) && (g.extra || {}).facModificada ? '<span>Modifica N° ' + esc(g.extra.facModificada) + '</span>' : '') + '</div>' +
-          '<div class="d2">' + (isNC(g) ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO</span>' : '') + '<span class="gx-chip" style="border-color:' + col + '">' + esc(g.categoria) + '</span>' +
+          (st.filter === ALL ? '<span>' + esc(g.proyecto) + '</span>' : '') + '</div>' +
+          '<div class="d2"><span class="gx-chip" style="border-color:' + col + '">' + esc(g.categoria) + '</span>' +
           (n ? '<span class="gx-chip">' + n + ' ítem' + (n === 1 ? '' : 's') + '</span>' : '') + '</div></div>' +
-          '<div class="v' + (isNC(g) ? ' neg' : '') + '">' + money(g.total) + '</div>' +
+          '<div class="v">' + money(g.total) + '</div>' +
           '<button type="button" class="gx-del" data-del="' + esc(g.id) + '" title="Eliminar comprobante" aria-label="Eliminar comprobante">×</button>' +
           (open ? '<div class="gx-det">' + detailHtml(g) + '</div>' : '') + '</div>';
       }).join('');
@@ -17222,42 +17043,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     updateItemsSum();
   }
 
-  // Muestra u oculta los campos propios de la nota de crédito (factura que modifica y motivo)
-  function syncTipoUI() {
-    var nc = val('gxp-tipo') === '04', row = $('gxp-nc-row');
-    if (row) row.style.display = nc ? '' : 'none';
-  }
   function fillForm(o) {
-    var nc = o.tipo === '04', AB = function (v) { return Math.abs(toNum(v)); };   // el formulario siempre muestra positivos
-    setVal('gxp-tipo', nc ? '04' : '01', false);
-    setVal('gxp-facmod', nc ? (o.facModificada || '') : '', !!(nc && o.facModificada));
-    setVal('gxp-motivo', nc ? (o.motivoNC || '') : '', !!(nc && o.motivoNC));
-    syncTipoUI();
     setVal('gxp-proveedor', o.proveedor, !!o.proveedor);
     setVal('gxp-ruc', o.ruc, !!o.ruc);
     setVal('gxp-numero', o.numero, !!o.numero);
     setVal('gxp-fecha', o.fecha || todayISO(), !!o.fecha);
-    setVal('gxp-subtotal', fmtIn(AB(o.subtotal)), AB(o.subtotal) > 0);
-    setVal('gxp-iva', fmtIn(AB(o.iva)), AB(o.iva) > 0);
-    setVal('gxp-total', fmtIn(AB(o.total)), AB(o.total) > 0);
+    setVal('gxp-subtotal', fmtIn(o.subtotal), o.subtotal > 0);
+    setVal('gxp-iva', fmtIn(o.iva), o.iva > 0);
+    setVal('gxp-total', fmtIn(o.total), o.total > 0);
     setVal('gxp-auth', o.autorizacion || '', !!o.autorizacion);
     setVal('gxp-cliente', o.cliente || '', !!o.cliente);
     setVal('gxp-cliente-id', o.clienteId || '', !!o.clienteId);
     setVal('gxp-fpago', o.formaPago || '', !!o.formaPago);
-    st.totalTouched = AB(o.total) > 0;
+    st.totalTouched = o.total > 0;
     if (o.categoria && CATS.indexOf(o.categoria) >= 0) { setVal('gxp-cat', o.categoria, false); var elCat = $('gxp-cat'); if (elCat) elCat.classList.add('gx-ai'); }
-    st.items = (o.items || []).map(function (it) {
-      var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; });
-      if (nc) { c.cant = Math.abs(Number(c.cant) || 0); c.pu = Math.abs(Number(c.pu) || 0); c.dto = Math.abs(Number(c.dto) || 0); c.total = Math.abs(Number(c.total) || 0); }
-      c._t = true; return c;
-    });
-    st.extra = { tipo: o.tipo || '01', desglose: (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: AB(d.base), iva: AB(d.iva) }; }),
-                 subtotal0: AB(o.subtotal0), noObjeto: AB(o.noObjeto), exento: AB(o.exento), descuento: AB(o.descuento), ice: AB(o.ice), propina: AB(o.propina) };
+    st.items = (o.items || []).map(function (it) { var c = {}; Object.keys(it).forEach(function (k) { c[k] = it[k]; }); c._t = true; return c; });
+    st.extra = { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 };
     renderItems(); renderDesglose();
   }
 
   function resetForm() {
-    setVal('gxp-tipo', '01', false); ['gxp-facmod', 'gxp-motivo'].forEach(function (id) { setVal(id, '', false); }); syncTipoUI();
     ['gxp-proveedor', 'gxp-ruc', 'gxp-numero', 'gxp-subtotal', 'gxp-iva', 'gxp-total', 'gxp-auth', 'gxp-cliente', 'gxp-cliente-id', 'gxp-fpago'].forEach(function (id) { setVal(id, '', false); });
     setVal('gxp-fecha', todayISO(), false);
     ['gxp-fecha', 'gxp-cat'].forEach(function (id) { var el = $(id); if (el) el.classList.remove('gx-ai'); });
@@ -17279,8 +17084,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function saveGasto() {
     var proyecto = PERSONAL_PROJECT;
-    var nc = val('gxp-tipo') === '04';
-    var pos = function (v) { v = toNum(v); return round2(nc ? Math.abs(v) : Math.max(0, v)); };   // el formulario trabaja en positivo; ncApply() aplica el signo
     var g = {
       id: 'gx' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       proyecto: proyecto,
@@ -17288,24 +17091,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       ruc: val('gxp-ruc').replace(/[^\d]/g, ''),
       numero: val('gxp-numero').trim(),
       fecha: normDate(val('gxp-fecha')),
-      subtotal: pos(val('gxp-subtotal')),
-      iva: pos(val('gxp-iva')),
-      total: pos(val('gxp-total')),
+      subtotal: round2(Math.max(0, toNum(val('gxp-subtotal')))),
+      iva: round2(Math.max(0, toNum(val('gxp-iva')))),
+      total: round2(Math.max(0, toNum(val('gxp-total')))),
       categoria: val('gxp-cat'),
       autorizacion: val('gxp-auth').replace(/[^\d]/g, ''),
       cliente: val('gxp-cliente').trim(),
       clienteId: val('gxp-cliente-id').trim(),
       formaPago: val('gxp-fpago').trim(),
       extra: JSON.parse(JSON.stringify(st.extra || {})),
-      items: st.items.filter(function (it) { return (it.desc && String(it.desc).trim()) || Math.abs(it.total) > 0; }).map(function (it) {
+      items: st.items.filter(function (it) { return (it.desc && String(it.desc).trim()) || it.total > 0; }).map(function (it) {
         return { cod: String(it.cod || '').trim(), aux: String(it.aux || '').trim(), desc: String(it.desc || '').trim(), det: it.det || '',
                  cant: round6(Number(it.cant) || 0), pu: round6(Number(it.pu) || 0), dto: round2(Number(it.dto) || 0), total: round2(Number(it.total) || 0) };
       }),
       creado: Date.now()
     };
-    g.extra = g.extra || {};
-    g.extra.tipo = nc ? '04' : '01';
-    if (nc) { g.extra.facModificada = val('gxp-facmod').trim(); g.extra.motivoNC = val('gxp-motivo').trim(); } else { delete g.extra.facModificada; delete g.extra.motivoNC; }
     if (!g.proveedor) { say('Ingresa el proveedor'); var p = $('gxp-proveedor'); if (p) p.focus(); return; }
     if (!g.fecha) { say('Ingresa una fecha válida'); return; }
     if (CATS.indexOf(g.categoria) < 0) { say('Selecciona la categoría del gasto'); return; }
@@ -17313,7 +17113,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!(g.total > 0)) { say('El monto total debe ser mayor a 0'); var t = $('gxp-total'); if (t) t.focus(); return; }
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
 
-    ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
       if (!confirm('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
@@ -17326,7 +17125,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (fromDraft) removeDraft(fromDraft);
     closeManualModal();
     render();
-    say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));
+    say('Gasto guardado: ' + money(g.total));
   }
 
   function deleteGasto(id) {
@@ -17442,7 +17241,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   /* ─────────────── Exportar a Excel (ExcelJS) ─────────────── */
   var XL = { AZUL: 'FF0052FF', AZUL_OSC: 'FF001B6B', AZUL_CLR: 'FFEEF3FF', AZUL_MED: 'FFD0DEFF', BLANC: 'FFFFFFFF',
              GRIS2: 'FFF5F8FF', NEGRO: 'FF060B14', SUB: 'FF6B7280', OK: 'FF0D8A50', ERR: 'FFB91C1C' };
-  var F_USD = '"$"#,##0.00;[Red]-"$"#,##0.00', F_PU = '"$"#,##0.00####', F_QTY = '#,##0.####', F_DATE = 'dd/mm/yyyy', F_PCT = '0.0%';
+  var F_USD = '"$"#,##0.00', F_PU = '"$"#,##0.00####', F_QTY = '#,##0.####', F_DATE = 'dd/mm/yyyy', F_PCT = '0.0%';
   var THIN = { style: 'thin', color: { argb: 'FFCCCCCC' } };
   var BORDER = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 
@@ -17525,10 +17324,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       (meta.usuario ? '  ·  Usuario: ' + meta.usuario : '');
 
     /* ══════════ COMPROBANTES ══════════ */
-    var CC = { fecha: 2, proyecto: 3, proveedor: 4, ruc: 5, numero: 6, auth: 7, cat: 8, cliente: 9, cid: 10, fpago: 11, sub: 12, dto: 13, iva: 14, tot: 15, nit: 16, mes: 17, tipo: 18, fmod: 19, motivo: 20 };
-    var lastCC = 'T', first = 6, last = 5 + n;
+    var CC = { fecha: 2, proyecto: 3, proveedor: 4, ruc: 5, numero: 6, auth: 7, cat: 8, cliente: 9, cid: 10, fpago: 11, sub: 12, dto: 13, iva: 14, tot: 15, nit: 16, mes: 17 };
+    var lastCC = 'Q', first = 6, last = 5 + n;
     titleBlock(wsC, lastCC, 'Comprobantes de gasto — ' + projName, sub);
-    headerRow(wsC, 5, ['N°', 'Fecha', 'Proyecto', 'Proveedor', 'RUC proveedor', 'N° de factura', 'N° de autorización', 'Categoría', 'Cliente', 'Identificación cliente', 'Forma de pago', 'Subtotal sin IVA', 'Descuento', 'IVA', 'Total', 'N° ítems', 'Mes', 'Tipo de comprobante', 'Factura que modifica', 'Motivo (nota de crédito)'], 12);
+    headerRow(wsC, 5, ['N°', 'Fecha', 'Proyecto', 'Proveedor', 'RUC proveedor', 'N° de factura', 'N° de autorización', 'Categoría', 'Cliente', 'Identificación cliente', 'Forma de pago', 'Subtotal sin IVA', 'Descuento', 'IVA', 'Total', 'N° ítems', 'Mes'], 12);
     rows.forEach(function (g, i) {
       var r = wsC.getRow(first + i), z = (i % 2) ? XL.GRIS2 : null, ex = g.extra || {};
       dataCell(r, 1, i + 1, { h: 'center', fill: z });
@@ -17548,9 +17347,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       dataCell(r, CC.tot, round2(g.total), { fmt: F_USD, h: 'right', fill: z, bold: true });
       dataCell(r, CC.nit, (g.items || []).length, { h: 'center', fill: z });
       dataCell(r, CC.mes, monthOf(g), { fmt: '@', h: 'center', fill: z });
-      dataCell(r, CC.tipo, tipoLabel(g), { fill: z, bold: isNC(g) });
-      dataCell(r, CC.fmod, String(ex.facModificada || ''), { fmt: '@', h: 'center', fill: z });
-      dataCell(r, CC.motivo, String(ex.motivoNC || ''), { fill: z, wrap: true });
       r.height = 16;
     });
     var sums = {}; ['sub', 'dto', 'iva', 'tot', 'nit'].forEach(function (k) {
@@ -17558,7 +17354,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       sums[k] = k === 'nit' ? sums[k] : round2(sums[k]);
     });
     var tr = wsC.getRow(last + 1); tr.height = 20;
-    for (var cI = 1; cI <= 20; cI++) { var tc = tr.getCell(cI); tc.fill = xfill(XL.AZUL_MED); tc.border = BORDER; tc.font = xf(true, XL.NEGRO, 9); }
+    for (var cI = 1; cI <= 17; cI++) { var tc = tr.getCell(cI); tc.fill = xfill(XL.AZUL_MED); tc.border = BORDER; tc.font = xf(true, XL.NEGRO, 9); }
     tr.getCell(CC.proveedor).value = 'TOTAL (respeta los filtros aplicados)';
     ['sub', 'dto', 'iva', 'tot', 'nit'].forEach(function (k) {
       var col = colL(CC[k]);
@@ -17566,9 +17362,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       c.value = { formula: 'SUBTOTAL(109,' + col + first + ':' + col + last + ')', result: sums[k] };
       c.numFmt = k === 'nit' ? '0' : F_USD; c.alignment = { horizontal: k === 'nit' ? 'center' : 'right', vertical: 'middle' };
     });
-    var widthsC = [6, 12, 22, 34, 16, 20, 52, 20, 26, 16, 34, 15, 12, 12, 14, 9, 10, 22, 22, 36];
+    var widthsC = [6, 12, 22, 34, 16, 20, 52, 20, 26, 16, 34, 15, 12, 12, 14, 9, 10];
     widthsC.forEach(function (w, i) { wsC.getColumn(i + 1).width = w; });
-    if (n) wsC.autoFilter = 'A5:T' + last;
+    if (n) wsC.autoFilter = 'A5:Q' + last;
     wsC.views = [{ state: 'frozen', ySplit: 5, xSplit: 0 }];
     setup(wsC); footer(wsC, lastCC);
     var rg = function (k) { var col = colL(CC[k]); return 'Comprobantes!$' + col + '$' + first + ':$' + col + '$' + last; };
@@ -17815,7 +17611,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
      Reutiliza los componentes de los PDFs de presupuesto: fuente Outfit, logo de puntos, portada
      inferior, encabezado/pie por página, tablas de cabecera azul oscuro y una página por documento
      (como el PDF de APUs, aquí una página por factura). */
-  function pMoney(n) { n = Number(n) || 0; return (n < 0 ? '-' : '') + ((typeof fmtUSD === 'function') ? fmtUSD(Math.abs(n)) : money(Math.abs(n))); }
+  function pMoney(n) { return (typeof fmtUSD === 'function') ? fmtUSD(n) : money(n); }
   function pPct(v) { return (Math.round(v * 1000) / 10).toLocaleString('es-EC', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; }
   function pQty(n) { return Number(n || 0).toLocaleString('es-EC', { maximumFractionDigits: 4 }); }
   function pPU(n) { return '$' + Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 6 }); }
@@ -18079,17 +17875,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     doc.addPage();
     ctx.sub = 'Comprobante ' + (idx + 1) + ' de ' + n;
     var mx = ctx.mx, tableW = ctx.tableW, y = pHeader(doc, ctx.proj, ctx.sub);
-    y = pHeading(doc, mx, y, (isNC(g) ? 'NOTA DE CRÉDITO N° ' : 'Comprobante N° ') + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
+    y = pHeading(doc, mx, y, 'Comprobante N° ' + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
 
     var mono = { font: 'courier', fontStyle: 'bold', textColor: [0, 51, 160] };
-    y = pFicha(doc, ctx, y, ['FECHA', isNC(g) ? 'N° NOTA DE CRÉDITO' : 'N° DE FACTURA', 'CATEGORÍA', 'FORMA DE PAGO'],
+    y = pFicha(doc, ctx, y, ['FECHA', 'N° DE FACTURA', 'CATEGORÍA', 'FORMA DE PAGO'],
       [pDate(g.fecha), Object.assign({ content: g.numero || '—' }, { styles: mono }), g.categoria || '—', g.formaPago || '—'], [0.16, 0.27, 0.21, 0.36]);
     y = pFicha(doc, ctx, y, ['PROVEEDOR', 'RUC', 'CLIENTE', 'IDENTIFICACIÓN'],
       [{ content: String(g.proveedor || '').trim() || '—', styles: { fontStyle: 'bold' } }, { content: g.ruc || '—', styles: mono }, g.cliente || '—', { content: g.clienteId || '—', styles: mono }], [0.34, 0.18, 0.30, 0.18]);
     y = pFicha(doc, ctx, y, ['PROYECTO', 'N° DE AUTORIZACIÓN'],
-      [g.proyecto || '—', { content: g.autorizacion || '—', styles: { font: 'courier', fontSize: 7.2, textColor: [26, 26, 46] } }], [0.30, 0.70]);
-    if (isNC(g)) y = pFicha(doc, ctx, y, ['FACTURA QUE MODIFICA', 'MOTIVO DE LA NOTA DE CRÉDITO'], [{ content: (g.extra || {}).facModificada || '—', styles: mono }, (g.extra || {}).motivoNC || '—'], [0.34, 0.66]);
-    y += 6;
+      [g.proyecto || '—', { content: g.autorizacion || '—', styles: { font: 'courier', fontSize: 7.2, textColor: [26, 26, 46] } }], [0.30, 0.70]) + 6;
 
     var items = g.items || [], W = tableW;
     var cols = [{ label: 'CÓDIGO', w: W * 0.13, code: true }, { label: 'DESCRIPCIÓN', w: W * 0.41 }, { label: 'CANT.', w: W * 0.10, align: 'right' },
@@ -18208,7 +18002,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     y = pHeading(doc, mx, y, 'Listado de comprobantes', ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
     var lb = rows.map(function (g) {
-      return [pDate(g.fecha), String(g.proveedor || '').trim() + (multi ? '\n' + (g.proyecto || '') : ''), { content: (isNC(g) ? 'NC ' : '') + (g.numero || '—'), styles: { font: 'courier', textColor: isNC(g) ? [185, 28, 28] : [0, 82, 255], fontSize: 7.5 } },
+      return [pDate(g.fecha), String(g.proveedor || '').trim() + (multi ? '\n' + (g.proyecto || '') : ''), { content: g.numero || '—', styles: { font: 'courier', textColor: [0, 82, 255], fontSize: 7.5 } },
         g.categoria || '', pMoney(g.subtotal), pMoney(g.iva), pMoney(g.total), String((g.items || []).length)];
     });
     lb.push([{ content: 'TOTAL', colSpan: 4, styles: P_TOTAL }, { content: pMoney(sums.sub), styles: Object.assign({ halign: 'right' }, P_TOTAL) },
@@ -18390,7 +18184,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var transient = (c === 'QUOTA' || c === 'SERVER' || c === 'TIMEOUT') && attempt < 1;
         var soft = (c === 'PARSE' || c === 'EMPTY') && attempt < 1;
         if ((transient || soft) && !st.batchCancel) {
-          if (transient) { CFG.concurrency = Math.max(1, CFG.concurrency - 1); okStreak = 0; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
+          if (transient) { CFG.concurrency = 1; await sleep(c === 'QUOTA' ? CFG.retryWait * (attempt + 1) : Math.round(CFG.retryWait / 3)); }   // si hay presión, bajar a 1 en paralelo
           continue;
         }
         throw e;
@@ -18403,7 +18197,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
     if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
-    if (!o.proveedor || !(Math.abs(o.total) > 0) || !o.fecha) return 'incomplete';
+    if (!o.proveedor || !(o.total > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
       var dup = saved.some(function (g) { return g.numero && (g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase() === key; }) || seen[key];
@@ -18443,13 +18237,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var title = o.proveedor || d.name;
       var note = draftNote(d, s);
       var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
-        '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
+        '<div class="d"><span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
       var showCat = canEdit && s !== 'skip';
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
-        '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
+        '<div style="text-align:right"><div class="v">' + (canEdit ? money(o.total) : '') + '</div>' +
         '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + (s === 'error' ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
@@ -18483,30 +18277,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function runBatch() {
     if (st.batchBusy) return;
     st.batchBusy = true; st.batchCancel = false; setBusy(true); setBatchMsg('');
-    CFG.concurrency = 3; okStreak = 0;   // cada lote arranca con 3 en paralelo
-    var tick = setInterval(function () {
-      st.drafts.forEach(function (d) {
-        if (d.status !== 'processing' || !d.t0) return;
-        var el = document.querySelector('[data-did="' + d.id + '"] .gx-st');
-        if (el && el.lastChild && el.lastChild.nodeType === 3) el.lastChild.nodeValue = ST_LABEL.processing + ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s';
-      });
-    }, 1000);   // contador de segundos (solo cambia el texto; no redibuja la lista)
+    var tick = setInterval(function () { if (st.drafts.some(function (d) { return d.status === 'processing'; })) renderBatch(); }, 1000);   // contador de segundos
     renderBatch();
-    var running = 0;
     async function worker() {
       for (;;) {
         if (st.batchCancel) return;
-        while (running >= CFG.concurrency) { await sleep(250); if (st.batchCancel) return; }     // paralelismo adaptativo: se ajusta solo según la presión de Gemini
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
-        running++;
         d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
         try {
-          try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Alimentación');
           d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated) ? 'warn' : 'ok';
-          okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
           if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
@@ -18516,13 +18298,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             st.batchCancel = true; setBatchMsg('warn', 'Se agotó la cuota gratuita de Gemini. Espera unos minutos y pulsa "Procesar pendientes".');
           }
         }
-          } finally { running--; }
         d.tok = null; renderBatch();
         if (!st.batchCancel) await sleep(CFG.gap);
       }
     }
     try {
-      var n = Math.max(1, Math.min(CFG.maxConc, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
+      var n = Math.max(1, Math.min(CFG.concurrency, st.drafts.filter(function (x) { return x.status === 'pending'; }).length));
       var ws = []; for (var i = 0; i < n; i++) ws.push(worker());
       await Promise.all(ws);
       var validN = st.drafts.filter(function (x) { return x.status === 'ok' || x.status === 'warn'; });
@@ -18572,26 +18353,21 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Dato de IA → registro de gasto (misma normalización que el guardado manual)
   function gastoFromData(o, proyecto, cat) {
-    var nc = o.tipo === '04';
-    var pos = function (v) { v = toNum(v); return round2(nc ? Math.abs(v) : Math.max(0, v)); };   // se calcula en positivo; ncApply() aplica el signo
     var g = {
       id: newId(), proyecto: proyecto, proveedor: String(o.proveedor || '').trim(), ruc: String(o.ruc || '').replace(/[^\d]/g, ''),
       numero: String(o.numero || '').trim(), fecha: normDate(o.fecha),
-      subtotal: pos(o.subtotal), iva: pos(o.iva), total: pos(o.total),
+      subtotal: round2(Math.max(0, toNum(o.subtotal))), iva: round2(Math.max(0, toNum(o.iva))), total: round2(Math.max(0, toNum(o.total))),
       categoria: cat, autorizacion: String(o.autorizacion || '').replace(/[^\d]/g, ''), cliente: o.cliente || '', clienteId: o.clienteId || '', formaPago: o.formaPago || '',
-      extra: { tipo: o.tipo || '01', facModificada: o.facModificada || '', motivoNC: o.motivoNC || '',
-               desglose: (o.desglose || []).map(function (d) { return { tarifa: d.tarifa, base: pos(d.base), iva: pos(d.iva) }; }),
-               subtotal0: pos(o.subtotal0), noObjeto: pos(o.noObjeto), exento: pos(o.exento), descuento: pos(o.descuento), ice: pos(o.ice), propina: pos(o.propina) },
-      items: (o.items || []).filter(function (it) { return (it.desc && String(it.desc).trim()) || Math.abs(it.total) > 0; }).map(function (it) {
-        var ab = function (v, k) { v = Number(v) || 0; return nc ? Math.abs(v) : v; };
+      extra: { desglose: o.desglose || [], subtotal0: o.subtotal0 || 0, noObjeto: o.noObjeto || 0, exento: o.exento || 0, descuento: o.descuento || 0, ice: o.ice || 0, propina: o.propina || 0 },
+      items: (o.items || []).filter(function (it) { return (it.desc && String(it.desc).trim()) || it.total > 0; }).map(function (it) {
         return { cod: String(it.cod || '').trim(), aux: String(it.aux || '').trim(), desc: String(it.desc || '').trim(), det: it.det || '',
-                 cant: round6(ab(it.cant)), pu: round6(ab(it.pu)), dto: round2(ab(it.dto)), total: round2(ab(it.total)) };
+                 cant: round6(Number(it.cant) || 0), pu: round6(Number(it.pu) || 0), dto: round2(Number(it.dto) || 0), total: round2(Number(it.total) || 0) };
       }),
       creado: Date.now()
     };
     if (!g.total && g.subtotal) g.total = round2(g.subtotal + g.iva);
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
-    return ncApply(g);
+    return g;
   }
 
   function saveAllDrafts() {
@@ -18716,7 +18492,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (rb && st.lastFile && !st.busy) handleFile(st.lastFile);
     });
     $('gxp-save').addEventListener('click', saveGasto);
-    var tpSel = $('gxp-tipo'); if (tpSel) tpSel.addEventListener('change', syncTipoUI);
     $('gxp-clear').addEventListener('click', function () { st.editing = null; resetForm(); });
     $('gxp-btn-iva').addEventListener('click', function () {
       var iva = round2(toNum(val('gxp-subtotal')) * ivaRate() / 100);
@@ -19110,7 +18885,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var an = analyze(current, syncProj(getData()), new Date());
       var catKeys = cfg.cats.slice();
       Object.keys(an.cats).forEach(function (k) { if (catKeys.indexOf(k) < 0) catKeys.push(k); });
-      var catVals = catKeys.map(function (k) { return Math.max(0, Math.round((an.cats[k] || 0) * 100) / 100); });   // una nota de crédito puede dejar una categoría en negativo: no se dibuja
+      var catVals = catKeys.map(function (k) { return Math.round((an.cats[k] || 0) * 100) / 100; });
       var sig = JSON.stringify([current, proj, new Date().toDateString(), an.values, catVals, an.total, an.prevTotal, an.count]);
       if (!force && sig === lastSig && lineChart) { lineChart.resize(); if (donutChart) donutChart.resize(); return; }
 

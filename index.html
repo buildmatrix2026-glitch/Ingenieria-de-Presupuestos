@@ -6174,7 +6174,10 @@ function go(v){
     var vgrp=$id('v-grp');
     if(vgrp && vgrp.classList.contains('grp-open')){
       vgrp.classList.remove('grp-open');
-      var gd=$id('gdet'); if(gd){ gd.style.height=''; gd.style.maxHeight=''; }
+      var gd=$id('gdet'); if(gd){ gd.style.display='none'; gd.style.height=''; gd.style.maxHeight=''; }
+      var gh=$id('ghome'); if(gh){ gh.style.display=''; }
+      window._grpDetGrp=null;
+      window._grpDetGrpName=null;
     }
   }
   $id('v-'+v).classList.add('ac');

@@ -1258,9 +1258,9 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
    Si la pantalla es muy baja, la página desplaza (nunca recorta). ══════════ */
 
 /* Barras de desplazamiento internas finas, con acento neón */
-#dbars,#dgrps,#gg,#gdet .card>div,#v-apu #apu-new-panel>div:nth-child(2),#v-apu #ae,#ivw{scrollbar-width:thin;scrollbar-color:rgba(6,182,212,.45) transparent}
-#dbars::-webkit-scrollbar,#dgrps::-webkit-scrollbar,#gg::-webkit-scrollbar,#gdet .card>div::-webkit-scrollbar,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar,#v-apu #ae::-webkit-scrollbar{width:8px;height:8px}
-#dbars::-webkit-scrollbar-thumb,#dgrps::-webkit-scrollbar-thumb,#gg::-webkit-scrollbar-thumb,#gdet .card>div::-webkit-scrollbar-thumb,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar-thumb,#v-apu #ae::-webkit-scrollbar-thumb{background:rgba(6,182,212,.4);border-radius:8px}
+#dbars,#dgrps,#gg,#gdet .card>div,#gred-scroll,#v-apu #apu-new-panel>div:nth-child(2),#v-apu #ae,#ivw{scrollbar-width:thin;scrollbar-color:rgba(6,182,212,.45) transparent}
+#dbars::-webkit-scrollbar,#dgrps::-webkit-scrollbar,#gg::-webkit-scrollbar,#gdet .card>div::-webkit-scrollbar,#gred-scroll::-webkit-scrollbar,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar,#v-apu #ae::-webkit-scrollbar{width:8px;height:8px}
+#dbars::-webkit-scrollbar-thumb,#dgrps::-webkit-scrollbar-thumb,#gg::-webkit-scrollbar-thumb,#gdet .card>div::-webkit-scrollbar-thumb,#gred-scroll::-webkit-scrollbar-thumb,#v-apu #apu-new-panel>div:nth-child(2)::-webkit-scrollbar-thumb,#v-apu #ae::-webkit-scrollbar-thumb{background:rgba(6,182,212,.4);border-radius:8px}
 
 /* ── Panel general ── */
 @media(min-width:961px){
@@ -1299,8 +1299,12 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
 #v-grp.ac.grp-open #gdet-list>.vh{flex-shrink:0}
 #v-grp.ac.grp-open #gdet-list>.card{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0!important}
 #v-grp.ac.grp-open #gdet-list>.card>div{flex:1;min-height:0;overflow:auto}
-#v-grp.ac.grp-open #gdet-editor{flex:1;min-height:0;overflow-y:auto;display:block}
+#v-grp.ac.grp-open #gdet-editor{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 #v-grp.ac.grp-open #gdet-editor:empty{display:none}
+#v-grp.ac.grp-open #gdet-editor>.card{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#v-grp.ac.grp-open #gdet-editor>.card>div:first-child{flex-shrink:0}
+#v-grp.ac.grp-open #gdet-editor #gred-scroll{flex:1;min-height:0;overflow-y:auto}
+#v-grp.ac.grp-open #gdet-editor>.card>div:last-child{flex-shrink:0}
 #v-grp #gdet .tbl thead th{position:sticky;top:0;z-index:2;background:rgba(11,15,25,.98)}
 #gdet-nav-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
@@ -7870,7 +7874,7 @@ function openRubroEdit(gIdx, rIdx){
   html+='<button class="ib" id="gred-close" title="Cerrar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
   html+='</div>';
 
-  html+='<div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">';
+  html+='<div id="gred-scroll" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">';
 
   // ── Info básica del rubro (siempre editable) ──
   html+='<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:90px 1fr 66px 100px;gap:10px;align-items:end;min-width:340px">';
@@ -8035,14 +8039,16 @@ function openRubroEdit(gIdx, rIdx){
     html+='<div style="font-size:11.5px;background:rgba(255,178,36,.06);border:1px solid rgba(255,178,36,.2);border-radius:8px;padding:10px 13px;color:#ffd58a;line-height:1.55">&#9888; Sin APU detallado - solo precio unitario editable.</div>';
   }
 
-  // ── Botones ──
-  html+='<div style="display:flex;gap:10px;padding-top:4px">';
+  html+='</div>'; // close #gred-scroll
+
+  // ── Botones (barra fija, fuera del área con scroll) ──
+  html+='<div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--br)">';
   html+='<button class="btn ghost" style="flex:1;padding:11px" id="gred-cancel">Cancelar</button>';
   html+='<button class="btn" style="flex:2;padding:11px;background:rgba(0,82,255,.2);border-color:rgba(0,82,255,.5)" id="gred-save">';
   html+='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   html+=' Guardar todo</button>';
   html+='</div>';
-  html+='</div></div>'; // close padding div + card
+  html+='</div>'; // close card
 
   ed.innerHTML=html;
 

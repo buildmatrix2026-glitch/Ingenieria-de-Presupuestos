@@ -1751,6 +1751,11 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 .mo.mo-w-sm{width:min(560px,calc(100vw - 32px))}
 .mo.mo-w-sm2{width:min(480px,calc(100vw - 32px))}
 .mo.mo-w-lg{width:min(1180px,calc(100vw - 32px))}
+/* Registro del gasto (obra y personal): más ancho para aprovechar la pantalla y ordenar mejor los campos */
+#gx-manual-modal .mo.mo-w-sm,#gxp-manual-modal .mo.mo-w-sm{width:min(900px,calc(100vw - 32px))}
+@media(min-width:860px){
+  #gx-manual-modal .gx-form,#gxp-manual-modal .gx-form{grid-template-columns:1fr 1fr 1fr}
+}
 .mo.mo-tall{height:min(80vh,calc(100dvh - 32px));max-height:min(80vh,calc(100dvh - 32px))}
 @keyframes mi{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 /* Móvil: ventana flotante con margen lateral, sin ocupar toda la pantalla */
@@ -2324,6 +2329,11 @@ input[type=date].inp:focus::-webkit-datetime-edit-year-field {
 }
 input[type=date].inp::-webkit-calendar-picker-indicator {
   cursor: pointer;
+}
+/* Ícono del selector de fecha en los formularios de Gastos y facturas / Gastos personales: blanco en vez del negro por defecto */
+input[type=date].gx-in::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1) brightness(1.6);
 }
 .inp::placeholder { color:rgba(139,156,189,.55); font-style:italic; }
 /* Budget form inputs — always grey italic regardless of content */

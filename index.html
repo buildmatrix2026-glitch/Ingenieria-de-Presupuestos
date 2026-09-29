@@ -15964,6 +15964,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var timer = setInterval(function () { setStatus('loading', base + ' ' + Math.round((Date.now() - t0) / 1000) + ' s', { cancel: true }); }, 1000);
     try {
       var data = window.BM_SRI ? await BM_SRI.extract(file, 'obra') : null;   // PDF con texto: lectura local, sin Gemini
+      if (data) aplicarProveedorConocido(data, 'obra');
       if (!data) {
         var img = await prepareFile(file);
         var res = await callGeminiFull(img, tok, function (info) {
@@ -16991,7 +16992,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     for (var attempt = 0; ; attempt++) {
       try {
         var loc = window.BM_SRI ? await BM_SRI.extract(file, 'obra', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
-        if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
+        if (loc) { aplicarProveedorConocido(loc, 'obra'); if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
         var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
         if (d) d.retry = 0;
@@ -18845,6 +18846,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var timer = setInterval(function () { setStatus('loading', base + ' ' + Math.round((Date.now() - t0) / 1000) + ' s', { cancel: true }); }, 1000);
     try {
       var data = window.BM_SRI ? await BM_SRI.extract(file, 'personal') : null;   // PDF con texto: lectura local, sin Gemini
+      if (data) aplicarProveedorConocidoPersonal(data);
       if (!data) {
         var img = await prepareFile(file);
         var res = await callGeminiFull(img, tok, function (info) {
@@ -19838,7 +19840,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     for (var attempt = 0; ; attempt++) {
       try {
         var loc = window.BM_SRI ? await BM_SRI.extract(file, 'personal', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
-        if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
+        if (loc) { aplicarProveedorConocidoPersonal(loc); if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
         var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
         if (d) d.retry = 0;

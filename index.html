@@ -20879,5 +20879,96 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 <div id="ins-cat-menu" style="display:none;position:fixed;z-index:99999;background:var(--s2);border:1px solid var(--br);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.6);width:320px;max-height:420px;overflow-y:auto;padding:8px">
   <div id="ins-cat-list"></div>
 </div>
+<style id="bm-scroll-neon-css">
+/* Neón al hacer scroll (landing): los textos blancos y los recuadros de datos se encienden con intentos fallidos hasta quedar fijos.
+   El estado apagado solo existe si el script añadió la clase .nz / .nzb, así que sin JS todo se ve normal. */
+html[data-theme="dark"] #land .nz{--nz-off-c:#4a5b78;--nz-on-c:#f4feff;--nz-on-s:0 0 6px rgba(255,255,255,.5),0 0 22px rgba(186,242,255,.42),0 0 50px rgba(6,182,212,.3);color:var(--nz-off-c);text-shadow:none}
+html[data-theme="dark"] #land .nz.nz-sm{--nz-on-s:0 0 5px rgba(255,255,255,.45),0 0 16px rgba(186,242,255,.34)}
+html[data-theme="dark"] #land .nz.nz-c{--nz-off-c:#0b6a80;--nz-on-c:#38e1ff;--nz-on-s:0 0 8px rgba(103,232,249,.8),0 0 26px rgba(6,182,212,.7),0 0 56px rgba(0,110,255,.5)}
+html[data-theme="dark"] #land .nz.nz-l{--nz-off-c:#34435f;--nz-on-c:#9fb6ea;--nz-on-s:0 0 8px rgba(103,232,249,.32)}
+html[data-theme="dark"] #land .nz.lit{color:var(--nz-on-c);text-shadow:var(--nz-on-s)}
+html[data-theme="dark"] #land .nzb{--nzb-on:inset 0 0 0 1px rgba(34,211,238,.34),inset 0 0 28px -10px rgba(6,182,212,.55);box-shadow:none}
+html[data-theme="dark"] #land .nzb.lit{box-shadow:var(--nzb-on)}
+</style>
+<script id="bm-scroll-neon-js">
+(function () {
+  'use strict';
+  var land = document.getElementById('land');
+  if (!land || !('IntersectionObserver' in window)) return;
+  var canAnim = !!Element.prototype.animate && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function rnd(a, z) { return a + Math.random() * (z - a); }
+  function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
+
+  // Línea de tiempo: varios intentos de encender que se apagan (cada vez un poco más largos) y al final queda fijo.
+  function timeline() {
+    var t = 0, k = [[0, 0]], tries = 3 + Math.floor(Math.random() * 3), i;
+    for (i = 0; i < tries; i++) {
+      t += rnd(90, 260); k.push([t, 0]);
+      t += rnd(20, 50);  k.push([t, 1]);
+      t += rnd(40, 90 + i * 70); k.push([t, 1]);
+      t += rnd(20, 45);  k.push([t, 0]);
+    }
+    t += rnd(120, 300); k.push([t, 0]);
+    t += rnd(30, 60);   k.push([t, 1]);
+    t += rnd(90, 160);  k.push([t, 1]);
+    t += rnd(20, 40);   k.push([t, 0]);
+    t += rnd(30, 60);   k.push([t, 1]);
+    return { k: k, total: t };
+  }
+
+  function light(el, delay) {
+    if (!el || el._lit) return;
+    el._lit = true;
+    el.classList.add('lit');                 // estado final permanente
+    if (!canAnim) return;
+    var cs = getComputedStyle(el), tl = timeline(), box = el.classList.contains('nzb'), kf, on, off;
+    if (box) {
+      on = cs.getPropertyValue('--nzb-on').trim();
+      kf = tl.k.map(function (p) { return { offset: p[0] / tl.total, boxShadow: p[1] ? on : 'none' }; });
+    } else {
+      var oc = cs.getPropertyValue('--nz-off-c').trim(), nc = cs.getPropertyValue('--nz-on-c').trim(), ns = cs.getPropertyValue('--nz-on-s').trim();
+      kf = tl.k.map(function (p) { return { offset: p[0] / tl.total, color: p[1] ? nc : oc, textShadow: p[1] ? ns : 'none' }; });
+    }
+    try { el.animate(kf, { duration: tl.total, delay: delay || 0, fill: 'backwards', easing: 'linear' }); } catch (e) {}
+  }
+  function T(el, cls) { if (el) { el.classList.add('nz'); if (cls) el.classList.add(cls); } return el; }
+
+  var io = new IntersectionObserver(function (entries) {
+    var fresh = entries.filter(function (e) { return e.isIntersecting || e.boundingClientRect.top < 0; });
+    fresh.sort(function (a, b) { return a.boundingClientRect.top - b.boundingClientRect.top; });
+    fresh.forEach(function (e, i) { io.unobserve(e.target); if (e.target._nz) e.target._nz(i * 260); });
+  }, { threshold: 0.35, rootMargin: '0px 0px -6% 0px' });
+
+  function watch(el, fn) { if (el) { el._nz = fn; io.observe(el); } }
+
+  /* 1) Datos: los cuatro recuadros, sus números y textos, uno tras otro */
+  var grid = document.querySelector('#stats .stats-grid');
+  if (grid) {
+    var items = $$('#stats .stat-item').map(function (it) {
+      it.classList.add('nzb');
+      return { box: it, val: T(it.querySelector('.stat-val')), acc: T(it.querySelector('.stat-accent'), 'nz-c'), lab: T(it.querySelector('.stat-label'), 'nz-l') };
+    });
+    watch(grid, function (d) {
+      items.forEach(function (o, i) {
+        var b = d + i * 420;
+        light(o.box, b); light(o.val, b + 220); light(o.acc, b + 380); light(o.lab, b + 520);
+      });
+    });
+  }
+
+  /* 2, 3, 4) Títulos grandes en blanco */
+  ['#apu-section .section-title', '#chapters-section .section-title', '#features .section-title'].forEach(function (sel) {
+    var h = T(document.querySelector(sel));
+    watch(h, function (d) { light(h, d); });
+  });
+
+  /* 4) Además, los títulos blancos de las tarjetas de características, a medida que aparecen */
+  $$('#features .feature-title').forEach(function (t) {
+    T(t, 'nz-sm');
+    watch(t, function (d) { light(t, d); });
+  });
+})();
+</script>
+
 </body>
 </html>

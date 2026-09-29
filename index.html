@@ -21098,6 +21098,51 @@ html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--
     var spans = Array.prototype.slice.call(g[0].querySelectorAll('.btn-primary, .btn-ghost')).map(wrapBtn);
     watch(g[0], function (d) { spans.forEach(function (s, i) { light(s, d + g[1] + i * 420); }); });
   });
+
+  /* 7) Motor de cálculo: subtítulo gris + número y descripción de cada uno de los 4 pasos */
+  var apuSub = T(document.querySelector('#apu-section .section-subtitle'), 'nz-sub');
+  watch(apuSub, function (d) { light(apuSub, d); });
+
+  var apuStepsWrap = document.querySelector('#apu-section .apu-steps');
+  var apuStepEls = $$('#apu-section .apu-step').map(function (step) {
+    return { num: T(step.querySelector('.apu-step-number'), 'nz-c'), desc: T(step.querySelector('.apu-step-desc'), 'nz-sub') };
+  });
+  watch(apuStepsWrap, function (d) {
+    apuStepEls.forEach(function (o, i) {
+      var b = d + i * 180;
+      light(o.num, b); light(o.desc, b + 140);
+    });
+  });
+
+  /* 8) Características: icono (caja con glow), descripción y tag de cada tarjeta */
+  $$('#features .feature-card').forEach(function (card) {
+    var icon = card.querySelector('.feature-icon'); icon.classList.add('nzb');
+    var desc = T(card.querySelector('.feature-desc'), 'nz-sub');
+    var tag = T(card.querySelector('.feature-tag'), 'nz-c');
+    watch(card, function (d) { light(icon, d); light(desc, d + 120); light(tag, d + 260); });
+  });
+
+  /* 9) Entregables: subtítulo gris + icono, tipo, título y descripción de cada tarjeta de exportación */
+  var exSub = T(document.querySelector('#export-section .section-subtitle'), 'nz-sub');
+  watch(exSub, function (d) { light(exSub, d); });
+
+  $$('#export-section .export-card').forEach(function (card, i) {
+    var icon = card.querySelector('.export-card-icon'); icon.classList.add('nzb');
+    var type = T(card.querySelector('.export-card-type'), 'nz-c');
+    var title = T(card.querySelector('.export-card-title'), 'nz-sm');
+    var desc = T(card.querySelector('.export-card-desc'), 'nz-sub');
+    watch(card, function (d) { light(icon, d); light(type, d + 120); light(title, d + 220); light(desc, d + 340); });
+  });
+
+  /* 10) CTA final: subtítulo gris */
+  var ctaSub = T(document.querySelector('#cta-final .cta-subtitle'), 'nz-sub');
+  watch(ctaSub, function (d) { light(ctaSub, d); });
+
+  /* 11) Footer: líneas de copyright */
+  var footCopies = $$('footer .footer-copy').map(function (p) { return T(p, 'nz-sub'); });
+  watch(document.querySelector('footer'), function (d) {
+    footCopies.forEach(function (p, i) { light(p, d + i * 220); });
+  });
 })();
 </script>
 

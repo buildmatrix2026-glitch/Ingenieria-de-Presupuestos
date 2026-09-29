@@ -16827,7 +16827,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
-      var showCat = canEdit && s !== 'skip';
+      var showCat = canEdit;
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
@@ -19433,7 +19433,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
-      var showCat = canEdit && s !== 'skip';
+      var showCat = canEdit;
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +

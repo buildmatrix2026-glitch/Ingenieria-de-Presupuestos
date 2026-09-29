@@ -1151,17 +1151,17 @@ html[data-theme="dark"] .gx-scope .gx-st.err{color:#fca5a5;border-color:rgba(248
 html[data-theme="dark"] .ts{background:linear-gradient(90deg,rgba(6,182,212,.16),rgba(11,15,25,.94) 60%);border:1px solid rgba(34,211,238,.42);color:#e6fbff;border-radius:14px;
   box-shadow:inset 3px 0 0 #22d3ee,0 12px 44px rgba(0,0,0,.5),0 0 26px -10px rgba(6,182,212,.75)}
 
-/* Cursor de la app: triángulo doble de neón (medido sobre la imagen de referencia; la landing conserva el suyo).
+/* Cursor: triángulo doble de neón (medido sobre la imagen de referencia), igual en la landing y en la app.
    Punta = vértice superior izquierdo. Se ocultan TODOS los cursores nativos (manito, I de texto, flechas). */
 @media(hover:hover) and (pointer:fine){
-  body.ia,body.ia *,body.ia *::before,body.ia *::after{cursor:none!important}
-  body.ia #cursor{width:17.6px!important;height:17.6px!important;min-width:0!important;min-height:0!important;border-radius:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 11 100 100'%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='%23053f40'/%3E%3Cline x1='28.1' y1='17.1' x2='39.1' y2='27.8' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='115.4' y1='40.4' x2='100.4' y2='44.2' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='52.4' y1='104.4' x2='56.1' y2='89.1' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cpolygon points='28.1,17.1 115.4,40.4 52.4,104.4' fill='none' stroke='%2396d5d6' stroke-width='2.8' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='none' stroke='%2396d5d6' stroke-width='3' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%;
+  html body,html body *,html body *::before,html body *::after{cursor:none!important}
+  html body #cursor{width:17.6px!important;height:17.6px!important;min-width:0!important;min-height:0!important;border-radius:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 11 100 100'%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='%23053f40'/%3E%3Cline x1='28.1' y1='17.1' x2='39.1' y2='27.8' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='115.4' y1='40.4' x2='100.4' y2='44.2' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='52.4' y1='104.4' x2='56.1' y2='89.1' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cpolygon points='28.1,17.1 115.4,40.4 52.4,104.4' fill='none' stroke='%2396d5d6' stroke-width='2.8' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='none' stroke='%2396d5d6' stroke-width='3' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%;
     transform:translate(-1.1px,-1.1px);transform-origin:1.1px 1.1px;
     filter:drop-shadow(0 0 1px rgba(120,235,240,.85)) drop-shadow(0 0 3px rgba(6,182,212,.6));
     transition:transform .16s var(--eo),filter .2s}
-  body.ia.cursor-hover #cursor{width:17.6px!important;height:17.6px!important;background-color:transparent;transform:translate(-1.1px,-1.1px) scale(1.14);
+  html body.cursor-hover #cursor{width:17.6px!important;height:17.6px!important;background-color:transparent;transform:translate(-1.1px,-1.1px) scale(1.14);
     filter:drop-shadow(0 0 1.5px rgba(150,245,250,1)) drop-shadow(0 0 5px rgba(6,182,212,.95))}
-  body.ia #cursor-ring{display:none!important}
+  html body #cursor-ring{display:none!important}
 }
 
 /* ══════════ Fase 9: las ventanas de Panel general, Constructor APU y Grupos y rubros se ajustan a la pantalla
@@ -20889,6 +20889,21 @@ html[data-theme="dark"] #land .nz.nz-l{--nz-off-c:#34435f;--nz-on-c:#9fb6ea;--nz
 html[data-theme="dark"] #land .nz.lit{color:var(--nz-on-c);text-shadow:var(--nz-on-s)}
 html[data-theme="dark"] #land .nzb{--nzb-on:inset 0 0 0 1px rgba(34,211,238,.34),inset 0 0 28px -10px rgba(6,182,212,.55);box-shadow:none}
 html[data-theme="dark"] #land .nzb.lit{box-shadow:var(--nzb-on)}
+
+/* Letras de los botones (mismo neón; el cian del botón principal, blanco el secundario) */
+html[data-theme="dark"] #land .nz.nz-c.nz-btn{--nz-on-s:0 0 6px rgba(103,232,249,.75),0 0 16px rgba(6,182,212,.55)}
+html[data-theme="dark"] #land .nz-btn{transition:color .2s}
+html[data-theme="dark"] #land .btn-ghost:hover .nz-btn{--nz-on-c:#38e1ff;--nz-on-s:0 0 6px rgba(103,232,249,.75),0 0 16px rgba(6,182,212,.55)}
+/* Luz de neón que circula sin parar alrededor del borde de los botones */
+@property --bm-ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes bmRingSpin{to{--bm-ang:360deg}}
+html[data-theme="dark"] #land .bm-ring{position:relative;isolation:isolate;box-shadow:0 0 18px -7px rgba(6,182,212,.5)}
+html[data-theme="dark"] #land .bm-ring::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.6px;pointer-events:none;
+  background:conic-gradient(from var(--bm-ang),transparent 0deg,transparent 205deg,rgba(6,182,212,.35) 250deg,rgba(103,232,249,.9) 320deg,#f4feff 352deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  animation:bmRingSpin 3.4s linear infinite}
+@media (prefers-reduced-motion:reduce){html[data-theme="dark"] #land .bm-ring::after{animation:none}}
 </style>
 <script id="bm-scroll-neon-js">
 (function () {
@@ -20966,6 +20981,29 @@ html[data-theme="dark"] #land .nzb.lit{box-shadow:var(--nzb-on)}
   $$('#features .feature-title').forEach(function (t) {
     T(t, 'nz-sm');
     watch(t, function (d) { light(t, d); });
+  });
+
+  /* 5) Entregables ("Del análisis al cliente...") y CTA final ("Construye mejor..."): solo el texto grande */
+  var exT = T(document.querySelector('#export-section .section-title'));
+  watch(exT, function (d) { light(exT, d); });
+  var ctaT = T(document.querySelector('#cta-final .cta-title'));
+  watch(ctaT, function (d) { light(ctaT, d); });
+
+  /* 6) Botones (inicio y final): luz que circula por el borde + letras con neón */
+  function wrapBtn(b) {
+    var s = document.createElement('span');
+    s.textContent = b.textContent.trim();
+    b.textContent = '';
+    b.appendChild(s);
+    s.classList.add('nz', 'nz-btn', b.classList.contains('btn-primary') ? 'nz-c' : 'nz-sm');
+    b.classList.add('bm-ring');
+    return s;
+  }
+  var heroGrp = document.querySelector('.hero-cta-group'), ctaGrp = document.querySelector('#cta-final .cta-actions');
+  [[heroGrp, 1500], [ctaGrp, 250]].forEach(function (g) {
+    if (!g[0]) return;
+    var spans = Array.prototype.slice.call(g[0].querySelectorAll('.btn-primary, .btn-ghost')).map(wrapBtn);
+    watch(g[0], function (d) { spans.forEach(function (s, i) { light(s, d + g[1] + i * 420); }); });
   });
 })();
 </script>

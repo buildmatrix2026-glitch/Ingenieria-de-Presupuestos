@@ -4004,6 +4004,12 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 <option value="HM">HM — Herramientas Menores</option>
               </select>
             </div>
+            <div class="icd-field" id="icd-mo-sub-wrap" style="display:none">
+              <label class="icd-label">Grupo ocupacional (Mano de Obra)</label>
+              <select class="icd-input" id="icd-mo-sub" onchange="icdMoSubChange()">
+                <option value="">— Seleccionar grupo —</option>
+              </select>
+            </div>
             <div class="icd-field">
               <label class="icd-label">Código</label>
               <input class="icd-input" id="icd-code" placeholder="EL-999" style="font-family:var(--f-mo,monospace)">
@@ -10509,15 +10515,75 @@ function toggleInsDrawer() {
   d.classList.toggle('visible');
 }
 
+// Etiquetas amigables para los grupos ocupacionales de Mano de Obra (MO-<grupo>-N)
+const MO_SUB_LABELS = {
+  'B1':'B1 — Profesionales (Ingeniero civil/eléctrico, Residente de obra)',
+  'B3':'B3 — Inspección / Supervisión',
+  'C1':'C1 — Maestros y operadores especializados (soldador, topógrafo, chofer E...)',
+  'C2':'C2 — Maestro de obra, dibujante, técnicos',
+  'C3':'C3 — Soldador en construcción',
+  'D2':'D2 — Oficiales (albañil, carpintero, electricista, plomero, fierrero...)',
+  'E2':'E2 — Ayudantes y peón'
+};
+
+function icdMoSubOptions(){
+  // Detecta dinámicamente los grupos ocupacionales realmente usados en MO-*
+  const found={};
+  BD.I.forEach(r=>{
+    const parts=r[0].split('-');
+    if(parts[0]==='MO' && parts.length>=3) found[parts[1]]=true;
+  });
+  const groups=Object.keys(found).length?Object.keys(found):Object.keys(MO_SUB_LABELS);
+  return groups.sort().map(g=>`<option value="${g}">${MO_SUB_LABELS[g]||g}</option>`).join('');
+}
+
+function icdMoSubChange(){
+  const sub=document.getElementById('icd-mo-sub').value;
+  const codeEl=document.getElementById('icd-code');
+  if(!sub||!codeEl) return;
+  // Siguiente número disponible DENTRO de ese grupo ocupacional (MO-<sub>-N)
+  const existing=BD.I.filter(r=>r[0].startsWith('MO-'+sub+'-'))
+                      .map(r=>parseInt(r[0].split('-')[2])||0);
+  const next=existing.length?Math.max(...existing)+1:1;
+  codeEl.value='MO-'+sub+'-'+next;
+  codeEl.focus();
+  codeEl.select();
+}
+
 function icdCatChange(){
   const cat=document.getElementById('icd-cat').value;
   const codeEl=document.getElementById('icd-code');
+  const subWrap=document.getElementById('icd-mo-sub-wrap');
+  const subSel=document.getElementById('icd-mo-sub');
   if(!cat||!codeEl) return;
+
+  if(cat==='MO'){
+    // Mano de Obra usa códigos compuestos MO-<grupo ocupacional>-N (ej. MO-D2-1).
+    // No se puede sugerir un correlativo simple: pedimos primero el grupo.
+    if(subWrap) subWrap.style.display='';
+    if(subSel){
+      subSel.innerHTML='<option value="">— Seleccionar grupo —</option>'+icdMoSubOptions();
+      subSel.value='';
+    }
+    codeEl.value='';
+    codeEl.placeholder='Elige primero el grupo ocupacional →';
+    if(subSel) subSel.focus();
+    return;
+  }
+
+  // Cualquier otra categoría: ocultar el selector de grupo de MO
+  if(subWrap) subWrap.style.display='none';
+  if(subSel) subSel.value='';
+  codeEl.placeholder=cat+'-999';
+
   // Sugerir prefijo solo si el campo está vacío o tiene solo el prefijo anterior
   const cur=codeEl.value.trim();
   if(!cur||/^[A-Z0-9]+-?$/.test(cur)){
-    // Calcular siguiente número disponible para esa categoría
-    const existing=BD.I.filter(r=>r[0].startsWith(cat+'-')).map(r=>parseInt(r[0].split('-')[1])||0);
+    // Calcular siguiente número disponible para esa categoría.
+    // Se usa el ÚLTIMO segmento del código (robusto ante códigos compuestos
+    // tipo PREFIJO-SUBGRUPO-N, aunque hoy solo MO los usa).
+    const existing=BD.I.filter(r=>r[0].startsWith(cat+'-'))
+                        .map(r=>{const p=r[0].split('-'); return parseInt(p[p.length-1])||0;});
     const next=existing.length?Math.max(...existing)+1:1;
     codeEl.value=cat+'-'+next;
     codeEl.focus();
@@ -10531,6 +10597,12 @@ function icdReset() {
   });
   const cat=document.getElementById('icd-cat');
   if(cat) cat.value='';
+  const subWrap=document.getElementById('icd-mo-sub-wrap');
+  const subSel=document.getElementById('icd-mo-sub');
+  if(subWrap) subWrap.style.display='none';
+  if(subSel) subSel.innerHTML='<option value="">— Seleccionar grupo —</option>';
+  const codeEl=document.getElementById('icd-code');
+  if(codeEl) codeEl.placeholder='EL-999';
 }
 
 function icdSave() {
@@ -10540,6 +10612,10 @@ function icdSave() {
   const price = +((document.getElementById('icd-price')||{}).value)||0;
   const cat   = (document.getElementById('icd-cat')||{}).value||'';
   if (!cat) { toast('Selecciona una categoría'); return; }
+  if (cat==='MO' && !/^MO-[A-Za-z0-9]+-[0-9]+$/.test(code)) {
+    toast('Selecciona el grupo ocupacional de Mano de Obra (B1, C1, D2, E2...)');
+    return;
+  }
   if (!code || !desc) { toast('Ingresa código y descripción'); return; }
   // Check duplicate
   if (BD.I.find(r=>r[0]===code)) { toast('Ya existe un insumo con ese código'); return; }

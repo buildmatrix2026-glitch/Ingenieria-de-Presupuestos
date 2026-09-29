@@ -5255,6 +5255,16 @@ window.BM_CONFIRM = function (msg) {
      ("FACTURA"/"NOTA DE CRÉDITO" + "R.U.C.:" + "No." + fecha) en la parte de arriba de su primera
      página. Se agrupan las páginas consecutivas que comparten la MISMA clave de acceso; cuando
      aparece una clave distinta (o una cabecera nueva sin clave), empieza el siguiente comprobante. */
+  // Cede el hilo principal al navegador (deja que pinte un frame) antes de seguir. Sin esto, un PDF
+  // de cientos de páginas se procesa en una ráfaga tan seguida de tareas que el navegador no alcanza
+  // a dibujar nada mientras tanto: todo se ve "trabado" (efectos, cursor, scroll) aunque técnicamente
+  // el código sigue corriendo bien.
+  function bmYieldFrame() {
+    return new Promise(function (res) {
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { setTimeout(res, 0); });
+      else setTimeout(res, 0);
+    });
+  }
   function detectarInicios(pdfjs, doc, maxPag) {
     return (async function () {
       var n = Math.min(doc.numPages, maxPag);
@@ -5266,6 +5276,7 @@ window.BM_CONFIRM = function (msg) {
         var esCab = /R\.?\s?U\.?\s?C\.?\s*:?\s*\d{10,13}/i.test(texto.slice(0, 400)) &&
                     /(FACTURA|NOTA\s+DE\s+CR[EÉ]DITO|NOTA\s+DE\s+D[EÉ]BITO|LIQUIDACI[OÓ]N\s+DE\s+COMPRA|COMPROBANTE\s+DE\s+RETENCI|GU[IÍ]A\s+DE\s+REMISI[OÓ]N)/i.test(texto.slice(0, 400));
         cabeceras.push(esCab);
+        if (p % 15 === 0) await bmYieldFrame();   // cede el hilo cada 15 páginas para no congelar la UI
       }
       var rangos = [], ini = 1;
       for (var i = 1; i < n; i++) {
@@ -14781,7 +14792,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'En casos dudosos (comida, ropa) decide por el contexto del ítem: cantidades de obra, obreros, cuadrilla, EPP, materiales o transporte de materiales → aplica=true; consumo familiar o de hogar → aplica=false. Si dudas y el contenido es de construcción u obra, aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
     'PROVEEDORES Y PATRONES QUE DEBES RECONOCER SIN DUDAR (aprendidos de facturas reales de este usuario, aplícalos siempre): ' +
     '• TELEFONÍA (aplica=true, categoria="Gastos Indirectos"): OTECEL S.A., CONECEL S.A., CLARO, MOVISTAR, CNT EP, TUENTI, o cualquier ítem con "recarga", "plan", "consumo", "roaming", "datos", "minutos", "postpago", "prepago" de telefonía — SIN IMPORTAR que el resto del texto del ítem se vea confuso o parezca otra cosa (nunca lo confundas con alimentación u otro gasto personal). ' +
-    '• PEAJES (aplica=true, categoria="Gastos Indirectos"): además de la palabra "peaje", reconoce también "pasada", "cobro de pasada", "cruce", "postpago vehicular", número de "placa" de vehículo, o proveedores como "CORPORACION PEAJE...", "EMPRESA PUBLICA...MOVILIDAD...", GAD/Gobierno Autónomo Descentralizado cuando el ítem se refiera a paso vehicular o peaje (aunque no diga la palabra "peaje" literalmente). ' +
+    '• PEAJES (aplica=true, categoria="Gastos Indirectos"): además de la palabra "peaje", reconoce también "pasada", "cobro de pasada", "cruce", "postpago vehicular", número de "placa" de vehículo, o proveedores como "CORPORACION PEAJE...", "EMPRESA PUBLICA...MOVILIDAD...", GAD/Gobierno Autónomo Descentralizado cuando el ítem se refiera a paso vehicular o peaje (aunque no diga la palabra "peaje" literalmente). REGLA CLAVE por el PATRÓN de la factura, no solo por el texto del ítem: si el proveedor es "GOBIERNO AUTONOMO DESCENTRALIZADO..." o "EMPRESA PUBLICA...MOVILIDAD..." Y el monto total es pequeño (menor a $5, típico de un peaje o pasada), trátalo SIEMPRE como peaje → aplica=true, categoria="Gastos Indirectos", aunque el ítem se vea confuso, incompleto o parezca otra cosa (nunca "Educación, Arte y Cultura" ni otro gasto personal). Un GAD/municipio con un monto GRANDE y un ítem que claramente diga permiso, tasa, licencia o similar SÍ es "Gastos Trámites", pero el patrón de montos pequeños y repetidos de estos proveedores es casi siempre peaje. ' +
     '• TRANSPORTE DE PERSONAL (aplica=true, categoria="Gastos Indirectos"): pasajes o boletos de "Cooperativa de Transporte", buses interprovinciales, taxis o encomiendas para personal/materiales de la obra (ítems tipo "PASAJE AUTOBUS", "BOLETO", origen-destino con fecha). ' +
     '• FERRETERÍAS Y MATERIALES CON NOMBRES AMBIGUOS (aplica=true, categoria="Materiales"): autoperforantes, tornillos, rejillas (de piso, desagüe o plomería), sifones, codos, uniones, pernos, sikafix, masilla, sellador, silicón, empaste, y productos de grout/mortero/pintura de marcas como INTACO, DISENSA, KYWI, PINTUCO, incluso si el nombre del color o tono del producto suena a comida (ej. "GROUTEX FINO AVELLANA" es un grout de tono avellana, NO alimento; "CHOCOLATE", "CREMA", "VAINILLA" como colores de pintura tampoco son alimento). Si el proveedor es una ferretería, almacén de materiales, corralón o vidriería, el ítem es Materiales salvo que sea claramente ropa, EPP o combustible. ' +
     '• SALUD / ODONTOLOGÍA (aplica=false, "Gasto de salud personal: no va en Gastos y facturas"): aunque el proveedor facture con nombre de PERSONA NATURAL (muchos odontólogos y médicos facturan así) o con una razón social que no diga "clínica" ni "consultorio", reconoce SIEMPRE por el ÍTEM: "restauración" (dental), "endodoncia", "ortodoncia", "profilaxis", "resina", "extracción dental", "corona", "radiografía panorámica", "panorámica de maxilares", "cefálica", "cefalometría", "consulta odontológica", "curación", limpieza dental, blanqueamiento, o cualquier procedimiento médico/odontológico. También reconoce farmacias (FARMAENLACE, FYBECA, SANA SANA, CRUZ AZUL, PHARMACYS) y cualquier ítem con forma de medicamento (nombre + "TAB", "MG", "CAJ", "JBE", "CAP", cápsulas, comprimidos, jarabe). ' +
@@ -16925,8 +16936,27 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     box.style.display = '';
     var saved = loadSavedCached(), proyecto = val('gx-proyecto'), seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
-    var html = ds.map(function (d) {
-      var s = draftState(d, saved, proyecto, seen), o = d.data || {};
+    // 1) calcula el estado de cada una en el orden original (el detector de duplicados depende de
+    //    ese orden: la primera que aparece no es duplicada, las siguientes con la misma clave sí).
+    var items = ds.map(function (d, idx) {
+      var s = draftState(d, saved, proyecto, seen);
+      return { d: d, s: s, idx: idx };
+    });
+    // 2) para mostrarlas, las reordena: primero "No corresponde", luego las que hay que "Revisar"
+    //    (avisos, incompletas, duplicadas o con error), y al final las que ya están "Lista".
+    //    Las que aún se están leyendo se muestran al final, porque todavía no se sabe en qué grupo caen.
+    function prioridad(s) {
+      if (s === 'skip') return 0;
+      if (s === 'warn' || s === 'incomplete' || s === 'dup' || s === 'error') return 1;
+      if (s === 'ok') return 2;
+      return 3;   // pending | processing
+    }
+    var ordenados = items.slice().sort(function (a, b) {
+      var pa = prioridad(a.s), pb = prioridad(b.s);
+      return pa !== pb ? pa - pb : a.idx - b.idx;
+    });
+    var html = ordenados.map(function (it) {
+      var d = it.d, s = it.s, o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
@@ -17491,7 +17521,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'CAMPO aplica (decide PRIMERO): esta pantalla es SOLO para gastos PERSONALES o FAMILIARES de la persona. Pon aplica=false y explica en motivo_no_aplica (una frase corta en español) si el comprobante es: ' +
     '(1) gasto de OBRA o de proyectos de construcción: cualquier material, accesorio, repuesto o herramienta de construcción, plomería, electricidad, carpintería, pintura y acabados, AUNQUE parezca de uso doméstico (cemento, hierro, arena, ripio, bloques, ladrillos, pintura, tubería y accesorios PVC, sifones, codos, llaves de paso, grifería, válvulas, cables, tomacorrientes, breakers, cerámica, porcelanato, tornillos, clavos, silicón, cerraduras, herramientas) o cualquier compra en una FERRETERÍA, corralón, almacén de materiales, vidriería, maderera o proveedor de plomería, eléctricos o acabados; mano de obra o jornales, alquiler de maquinaria o equipos, subcontratos, trámites y permisos de obra, EPP o ropa de trabajo, o cualquier gasto de trabajo o de proyectos; ' +
     '(2) COMBUSTIBLE de cualquier tipo (gasolina, diesel, extra, súper, ecopaís, GLP vehicular) o compra en gasolineras / estaciones de servicio; ' +
-    '(3) MANTENIMIENTO Y GASTOS DE VEHÍCULOS: mecánica, cambio de aceite y lubricantes, llantas, repuestos y accesorios de auto, alineación y balanceo, lavado y lubricado, taller automotriz, seguro o matrícula vehicular, PEAJES de autopistas o concesionarias viales; ' +
+    '(3) MANTENIMIENTO Y GASTOS DE VEHÍCULOS: mecánica, cambio de aceite y lubricantes, llantas, repuestos y accesorios de auto, alineación y balanceo, lavado y lubricado, taller automotriz, seguro o matrícula vehicular, PEAJES de autopistas o concesionarias viales — incluye facturas de "GOBIERNO AUTONOMO DESCENTRALIZADO..." o "EMPRESA PUBLICA...MOVILIDAD..." con montos pequeños (menor a $5): son peajes de obra, nunca "Educación, Arte y Cultura" ni otra categoría personal; ' +
     '(4) RECARGAS O PLANES DE TELEFONÍA CELULAR / INTERNET MÓVIL (OTECEL/Movistar, CLARO, CNT, Tuenti): esto es un gasto indirecto de obra, no de vivienda personal — NUNCA lo pongas en "Vivienda" aunque se parezca a un servicio básico del hogar. ' +
     '(5) PASAJES DE COOPERATIVAS DE TRANSPORTE (buses interprovinciales, ítems tipo "PASAJE AUTOBUS" con origen-destino) para movilización de personal de obra: esto es transporte de obra, no turismo personal. ' +
     'Ejemplo de motivo_no_aplica: "Factura de combustible: no va en gastos personales". En cualquier otro caso pon aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
@@ -19631,8 +19661,22 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     box.style.display = '';
     var saved = loadSavedCached(), proyecto = PERSONAL_PROJECT, seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
-    var html = ds.map(function (d) {
-      var s = draftState(d, saved, proyecto, seen), o = d.data || {};
+    var items = ds.map(function (d, idx) {
+      var s = draftState(d, saved, proyecto, seen);
+      return { d: d, s: s, idx: idx };
+    });
+    function prioridad(s) {
+      if (s === 'skip') return 0;
+      if (s === 'warn' || s === 'incomplete' || s === 'dup' || s === 'error') return 1;
+      if (s === 'ok') return 2;
+      return 3;   // pending | processing
+    }
+    var ordenados = items.slice().sort(function (a, b) {
+      var pa = prioridad(a.s), pb = prioridad(b.s);
+      return pa !== pb ? pa - pb : a.idx - b.idx;
+    });
+    var html = ordenados.map(function (it) {
+      var d = it.d, s = it.s, o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;

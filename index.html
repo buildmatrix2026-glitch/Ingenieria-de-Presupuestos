@@ -2895,6 +2895,13 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 #v-pia .pia-actions-bottom{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
 @media (max-width:700px){#v-pia .pia-summary{max-width:100%}}
 
+#v-grp:has(#gdet-list[style*='none']).ac{display:block!important;height:auto!important;min-height:0!important}
+.mn:has(#v-grp #gdet-list[style*='none']){display:block!important}
+#v-grp:has(#gdet-list[style*='none'])>.vh{flex-shrink:unset!important}
+#v-grp #gdet:has(#gdet-list[style*='none']){display:block!important;flex:none!important;min-height:0!important;max-height:none!important}
+#v-grp #gdet-list[style*='none']~#gdet-editor{flex:none!important;max-height:none!important;overflow:visible!important;min-width:0;max-width:100%}
+.mn:has(#v-grp #gdet-list[style*='none']){scrollbar-width:auto!important;-ms-overflow-style:auto!important}
+.mn:has(#v-grp #gdet-list[style*='none'])::-webkit-scrollbar{display:block!important;width:8px!important;height:8px!important}
 </style>
 
 <!-- ── Auth simulado (Firebase removido) ──────────────────────────────── -->

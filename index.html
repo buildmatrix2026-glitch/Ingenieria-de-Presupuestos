@@ -4990,13 +4990,9 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 <style id="bmcf-style">
 @keyframes bmcf-in{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes bmcf-ov-in{from{opacity:0}to{opacity:1}}
-@keyframes bmcf-spin{to{transform:rotate(360deg)}}
 @keyframes bmcf-icon-pulse{0%,100%{box-shadow:0 0 0 0 var(--bmcf-ring)}50%{box-shadow:0 0 0 6px transparent}}
 .bmcf-ov{position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 40%,rgba(9,16,30,.78),rgba(3,7,15,.88));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:bmcf-ov-in .18s ease-out both;font-family:var(--font-main,'Outfit',sans-serif)}
-.bmcf-outer{position:relative;width:100%;max-width:440px;border-radius:17px;animation:bmcf-in .28s cubic-bezier(.19,1,.22,1) both}
-.bmcf-ring{position:absolute;inset:0;border-radius:17px;overflow:hidden;z-index:0}
-.bmcf-ring::before{content:'';position:absolute;inset:-42%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,transparent 316deg,var(--bmcf-accent-2) 330deg,var(--bmcf-accent) 344deg,var(--bmcf-accent-2) 356deg,transparent 360deg);animation:bmcf-spin 3.4s linear infinite;will-change:transform}
-.bmcf-outer::after{content:'';position:absolute;inset:0;border-radius:17px;padding:1px;background:linear-gradient(180deg,var(--bmcf-accent-dim),rgba(255,255,255,.03));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2}
+.bmcf-outer{position:relative;width:100%;max-width:440px;border-radius:17px;animation:bmcf-in .28s cubic-bezier(.19,1,.22,1) both;border:1px solid var(--bmcf-accent-dim);box-shadow:0 16px 40px -6px var(--bmcf-accent-glow),0 0 0 1px var(--bmcf-accent-glow);}
 .bmcf-card{position:relative;z-index:1;margin:1.5px;border-radius:16px;background:linear-gradient(180deg,#0c1526 0%,#0a1220 100%);box-shadow:0 24px 60px -12px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.02) inset;padding:26px 26px 22px;overflow:hidden}
 .bmcf-card::before{content:'';position:absolute;top:-60px;right:-60px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--bmcf-accent-glow),transparent 70%);opacity:.5;pointer-events:none}
 .bmcf-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:4px;position:relative}
@@ -5016,7 +5012,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 .bmcf-btn-cancel:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
 .bmcf-btn-ok{background:var(--bmcf-btn-bg);border:1px solid var(--bmcf-btn-br);color:var(--bmcf-btn-fg);box-shadow:0 4px 18px -4px var(--bmcf-btn-shadow)}
 .bmcf-btn-ok:hover{filter:brightness(1.12)}
-@media (prefers-reduced-motion: reduce){.bmcf-ring::before{animation:none}.bmcf-icon{animation:none}.bmcf-outer,.bmcf-ov{animation:none}}
+@media (prefers-reduced-motion: reduce){.bmcf-icon{animation:none}.bmcf-outer,.bmcf-ov{animation:none}}
 </style>
 <script>
 window.BM_CONFIRM = function (msg) {
@@ -5048,7 +5044,6 @@ window.BM_CONFIRM = function (msg) {
     var ov = document.createElement('div'); ov.className = 'bmcf-ov';
     var outer = document.createElement('div'); outer.className = 'bmcf-outer';
     outer.style.cssText = '--bmcf-accent:' + t.a + ';--bmcf-accent-2:' + t.a2 + ';--bmcf-accent-dim:' + t.dim + ';--bmcf-accent-glow:' + t.glow + ';--bmcf-icon-bg:' + t.ibg + ';--bmcf-icon-br:' + t.ibr + ';--bmcf-warn-bg:' + t.warnbg + ';--bmcf-warn-br:' + t.warnbr + ';--bmcf-warn-fg:' + t.warnfg + ';--bmcf-btn-bg:' + t.btnbg + ';--bmcf-btn-br:' + t.btnbr + ';--bmcf-btn-fg:' + t.btnfg + ';--bmcf-btn-shadow:' + t.btnsh + ';--bmcf-ring:' + t.dim;
-    var ring = document.createElement('div'); ring.className = 'bmcf-ring';
     var card = document.createElement('div'); card.className = 'bmcf-card';
 
     var head = document.createElement('div'); head.className = 'bmcf-head';
@@ -5090,7 +5085,7 @@ window.BM_CONFIRM = function (msg) {
     row.appendChild(bCancel); row.appendChild(bOk);
     card.appendChild(head); if (lines.length) card.appendChild(body); else head.style.marginBottom = '20px';
     card.appendChild(row);
-    outer.appendChild(ring); outer.appendChild(card); ov.appendChild(outer);
+    outer.appendChild(card); ov.appendChild(outer);
     document.body.appendChild(ov);
     document.addEventListener('keydown', onKey);
     bOk.focus();

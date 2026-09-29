@@ -767,7 +767,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--cy);outline-off
 @media(hover:hover) and (pointer:fine){
   #cursor{display:block;position:fixed;left:0;top:0;width:8px;height:8px;background:var(--cy);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .15s,height .15s,background .2s;will-change:left,top}
   #cursor-ring{display:block;position:fixed;left:0;top:0;width:34px;height:34px;border:1.5px solid rgba(0,212,255,.45);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .28s var(--eo),height .28s var(--eo),border-color .28s}
-  body.cursor-hover #cursor{width:13px;height:13px;background:var(--cy)}
+  body.cursor-hover #cursor{width:13px;height:13px}
   body.cursor-hover #cursor-ring{width:50px;height:50px;border-color:rgba(0,212,255,.5)}
 }
 
@@ -20894,16 +20894,20 @@ html[data-theme="dark"] #land .nzb.lit{box-shadow:var(--nzb-on)}
 html[data-theme="dark"] #land .nz.nz-c.nz-btn{--nz-on-s:0 0 6px rgba(103,232,249,.75),0 0 16px rgba(6,182,212,.55)}
 html[data-theme="dark"] #land .nz-btn{transition:color .2s}
 html[data-theme="dark"] #land .btn-ghost:hover .nz-btn{--nz-on-c:#38e1ff;--nz-on-s:0 0 6px rgba(103,232,249,.75),0 0 16px rgba(6,182,212,.55)}
-/* Luz de neón que circula sin parar alrededor del borde de los botones */
-@property --bm-ang{syntax:'<angle>';initial-value:0deg;inherits:false}
-@keyframes bmRingSpin{to{--bm-ang:360deg}}
-html[data-theme="dark"] #land .bm-ring{position:relative;isolation:isolate;box-shadow:0 0 18px -7px rgba(6,182,212,.5)}
-html[data-theme="dark"] #land .bm-ring::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.6px;pointer-events:none;
-  background:conic-gradient(from var(--bm-ang),transparent 0deg,transparent 205deg,rgba(6,182,212,.35) 250deg,rgba(103,232,249,.9) 320deg,#f4feff 352deg,transparent 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
-  animation:bmRingSpin 3.4s linear infinite}
-@media (prefers-reduced-motion:reduce){html[data-theme="dark"] #land .bm-ring::after{animation:none}}
+/* Luz de neón que circula sin parar por el borde de los botones. Velocidad constante: el recorrido se mide en px/s
+   (la duración se calcula con el perímetro de cada botón), así no acelera ni frena en esquinas ni lados largos. */
+html[data-theme="dark"] #land .bm-ring{position:relative;box-shadow:0 0 18px -7px rgba(6,182,212,.5)}
+html[data-theme="dark"] #land .bm-ring>.bm-run{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px rgba(34,211,238,.85))}
+.bm-run rect{fill:none;stroke-linecap:round}
+.bm-run .r1{stroke:rgba(34,211,238,.28);stroke-width:2.6;stroke-dasharray:26 74;animation:bmRunA var(--bm-dur,4s) linear infinite}
+.bm-run .r2{stroke:rgba(103,232,249,.62);stroke-width:2;stroke-dasharray:14 86;animation:bmRunB var(--bm-dur,4s) linear infinite}
+.bm-run .r3{stroke:#f4feff;stroke-width:1.8;stroke-dasharray:5 95;animation:bmRunC var(--bm-dur,4s) linear infinite}
+@keyframes bmRunA{from{stroke-dashoffset:26}to{stroke-dashoffset:-74}}
+@keyframes bmRunB{from{stroke-dashoffset:14}to{stroke-dashoffset:-86}}
+@keyframes bmRunC{from{stroke-dashoffset:5}to{stroke-dashoffset:-95}}
+@media (prefers-reduced-motion:reduce){.bm-run rect{animation:none}}
+/* Subtítulo del inicio */
+html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--nz-on-s:0 0 8px rgba(103,232,249,.28),0 0 22px rgba(6,182,212,.18)}
 </style>
 <script id="bm-scroll-neon-js">
 (function () {
@@ -20989,6 +20993,15 @@ html[data-theme="dark"] #land .bm-ring::after{content:'';position:absolute;inset
   var ctaT = T(document.querySelector('#cta-final .cta-title'));
   watch(ctaT, function (d) { light(ctaT, d); });
 
+  /* Pasos del motor de cálculo (Equipo y Maquinaria, Mano de Obra, Materiales, Precio Unitario): títulos en blanco */
+  $$('#apu-section .apu-step-title').forEach(function (s) {
+    T(s, 'nz-sm');
+    watch(s, function (d) { light(s, d); });
+  });
+  /* Subtítulo del inicio: se enciende un poco después del titular */
+  var heroSub = document.querySelector('#land .hero-subtitle');
+  if (heroSub) { T(heroSub, 'nz-sub'); watch(heroSub, function (d) { light(heroSub, d + 1400); }); }
+
   /* 6) Botones (inicio y final): luz que circula por el borde + letras con neón */
   function wrapBtn(b) {
     var s = document.createElement('span');
@@ -20997,7 +21010,30 @@ html[data-theme="dark"] #land .bm-ring::after{content:'';position:absolute;inset
     b.appendChild(s);
     s.classList.add('nz', 'nz-btn', b.classList.contains('btn-primary') ? 'nz-c' : 'nz-sm');
     b.classList.add('bm-ring');
+    addRun(b);
     return s;
+  }
+  function addRun(b) {
+    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'bm-run'); svg.setAttribute('aria-hidden', 'true');
+    ['r1', 'r2', 'r3'].forEach(function (c) {
+      var r = document.createElementNS(NS, 'rect'); r.setAttribute('class', c); r.setAttribute('pathLength', '100'); svg.appendChild(r);
+    });
+    b.appendChild(svg);
+    function fit() {
+      var w = b.clientWidth, h = b.clientHeight;
+      if (!w || !h) return;
+      var rad = parseFloat(getComputedStyle(b).borderTopLeftRadius) || 12;
+      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      Array.prototype.forEach.call(svg.children, function (r) {
+        r.setAttribute('x', 1); r.setAttribute('y', 1);
+        r.setAttribute('width', Math.max(0, w - 2)); r.setAttribute('height', Math.max(0, h - 2));
+        r.setAttribute('rx', Math.max(0, rad - 1));
+      });
+      svg.style.setProperty('--bm-dur', (2 * (w + h) / 180).toFixed(2) + 's');   // 180 px/s constantes
+    }
+    fit();
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(b); else window.addEventListener('resize', fit);
   }
   var heroGrp = document.querySelector('.hero-cta-group'), ctaGrp = document.querySelector('#cta-final .cta-actions');
   [[heroGrp, 1500], [ctaGrp, 250]].forEach(function (g) {

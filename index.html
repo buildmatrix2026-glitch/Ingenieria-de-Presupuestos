@@ -478,11 +478,15 @@ nav {
   background: var(--deep-space);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 22px 20px;
+  padding: 18px 20px;
   cursor: pointer;
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
   position: relative;
   overflow: hidden;
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: center;
+  min-height: 96px;
 }
 .chapter-card::before {
   content: '';
@@ -500,19 +504,64 @@ nav {
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
 .chapter-card:hover::before { transform: scaleX(1); }
+/* Número de capítulo: grande, con la misma tipografía y trazo de los títulos blancos; nombre a su lado, sobrio */
 .chapter-num {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding-right: 14px;
+  border-right: 1px solid rgba(255,255,255,.07);
+  transition: border-color 0.3s;
+}
+.chapter-num .cn-k {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--cyan);
+  font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
+  letter-spacing: .22em;
+  color: var(--cyan);
+  opacity: .85;
+  line-height: 1;
+}
+.chapter-num .cn-n {
+  font-family: var(--font-main);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: .9;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff 30%, rgba(200,222,255,.5) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  transition: filter 0.3s;
 }
 .chapter-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--slate);
-  line-height: 1.4;
+  padding-left: 16px;
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  color: #9fb0d3;
+  line-height: 1.35;
+  transition: color 0.3s;
+}
+.chapter-card:hover .chapter-num { border-right-color: rgba(34,211,238,.35); }
+.chapter-card:hover .chapter-num .cn-n {
+  background: linear-gradient(180deg, #e6fdff 10%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(6,182,212,.55));
+}
+.chapter-card:hover .chapter-name { color: #f4feff; }
+@media (max-width: 640px) {
+  .chapter-card { grid-template-columns: 1fr; align-items: start; min-height: 0; padding: 16px 16px 18px; }
+  .chapter-num { flex-direction: row; align-items: baseline; gap: 8px; padding: 0 0 8px; margin-bottom: 8px; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .chapter-num .cn-n { font-size: 30px; }
+  .chapter-name { padding-left: 0; font-size: 13px; }
+  .chapter-card:hover .chapter-num { border-bottom-color: rgba(34,211,238,.35); }
 }
 
 /* FEATURES GRID */
@@ -3137,22 +3186,22 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
       <p class="section-subtitle reveal" style="max-width:540px;margin:0 auto;">Cada presupuesto se genera automáticamente con la jerarquía exacta. Tú solo añades los rubros.</p>
     </div>
     <div class="chapters-grid">
-      <div class="chapter-card"><div class="chapter-num">CAP. 00</div><div class="chapter-name">Trámites y Permisos Municipales</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 01</div><div class="chapter-name">Obras Preliminares</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 02</div><div class="chapter-name">Estructura de Hormigón Armado</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 03</div><div class="chapter-name">Estructura Metálica</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 04</div><div class="chapter-name">Mampostería</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 05</div><div class="chapter-name">Enlucidos y Acabados de Paredes</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 06</div><div class="chapter-name">Pisos y Contrapisos</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 07</div><div class="chapter-name">Cubierta</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 08</div><div class="chapter-name">Carpintería Metálica, Madera y Aluminio</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 09</div><div class="chapter-name">Instalaciones Hidrosanitarias</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 10</div><div class="chapter-name">Aparatos Sanitarios y Grifería</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 11</div><div class="chapter-name">Instalaciones Eléctricas</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 12</div><div class="chapter-name">Pintura y Recubrimientos</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 13</div><div class="chapter-name">Cielos Falsos Gypsum</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 14</div><div class="chapter-name">Fachaleta y Acabados Fachada</div></div>
-      <div class="chapter-card"><div class="chapter-num">CAP. 15</div><div class="chapter-name">Obras Complementarias y Exteriores</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">00</span></div><div class="chapter-name">Trámites y Permisos Municipales</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">01</span></div><div class="chapter-name">Obras Preliminares</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">02</span></div><div class="chapter-name">Estructura de Hormigón Armado</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">03</span></div><div class="chapter-name">Estructura Metálica</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">04</span></div><div class="chapter-name">Mampostería</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">05</span></div><div class="chapter-name">Enlucidos y Acabados de Paredes</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">06</span></div><div class="chapter-name">Pisos y Contrapisos</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">07</span></div><div class="chapter-name">Cubierta</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">08</span></div><div class="chapter-name">Carpintería Metálica, Madera y Aluminio</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">09</span></div><div class="chapter-name">Instalaciones Hidrosanitarias</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">10</span></div><div class="chapter-name">Aparatos Sanitarios y Grifería</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">11</span></div><div class="chapter-name">Instalaciones Eléctricas</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">12</span></div><div class="chapter-name">Pintura y Recubrimientos</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">13</span></div><div class="chapter-name">Cielos Falsos Gypsum</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">14</span></div><div class="chapter-name">Fachaleta y Acabados Fachada</div></div>
+      <div class="chapter-card"><div class="chapter-num"><span class="cn-k">CAP</span><span class="cn-n">15</span></div><div class="chapter-name">Obras Complementarias y Exteriores</div></div>
     </div>
   </div>
 </section>

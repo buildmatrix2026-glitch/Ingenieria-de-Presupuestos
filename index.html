@@ -6404,9 +6404,9 @@ function saveProject(){
   }
 }
 
-function newProject(){
+async function newProject(){
   if(S.caps.some(function(c){return c.length>0;}) || S.proj){
-    if(!confirm('¿Crear nuevo presupuesto?\n\nEl presupuesto actual se perderá si no lo has guardado.\nUsa el ícono de guardar (barra superior) para guardarlo antes.')) return;
+    if(!await BM_CONFIRM('¿Crear nuevo presupuesto?\n\nEl presupuesto actual se perderá si no lo has guardado.\nUsa el ícono de guardar (barra superior) para guardarlo antes.')) return;
   }
   // Reset state
   S.proj=''; S.own=''; S.date=''; S.ind=10; S.uti=14; S.iva=15;
@@ -7199,7 +7199,7 @@ function addRubroToCap(ci,rub){
   closeRM();
   toast(`${rub[0]} agregado al capítulo ${ci}`);
 }
-function resetBudget(){if(!confirm('¿Vaciar presupuesto completo?'))return;S.caps=CAPS_DEFAULT.map(()=>[]);S.capNames=[];S.capNums=[];S.own='';S.proj='';S.date='';S.ind=10;S.uti=14;S.iva=15;$id('pown').value='';$id('pname').value='';$id('pdate').value='';$id('pind').value=10;$id('puti').value=14;$id('piva').value=15;$id('tpn').textContent='';document.getElementById('tp-header').style.display='none';persist();renderBudget();toast('Presupuesto vaciado');}
+async function resetBudget(){if(!await BM_CONFIRM('¿Vaciar presupuesto completo?'))return;S.caps=CAPS_DEFAULT.map(()=>[]);S.capNames=[];S.capNums=[];S.own='';S.proj='';S.date='';S.ind=10;S.uti=14;S.iva=15;$id('pown').value='';$id('pname').value='';$id('pdate').value='';$id('pind').value=10;$id('puti').value=14;$id('piva').value=15;$id('tpn').textContent='';document.getElementById('tp-header').style.display='none';persist();renderBudget();toast('Presupuesto vaciado');}
 
 // ── Rubro modal ───────────────────────────────
 function openRM(ci){addCapIdx=ci;$id('rmt').textContent=`Agregar a: ${getCaps()[ci]}`;$id('rs').value='';renderRM();$id('rmb').classList.add('op');setTimeout(()=>$id('rs').focus(),120);}
@@ -7545,8 +7545,8 @@ function renderIns(){
   }
   renderInsVirtual();
 }
-function deleteInsumo(code){
-  if(!confirm('¿Eliminar el insumo '+code+' de la base de datos?\nEsta acción no se puede deshacer.'))return;
+async function deleteInsumo(code){
+  if(!await BM_CONFIRM('¿Eliminar el insumo '+code+' de la base de datos?\nEsta acción no se puede deshacer.'))return;
   const idx=BD.I.findIndex(i=>i[0]===code);
   if(idx>=0)BD.I.splice(idx,1);
   if(typeof IMAP!=='undefined')delete IMAP[code];
@@ -7812,10 +7812,10 @@ function renderGrpDet(g,targetCode){
     }
   }
 }
-function deleteRubro(gIdx,rIdx){
+async function deleteRubro(gIdx,rIdx){
   var g=BD.G[gIdx]; if(!g)return;
   var r=g.r[rIdx]; if(!r)return;
-  if(!confirm('¿Eliminar el rubro/APU '+r[0]+' - '+r[1]+'?\nEsta acción no se puede deshacer.'))return;
+  if(!await BM_CONFIRM('¿Eliminar el rubro/APU '+r[0]+' - '+r[1]+'?\nEsta acción no se puede deshacer.'))return;
   var code=r[0];
   g.r.splice(rIdx,1);
   if(BD.A&&BD.A[code])delete BD.A[code];
@@ -11521,10 +11521,10 @@ function addNewCap(){
 }
 
 // ── Delete custom chapter ────────────────────────────────────────────────────
-function deleteCap(ci){
+async function deleteCap(ci){
   CAPS = getCaps();
   var name = CAPS[ci] || ('Capítulo '+(ci+1));
-  if(!confirm('¿Eliminar "'+name+'" y todos sus rubros?')) return;
+  if(!await BM_CONFIRM('¿Eliminar "'+name+'" y todos sus rubros?')) return;
   var len = CAPS.length;
   // Densify capNames with real visible names before splicing
   if(!S.capNames) S.capNames = [];
@@ -12701,8 +12701,8 @@ function renderAdminProjects(projects) {
   window._adminProjectsData = projects;
 }
 
-function deleteAdminProject(projId, btn) {
-  if (!confirm('¿Eliminar este presupuesto de tu vista? El presupuesto del usuario permanecerá intacto.')) return;
+async function deleteAdminProject(projId, btn) {
+  if (!await BM_CONFIRM('¿Eliminar este presupuesto de tu vista? El presupuesto del usuario permanecerá intacto.')) return;
   btn.disabled = true;
   var db = firebase.firestore();
   var docRef = db.collection('projects').doc(projId);
@@ -15590,7 +15590,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return 15;
   }
 
-  function saveGasto() {
+  async function saveGasto() {
     var proyecto = val('gx-proyecto');
     if (!proyecto || proyecto === OTHER) { say('Selecciona un proyecto'); return; }
     var nc = val('gx-tipo') === '04';
@@ -15630,7 +15630,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
-      if (!confirm('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
+      if (!await BM_CONFIRM('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
     }
     list.push(g);
     if (!save(list)) return;
@@ -15643,10 +15643,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));
   }
 
-  function deleteGasto(id) {
+  async function deleteGasto(id) {
     var list = load(), g = list.filter(function (x) { return x.id === id; })[0];
     if (!g) return;
-    if (!confirm('¿Eliminar el comprobante de ' + g.proveedor + ' por ' + money(g.total) + '?\nEsta acción no se puede deshacer.')) return;
+    if (!await BM_CONFIRM('¿Eliminar el comprobante de ' + g.proveedor + ' por ' + money(g.total) + '?\nEsta acción no se puede deshacer.')) return;
     if (save(list.filter(function (x) { return x.id !== id; }))) {
       if (CLOUD.uid) { addTomb(id); deleteCloud(id); }
       render(); say('Comprobante eliminado');
@@ -15655,18 +15655,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Elimina de una sola vez TODOS los comprobantes de la selección actual ("Ver" en Resumen de gastos):
   // un proyecto puntual, o todos los proyectos si está en "Todos los proyectos".
-  function deleteAllFiltered() {
+  async function deleteAllFiltered() {
     var list = load(), toDelete = filtered(list);
     if (!toDelete.length) { say('No hay comprobantes para eliminar en esta selección'); return; }
     var scope = st.filter === ALL ? 'TODOS los proyectos' : '"' + st.filter + '"';
     var total = round2(toDelete.reduce(function (s, g) { return s + g.total; }, 0));
     var msg = 'Vas a eliminar ' + toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') +
       ' de ' + scope + ' (' + money(total) + ' en total).\nEsta acción NO se puede deshacer.\n\n¿Continuar?';
-    if (!confirm(msg)) return;
+    if (!await BM_CONFIRM(msg)) return;
     // segunda confirmación solo cuando el alcance es amplio (todos los proyectos o más de 5 comprobantes):
     // una sola confirmación ya protege borrados puntuales, pero un vaciado grande merece un paso más.
     if ((st.filter === ALL || toDelete.length > 5) &&
-        !confirm('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
+        !await BM_CONFIRM('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
     var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
     if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
     if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
@@ -16972,7 +16972,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       else if (cnt[s] != null) cnt[s]++;
     });
     if (!ok.length) {
-      if (skipped.length && confirm('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
+      if (skipped.length && await BM_CONFIRM('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
         var gone0 = {}; skipped.forEach(function (d) { gone0[d.id] = 1; });
         st.drafts = st.drafts.filter(function (d) { return !gone0[d.id]; });
         if (st.editing && gone0[st.editing]) st.editing = null;
@@ -17005,9 +17005,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total) + (skipped.length ? ' · ' + skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') : ''));
   }
 
-  function clearBatch() {
+  async function clearBatch() {
     if (st.batchBusy) { st.batchCancel = true; st.drafts.forEach(function (d) { if (d.tok) d.tok.cancel(); }); }
-    if (st.drafts.length && !confirm('¿Descartar las ' + st.drafts.length + ' facturas de la lista? Las ya guardadas no se tocan.')) return;
+    if (st.drafts.length && !await BM_CONFIRM('¿Descartar las ' + st.drafts.length + ' facturas de la lista? Las ya guardadas no se tocan.')) return;
     st.drafts = []; st.editing = null; setBatchMsg(''); renderBatch();
   }
 
@@ -18214,7 +18214,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return 15;
   }
 
-  function saveGasto() {
+  async function saveGasto() {
     var proyecto = PERSONAL_PROJECT;
     var nc = val('gxp-tipo') === '04';
     var pos = function (v) { v = toNum(v); return round2(nc ? Math.abs(v) : Math.max(0, v)); };   // el formulario trabaja en positivo; ncApply() aplica el signo
@@ -18253,7 +18253,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
-      if (!confirm('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
+      if (!await BM_CONFIRM('Ya existe la factura N° ' + g.numero + ' de ' + g.proveedor + ' en este proyecto.\n¿Guardarla de todas formas?')) return;
     }
     list.push(g);
     if (!save(list)) return;
@@ -18266,10 +18266,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));
   }
 
-  function deleteGasto(id) {
+  async function deleteGasto(id) {
     var list = load(), g = list.filter(function (x) { return x.id === id; })[0];
     if (!g) return;
-    if (!confirm('¿Eliminar el comprobante de ' + g.proveedor + ' por ' + money(g.total) + '?\nEsta acción no se puede deshacer.')) return;
+    if (!await BM_CONFIRM('¿Eliminar el comprobante de ' + g.proveedor + ' por ' + money(g.total) + '?\nEsta acción no se puede deshacer.')) return;
     if (save(list.filter(function (x) { return x.id !== id; }))) {
       if (CLOUD.uid) { addTomb(id); deleteCloud(id); }
       render(); say('Comprobante eliminado');
@@ -18278,18 +18278,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Elimina de una sola vez TODOS los comprobantes de la selección actual ("Ver" en Resumen de gastos):
   // un proyecto puntual, o todos los proyectos si está en "Todos los proyectos".
-  function deleteAllFiltered() {
+  async function deleteAllFiltered() {
     var list = load(), toDelete = filtered(list);
     if (!toDelete.length) { say('No hay comprobantes para eliminar en esta selección'); return; }
     var scope = st.filter === ALL ? 'TODOS los proyectos' : '"' + st.filter + '"';
     var total = round2(toDelete.reduce(function (s, g) { return s + g.total; }, 0));
     var msg = 'Vas a eliminar ' + toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') +
       ' de ' + scope + ' (' + money(total) + ' en total).\nEsta acción NO se puede deshacer.\n\n¿Continuar?';
-    if (!confirm(msg)) return;
+    if (!await BM_CONFIRM(msg)) return;
     // segunda confirmación solo cuando el alcance es amplio (todos los proyectos o más de 5 comprobantes):
     // una sola confirmación ya protege borrados puntuales, pero un vaciado grande merece un paso más.
     if ((st.filter === ALL || toDelete.length > 5) &&
-        !confirm('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
+        !await BM_CONFIRM('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
     var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
     if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
     if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
@@ -19577,7 +19577,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       else if (cnt[s] != null) cnt[s]++;
     });
     if (!ok.length) {
-      if (skipped.length && confirm('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
+      if (skipped.length && await BM_CONFIRM('Ninguna factura corresponde a ' + SCOPE_NAME + '.\n¿Descartar las ' + skipped.length + ' que no corresponden?')) {
         var gone0 = {}; skipped.forEach(function (d) { gone0[d.id] = 1; });
         st.drafts = st.drafts.filter(function (d) { return !gone0[d.id]; });
         if (st.editing && gone0[st.editing]) st.editing = null;
@@ -19610,9 +19610,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     say(created.length + ' factura' + (created.length === 1 ? '' : 's') + ' guardada' + (created.length === 1 ? '' : 's') + ' · ' + money(total) + (skipped.length ? ' · ' + skipped.length + ' descartada' + (skipped.length === 1 ? '' : 's') : ''));
   }
 
-  function clearBatch() {
+  async function clearBatch() {
     if (st.batchBusy) { st.batchCancel = true; st.drafts.forEach(function (d) { if (d.tok) d.tok.cancel(); }); }
-    if (st.drafts.length && !confirm('¿Descartar las ' + st.drafts.length + ' facturas de la lista? Las ya guardadas no se tocan.')) return;
+    if (st.drafts.length && !await BM_CONFIRM('¿Descartar las ' + st.drafts.length + ' facturas de la lista? Las ya guardadas no se tocan.')) return;
     st.drafts = []; st.editing = null; setBatchMsg(''); renderBatch();
   }
 
@@ -20790,10 +20790,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return ci;
   }
 
-  function addToActiveProject() {
+  async function addToActiveProject() {
     if (!PIA.rubros.length) { say('No hay rubros para agregar'); return; }
     if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto antes de agregar el presupuesto'); return; }
-    if (!confirm('Se agregarán ' + PIA.rubros.length + ' rubro(s) al presupuesto de "' + S.proj + '". ¿Continuar?')) return;
+    if (!await BM_CONFIRM('Se agregarán ' + PIA.rubros.length + ' rubro(s) al presupuesto de "' + S.proj + '". ¿Continuar?')) return;
 
     var added = 0, newApuCount = 0;
     PIA.rubros.forEach(function (r) {

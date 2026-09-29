@@ -4004,12 +4004,6 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 <option value="HM">HM — Herramientas Menores</option>
               </select>
             </div>
-            <div class="icd-field" id="icd-mo-sub-wrap" style="display:none">
-              <label class="icd-label">Grupo ocupacional (Mano de Obra)</label>
-              <select class="icd-input" id="icd-mo-sub" onchange="icdMoSubChange()">
-                <option value="">— Seleccionar grupo —</option>
-              </select>
-            </div>
             <div class="icd-field">
               <label class="icd-label">Código</label>
               <input class="icd-input" id="icd-code" placeholder="EL-999" style="font-family:var(--f-mo,monospace)">
@@ -10515,75 +10509,15 @@ function toggleInsDrawer() {
   d.classList.toggle('visible');
 }
 
-// Etiquetas amigables para los grupos ocupacionales de Mano de Obra (MO-<grupo>-N)
-const MO_SUB_LABELS = {
-  'B1':'B1 — Profesionales (Ingeniero civil/eléctrico, Residente de obra)',
-  'B3':'B3 — Inspección / Supervisión',
-  'C1':'C1 — Maestros y operadores especializados (soldador, topógrafo, chofer E...)',
-  'C2':'C2 — Maestro de obra, dibujante, técnicos',
-  'C3':'C3 — Soldador en construcción',
-  'D2':'D2 — Oficiales (albañil, carpintero, electricista, plomero, fierrero...)',
-  'E2':'E2 — Ayudantes y peón'
-};
-
-function icdMoSubOptions(){
-  // Detecta dinámicamente los grupos ocupacionales realmente usados en MO-*
-  const found={};
-  BD.I.forEach(r=>{
-    const parts=r[0].split('-');
-    if(parts[0]==='MO' && parts.length>=3) found[parts[1]]=true;
-  });
-  const groups=Object.keys(found).length?Object.keys(found):Object.keys(MO_SUB_LABELS);
-  return groups.sort().map(g=>`<option value="${g}">${MO_SUB_LABELS[g]||g}</option>`).join('');
-}
-
-function icdMoSubChange(){
-  const sub=document.getElementById('icd-mo-sub').value;
-  const codeEl=document.getElementById('icd-code');
-  if(!sub||!codeEl) return;
-  // Siguiente número disponible DENTRO de ese grupo ocupacional (MO-<sub>-N)
-  const existing=BD.I.filter(r=>r[0].startsWith('MO-'+sub+'-'))
-                      .map(r=>parseInt(r[0].split('-')[2])||0);
-  const next=existing.length?Math.max(...existing)+1:1;
-  codeEl.value='MO-'+sub+'-'+next;
-  codeEl.focus();
-  codeEl.select();
-}
-
 function icdCatChange(){
   const cat=document.getElementById('icd-cat').value;
   const codeEl=document.getElementById('icd-code');
-  const subWrap=document.getElementById('icd-mo-sub-wrap');
-  const subSel=document.getElementById('icd-mo-sub');
   if(!cat||!codeEl) return;
-
-  if(cat==='MO'){
-    // Mano de Obra usa códigos compuestos MO-<grupo ocupacional>-N (ej. MO-D2-1).
-    // No se puede sugerir un correlativo simple: pedimos primero el grupo.
-    if(subWrap) subWrap.style.display='';
-    if(subSel){
-      subSel.innerHTML='<option value="">— Seleccionar grupo —</option>'+icdMoSubOptions();
-      subSel.value='';
-    }
-    codeEl.value='';
-    codeEl.placeholder='Elige primero el grupo ocupacional →';
-    if(subSel) subSel.focus();
-    return;
-  }
-
-  // Cualquier otra categoría: ocultar el selector de grupo de MO
-  if(subWrap) subWrap.style.display='none';
-  if(subSel) subSel.value='';
-  codeEl.placeholder=cat+'-999';
-
   // Sugerir prefijo solo si el campo está vacío o tiene solo el prefijo anterior
   const cur=codeEl.value.trim();
   if(!cur||/^[A-Z0-9]+-?$/.test(cur)){
-    // Calcular siguiente número disponible para esa categoría.
-    // Se usa el ÚLTIMO segmento del código (robusto ante códigos compuestos
-    // tipo PREFIJO-SUBGRUPO-N, aunque hoy solo MO los usa).
-    const existing=BD.I.filter(r=>r[0].startsWith(cat+'-'))
-                        .map(r=>{const p=r[0].split('-'); return parseInt(p[p.length-1])||0;});
+    // Calcular siguiente número disponible para esa categoría
+    const existing=BD.I.filter(r=>r[0].startsWith(cat+'-')).map(r=>parseInt(r[0].split('-')[1])||0);
     const next=existing.length?Math.max(...existing)+1:1;
     codeEl.value=cat+'-'+next;
     codeEl.focus();
@@ -10597,12 +10531,6 @@ function icdReset() {
   });
   const cat=document.getElementById('icd-cat');
   if(cat) cat.value='';
-  const subWrap=document.getElementById('icd-mo-sub-wrap');
-  const subSel=document.getElementById('icd-mo-sub');
-  if(subWrap) subWrap.style.display='none';
-  if(subSel) subSel.innerHTML='<option value="">— Seleccionar grupo —</option>';
-  const codeEl=document.getElementById('icd-code');
-  if(codeEl) codeEl.placeholder='EL-999';
 }
 
 function icdSave() {
@@ -10612,10 +10540,6 @@ function icdSave() {
   const price = +((document.getElementById('icd-price')||{}).value)||0;
   const cat   = (document.getElementById('icd-cat')||{}).value||'';
   if (!cat) { toast('Selecciona una categoría'); return; }
-  if (cat==='MO' && !/^MO-[A-Za-z0-9]+-[0-9]+$/.test(code)) {
-    toast('Selecciona el grupo ocupacional de Mano de Obra (B1, C1, D2, E2...)');
-    return;
-  }
   if (!code || !desc) { toast('Ingresa código y descripción'); return; }
   // Check duplicate
   if (BD.I.find(r=>r[0]===code)) { toast('Ya existe un insumo con ese código'); return; }
@@ -14840,7 +14764,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
     '"items": [{"cod_principal": "", "cod_auxiliar": "", "cantidad": 0, "descripcion": "", "detalle_adicional": "", ' +
     '"precio_unitario": 0.00, "descuento": 0.00, "precio_total": 0.00}]}. ' +
-    'Reglas: proveedor = razón social del EMISOR/vendedor (la empresa que emite la factura, arriba junto al RUC), NUNCA el nombre del cliente; ' +
+    'Reglas: proveedor = razón social COMPLETA del EMISOR/vendedor (la empresa o entidad que emite la factura, arriba junto al RUC), NUNCA el nombre del cliente; cópiala entera aunque sea larga o continúe en una segunda línea (ej. entidades públicas como "DIRECCION GENERAL DE REGISTRO CIVIL IDENTIFICACION Y CEDULACION" o "GOBIERNO AUTONOMO DESCENTRALIZADO DE LA PROVINCIA DE..."); NUNCA la cortes a la mitad ni dejes solo el final del nombre; ' +
     'ruc = RUC del EMISOR (13 dígitos, junto a "R.U.C."), NO la identificación del cliente; ' +
     'numero_factura = el "No." de la factura con formato 000-000-000000000 (NO el número de autorización ni la clave de acceso de 49 dígitos); ' +
     'autorizacion = "NÚMERO DE AUTORIZACIÓN" (49 dígitos, sin espacios; NO lo pongas en numero_factura); ' +
@@ -14854,7 +14778,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'iva = suma de todas las líneas de IVA; total = "VALOR TOTAL" o "TOTAL A PAGAR" (NO "valor total sin subsidio"). ' +
     'items: UNA entrada por CADA línea del detalle de la factura, en el mismo orden y de TODAS las páginas; no omitas, no resumas ni agrupes líneas. ' +
     'cod_principal = "Cod. Principal"; cod_auxiliar = "Cod. Auxiliar" (si viene partido en dos líneas, únelo sin espacios); ' +
-    'cantidad numérica (puede ser decimal); descripcion completa (une las líneas en que se parta el texto); detalle_adicional si existe; ' +
+    'cantidad numérica (puede ser decimal) tomada SOLO de la columna "Cant."/"Cantidad" de esa línea — normalmente un número pequeño (1, 2, 0.5, 12, etc.); NUNCA copies ahí un número de póliza, trámite, placa, cédula, código o cualquier identificador largo que no sea una cantidad real de unidades: si esa columna no es clara, usa 1 y deja el identificador dentro de descripcion o detalle_adicional en su lugar. La cantidad va SIEMPRE en su propio campo numérico, nunca pegada al texto de descripcion (mal: descripcion="1.00 EXTRA"; bien: cantidad=1, descripcion="EXTRA"); ' +
+    'descripcion completa (une las líneas en que se parta el texto, y quítale cualquier número de cantidad o precio que haya quedado pegado al inicio o al final); detalle_adicional si existe; ' +
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
@@ -14866,9 +14791,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'Pon aplica=true si el comprobante es un gasto de obra: materiales de construcción, mano de obra, alquiler de equipos y maquinaria, subcontratos, trámites y permisos de obra, y gastos indirectos de obra (combustible y mantenimiento de vehículos de obra, peajes, recargas o planes de telefonía celular/internet móvil, EPP y ropa de trabajo, alimentación de la cuadrilla, fletes, papelería, servicios de la obra). ' +
     'Pon aplica=false y explica en motivo_no_aplica (una frase corta en español, ej. "Factura de supermercado: es un gasto personal") si es claramente un gasto PERSONAL o FAMILIAR: supermercado o víveres del hogar, restaurantes familiares, farmacia, consultas médicas, ropa o calzado casual, educación o colegio, cine o entretenimiento, hoteles o viajes turísticos, servicios básicos del hogar (agua, luz, internet de casa), arriendo de vivienda, mascotas y cualquier compra de consumo personal. ' +
     'En casos dudosos (comida, ropa) decide por el contexto del ítem: cantidades de obra, obreros, cuadrilla, EPP, materiales o transporte de materiales → aplica=true; consumo familiar o de hogar → aplica=false. Si dudas y el contenido es de construcción u obra, aplica=true. Cuando aplica=false igual extrae todos los datos normalmente. ' +
+    'CAMPO categoria incluso cuando aplica=false: NO lo dejes en "Materiales" por default si el gasto no tiene nada que ver con construcción — elige la categoría que de verdad más se le parezca (ej. un trámite de una entidad pública o registro civil → "Gastos Trámites"; una universidad, colegio o instituto → no es de obra, pero si debes elegir algo usa "Gastos Trámites" o dejar la más cercana, nunca "Materiales"; una revisión vehicular o matriculación → "Gastos Indirectos"). "Materiales" es SOLO para compras de materiales de construcción reales. ' +
     'PROVEEDORES Y PATRONES QUE DEBES RECONOCER SIN DUDAR (aprendidos de facturas reales de este usuario, aplícalos siempre): ' +
+    '• "EL ECONOMICO" vende tanto materiales de ferretería/construcción como víveres de tienda: si el ítem es comida/víveres, es personal (no aplica aquí); si es material de construcción/ferretería, categoria="Materiales". ' +
+    '• "RED DE RECAUDACION...FACILITO" es una red de cobro de trámites y servicios variados (tránsito, SRI, matriculación, etc.): casi siempre aplica=true, categoria="Gastos Trámites", salvo que el ítem indique claramente que es otra cosa. ' +
     '• TELEFONÍA (aplica=true, categoria="Gastos Indirectos"): OTECEL S.A., CONECEL S.A., CLARO, MOVISTAR, CNT EP, TUENTI, o cualquier ítem con "recarga", "plan", "consumo", "roaming", "datos", "minutos", "postpago", "prepago" de telefonía — SIN IMPORTAR que el resto del texto del ítem se vea confuso o parezca otra cosa (nunca lo confundas con alimentación u otro gasto personal). ' +
-    '• PEAJES (aplica=true, categoria="Gastos Indirectos"): además de la palabra "peaje", reconoce también "pasada", "cobro de pasada", "cruce", "postpago vehicular", número de "placa" de vehículo, o proveedores como "CORPORACION PEAJE...", "EMPRESA PUBLICA...MOVILIDAD...", GAD/Gobierno Autónomo Descentralizado cuando el ítem se refiera a paso vehicular o peaje (aunque no diga la palabra "peaje" literalmente). REGLA CLAVE por el PATRÓN de la factura, no solo por el texto del ítem: si el proveedor es "GOBIERNO AUTONOMO DESCENTRALIZADO..." o "EMPRESA PUBLICA...MOVILIDAD..." Y el monto total es pequeño (menor a $5, típico de un peaje o pasada), trátalo SIEMPRE como peaje → aplica=true, categoria="Gastos Indirectos", aunque el ítem se vea confuso, incompleto o parezca otra cosa (nunca "Educación, Arte y Cultura" ni otro gasto personal). Un GAD/municipio con un monto GRANDE y un ítem que claramente diga permiso, tasa, licencia o similar SÍ es "Gastos Trámites", pero el patrón de montos pequeños y repetidos de estos proveedores es casi siempre peaje. ' +
+    '• PEAJES (aplica=true, categoria="Gastos Indirectos"): reconoce la palabra "peaje", "pasada", "cobro de pasada", "cruce" de una estación/concesionaria vial (ej. "ESTACION DE SERVICIO PEAJE NORTE", "CORPORACION PEAJE..."). ' +
+    '• REVISIÓN VEHICULAR Y MATRICULACIÓN (aplica=true, categoria="Gastos Trámites"): empresas públicas de movilidad/tránsito (ej. "EMPRESA PUBLICA DE MOVILIDAD DEL NORTE") cuando el ítem hable de revisión, matrícula, permiso de circulación — esto NO es un peaje aunque el proveedor mencione "movilidad", es un trámite. ' +
+    '• GAD / Gobierno Autónomo Descentralizado o Registro Civil (aplica=true si el ítem es un trámite/certificado/permiso de la obra, categoria="Gastos Trámites"; el mismo tipo de entidad puede ser categoria="Gastos Indirectos" si el ítem es claramente otra cosa como una tasa de circulación). No asumas por el monto: mira el ítem. ' +
     '• TRANSPORTE DE PERSONAL (aplica=true, categoria="Gastos Indirectos"): pasajes o boletos de "Cooperativa de Transporte", buses interprovinciales, taxis o encomiendas para personal/materiales de la obra (ítems tipo "PASAJE AUTOBUS", "BOLETO", origen-destino con fecha). ' +
     '• FERRETERÍAS Y MATERIALES CON NOMBRES AMBIGUOS (aplica=true, categoria="Materiales"): autoperforantes, tornillos, rejillas (de piso, desagüe o plomería), sifones, codos, uniones, pernos, sikafix, masilla, sellador, silicón, empaste, y productos de grout/mortero/pintura de marcas como INTACO, DISENSA, KYWI, PINTUCO, incluso si el nombre del color o tono del producto suena a comida (ej. "GROUTEX FINO AVELLANA" es un grout de tono avellana, NO alimento; "CHOCOLATE", "CREMA", "VAINILLA" como colores de pintura tampoco son alimento). Si el proveedor es una ferretería, almacén de materiales, corralón o vidriería, el ítem es Materiales salvo que sea claramente ropa, EPP o combustible. ' +
     '• SALUD / ODONTOLOGÍA (aplica=false, "Gasto de salud personal: no va en Gastos y facturas"): aunque el proveedor facture con nombre de PERSONA NATURAL (muchos odontólogos y médicos facturan así) o con una razón social que no diga "clínica" ni "consultorio", reconoce SIEMPRE por el ÍTEM: "restauración" (dental), "endodoncia", "ortodoncia", "profilaxis", "resina", "extracción dental", "corona", "radiografía panorámica", "panorámica de maxilares", "cefálica", "cefalometría", "consulta odontológica", "curación", limpieza dental, blanqueamiento, o cualquier procedimiento médico/odontológico. También reconoce farmacias (FARMAENLACE, FYBECA, SANA SANA, CRUZ AZUL, PHARMACYS) y cualquier ítem con forma de medicamento (nombre + "TAB", "MG", "CAJ", "JBE", "CAP", cápsulas, comprimidos, jarabe). ' +
@@ -15236,7 +15166,124 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     // Tipo SRI: 06/07 no son gasto; 04 = nota de crédito → montos y cantidades en negativo (precio unitario positivo)
     if (o.tipo === '06' || o.tipo === '07') { o.aplica = false; o.motivoNoAplica = o.tipo === '07' ? 'Comprobante de retención: no es un gasto' : 'Guía de remisión: no es un gasto'; }
     if (o.tipo === '04') ncParsed(o);
+    aplicarProveedorConocido(o, 'obra');
     return o;
+  }
+
+  // Historial real de facturas de este usuario (438 comprobantes ya clasificados a mano): por cada
+  // RUC que aparece siempre en el mismo módulo/categoría, se usa directo en vez de confiar en que la
+  // IA adivine cada vez — es más preciso y no se equivoca con proveedores ya conocidos.
+  var RUC_CONOCIDOS = {
+    '1002423232001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO JERUSALEM x83 */,
+    '0702240771001':['obra',"Materiales"]  /* FERRETERIA METRO x58 */,
+    '0991331859001':['obra',"Gastos Indirectos"]  /* ATIMASA S.A. x35 */,
+    '1790041220001':['obra',"Materiales"]  /* COMERCIAL KYWI S.A. x20 */,
+    '1060041100001':['obra',"Gastos Trámites"]  /* EMPRESA PUBLICA DE MOVILIDAD DEL NORTE x15 */,
+    '1000889319001':['obra',"Materiales"]  /* DISENSA CARCELEN x14 */,
+    '1001708815001':['obra',"Gastos Indirectos"]  /* GASOLINERA PETROCOMERCIAL MOREJON 1 x14 */,
+    '1760003330001':['obra',"Gastos Indirectos"]  /* G.A.D.P.P x14 */,
+    '1719216192001':['obra',"Materiales"]  /* CONSTRUFER x9 */,
+    '1002550497001':['obra',"Materiales"]  /* MAXI-HIERROS x9 */,
+    '1060000260001':['obra',"Gastos Trámites"]  /* GOBIERNO AUTONOMO DESCENTRALIZADO DE IBARRA x8 */,
+    '1793205995001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO PEAJE NORTE x8 */,
+    '1792458935001':['obra',"Gastos Indirectos"]  /* ESTACIÓN DE SERVICIO NATABUELA x8 */,
+    '1791812484001':['obra',"Materiales"]  /* PINTULAC x6 */,
+    '1001108594001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO EL MAYORISTA x6 */,
+    '1713644514001':['personal',"Salud"]  /* ERIKA CRISTINA CESPEDES COUSIN x6 */,
+    '1791256115001':['obra',"Gastos Indirectos"]  /* OTECEL S.A. x5 */,
+    '1792132231001':['obra',"Gastos Indirectos"]  /* ESTACION YAHUARCOCHA x4 */,
+    '1791219058001':['obra',"Materiales"]  /* PUBLIPROMUEVE SA x3 */,
+    '0400687554001':['obra',"Materiales"]  /* ALATENAZA x3 */,
+    '1091724371001':['obra',"Materiales"]  /* ALMACENES JOTAYETESA SA x3 */,
+    '1707332647001':['obra',"Materiales"]  /* FERRETERIA BJ x3 */,
+    '0190123626001':['obra',"Gastos Indirectos"]  /* ASEGURADORA DEL SUR C. A. x3 */,
+    '1762036414001':['obra',"Gastos Indirectos"]  /* XUE CHENGHAI x3 */,
+    '1791984722001':['personal',"Salud"]  /* FARMAENLACE CIA. LTDA|ECO IBARRA LA CANDELARIA x3 */,
+    '1091705172001':['personal',"Educación, Arte y Cultura"]  /* PONTIFICIA UNIVERSIDAD CATOLICA DEL ECUADOR SEDE x3 */,
+    '0401349949001':['obra',"Materiales"]  /* IMPORTADORES CERELECTRIC x2 */,
+    '1091744631001':['obra',"Materiales"]  /* CONSTRUCCIONES CRANBEGAL CIA LTDA x2 */,
+    '1091759663001':['obra',"Materiales"]  /* VASFERRI SCC x2 */,
+    '1792261848001':['obra',"Gastos Trámites"]  /* SECURITY DATA SEGURIDAD EN DATOS Y FIRMA DIGITAL x2 */,
+    '1003089495001':['obra',"Gastos Indirectos"]  /* MOTOREPUESTOS QUIROZ x2 */,
+    '1792193931001':['obra',"Gastos Indirectos"]  /* E/S PETRONORTE x2 */,
+    '1002286357001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO LA FLORIDA x2 */,
+    '1706651112001':['obra',"Gastos Indirectos"]  /* LUBRIFRENOS x2 */,
+    '1717903007001':['obra',"Gastos Indirectos"]  /* MARIA ASUNCION x2 */,
+    '1900293646001':['obra',"Gastos Indirectos"]  /* ECONSA DIVISION AUTOMOTRIZ x2 */,
+    '1003583612001':['personal',"Alimentación"]  /* SUPERMERCADO EL RETORNO x2 */,
+    '1791809149001':['personal',"Educación, Arte y Cultura"]  /* UNIVERSIDAD UTE x2 */,
+    '1091741853001':['personal',"Educación, Arte y Cultura"]  /* NEGYCOM x2 */,
+    '1890086981001':['personal',"Turismo"]  /* COOPERATIVA DE TRANSPORTES CITA EXPRESS x2 */,
+    '0991286403001':['personal',"Otros (no deducible SRI)"]  /* RED ACTIVA - WESTERN UNION x2 */,
+    '1790349578001':['obra',"Materiales"]  /* ANETA x1 */,
+    '1091790897001':['obra',"Materiales"]  /* EMPRESAS DREIKO x1 */,
+    '1091789937001':['obra',"Materiales"]  /* NORSOLAR x1 */,
+    '1003855713001':['obra',"Materiales"]  /* COMERCIAL IZRAEL 2 x1 */,
+    '1001980125001':['obra',"Materiales"]  /* POLYSSOL x1 */,
+    '1004134142001':['obra',"Materiales"]  /* JACOME GUAMAN WILIAN ABEL x1 */,
+    '1091797731001':['obra',"Materiales"]  /* NOVA DISTRIBUCIONES x1 */,
+    '1003054192001':['obra',"Materiales"]  /* OVIEDO CHAVEZ LUIS ANIBAL x1 */,
+    '1001769908001':['obra',"Materiales"]  /* PINCHAO GARCIA ROSA ELVIA x1 */,
+    '1091734903001':['obra',"Materiales"]  /* PINTACASA IBARRA x1 */,
+    '1001966231001':['obra',"Materiales"]  /* PRODISENO x1 */,
+    '1793223488001':['obra',"Materiales"]  /* PINTURAS EXPRESS CONTRIBUYENTE REGIMEN x1 */,
+    '1793151175001':['obra',"Materiales"]  /* CORPAMF MATHERCONS SAS x1 */,
+    '1793194511001':['obra',"Materiales"]  /* PROMART x1 */,
+    '1091786490001':['obra',"Materiales"]  /* ELECTROTECNIA LUIS RODRIGUEZ S.C.C. x1 */,
+    '1768049390001':['obra',"Gastos Trámites"]  /* DIRECCIÓN GENERAL DE REGISTRO CIVIL IDENTIFICACIÓN x1 */,
+    '1060034160001':['obra',"Gastos Trámites"]  /* REGISTRO DE LA PROPIEDAD DEL CANTON IBARRA x1 */,
+    '0201751179001':['obra',"Gastos Trámites"]  /* SANCHEZ VINUEZA MARIO BRICENIO x1 */,
+    '1890010705001':['obra',"Gastos Indirectos"]  /* AMBACAR CIA LTDA. x1 */,
+    '0990697000001':['obra',"Gastos Indirectos"]  /* MAPFRE ECUADOR COMPAÑÍA DE SEGUROS S.A. x1 */,
+    '0990005737001':['obra',"Gastos Indirectos"]  /* BANCO DEL PACIFICO x1 */,
+    '1712315074001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO PANTERA DOS x1 */,
+    '1793205800001':['obra',"Gastos Indirectos"]  /* NAZUA x1 */,
+    '0991285679001':['obra',"Gastos Indirectos"]  /* SERVIENTREGA ECUADOR S.A. x1 */,
+    '1759253444001':['obra',"Gastos Indirectos"]  /* LIN GUOZHONG x1 */,
+    '1203936669001':['obra',"Gastos Indirectos"]  /* LOOR PARRAGA FREDDY HUMBERTO x1 */,
+    '1768154690001':['obra',"Gastos Indirectos"]  /* E.P.M.M.O.P. EP x1 */,
+    '1793180000001':['obra',"Gastos Indirectos"]  /* MOTORFIL x1 */,
+    '1001656741001':['obra',"Gastos Indirectos"]  /* ORTIZ DURAN MARIA FERNANDA x1 */,
+    '1706271523001':['obra',"Gastos Indirectos"]  /* OÑA CAJAS JOSE PATRICIO x1 */,
+    '1713000733001':['obra',"Gastos Indirectos"]  /* TURBOMASTER x1 */,
+    '0490038663001':['obra',"Gastos Indirectos"]  /* COOPERATIVA DE TRANSPORTE INTERPROVINCIAL x1 */,
+    '1707731038001':['obra',"Gastos Indirectos"]  /* GASOLINERA CORNE x1 */,
+    '1003305651001':['personal',"Alimentación"]  /* LA PARRILLA DEL CHE x1 */,
+    '1790016919001':['personal',"Alimentación"]  /* CORPORACION FAVORITA C.A. x1 */,
+    '0993372239001':['personal',"Alimentación"]  /* BURGER KING x1 */,
+    '1001967718001':['personal',"Alimentación"]  /* HELADERIA LA ESQUINA x1 */,
+    '1004792758001':['personal',"Alimentación"]  /* CHIFA IBARRA 2 x1 */,
+    '0400471504001':['personal',"Alimentación"]  /* LUNA YOLANDA MAGDALENA x1 */,
+    '1002546263001':['personal',"Alimentación"]  /* LA ESTELITA x1 */,
+    '1003483441001':['personal',"Alimentación"]  /* CHIFA IBARRA x1 */,
+    '1305046847001':['personal',"Alimentación"]  /* Calificacion Artesanal Nro 125582 x1 */,
+    '1002884508001':['personal',"Alimentación"]  /* CHIFA IBARRA x1 */,
+    '1002972139001':['personal',"Alimentación"]  /* RICO MOTE x1 */,
+    '1002456349001':['personal',"Alimentación"]  /* COMERCIAL RIVERA x1 */,
+    '1004604714001':['personal',"Alimentación"]  /* GONZALEZ JAMA YESENIA IVONNE x1 */,
+    '1791415132001':['personal',"Alimentación"]  /* KENTUCKY FRIED CHICKEN x1 */,
+    '0401865811001':['personal',"Salud"]  /* LIKARPHARMA x1 */,
+    '1793189784001':['personal',"Salud"]  /* CEFALOMETRIX x1 */,
+    '1721406021001':['personal',"Salud"]  /* RXNOVUS x1 */,
+    '1791413237001':['personal',"Vestimenta"]  /* SUPERDEPORTE S.A. x1 */,
+    '1790397815001':['personal',"Vestimenta"]  /* LAVANDERIAS ECUATORIANAS C.A. x1 */,
+    '1793144632001':['personal',"Vestimenta"]  /* GRETELECUADOR S.A.S. x1 */,
+    '1722092564001':['personal',"Vestimenta"]  /* LIFESTYLE x1 */,
+    '1001358223001':['personal',"Otros (no deducible SRI)"]  /* MALES QUINCHE LUIS ALONSO x1 */,
+    '1001773223001':['personal',"Otros (no deducible SRI)"]  /* VALLEJO PAZ REINALDO RAFAEL x1 */,
+    '1793221239001':['personal',"Otros (no deducible SRI)"]  /* KATARIPLAZA S.A.S. x1 */
+  };
+  function aplicarProveedorConocido(o, moduloActual) {
+    var hit = RUC_CONOCIDOS[o.ruc];
+    if (!hit) return;
+    var moduloReal = hit[0], categoriaReal = hit[1];
+    if (moduloReal === moduloActual) {
+      o.aplica = true; o.categoria = categoriaReal; o.motivoNoAplica = '';
+    } else {
+      o.aplica = false;
+      o.motivoNoAplica = 'Ya sabemos por tu historial que ' + (o.proveedor || 'este proveedor') + ' es un gasto de ' +
+        (moduloReal === 'obra' ? 'Gastos y Facturas' : 'Gastos Personales') + ' (' + categoriaReal + '), no de este módulo.';
+    }
   }
 
   function friendly(e) {
@@ -17572,7 +17619,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '"subtotal_0": 0.00, "no_objeto": 0.00, "exento": 0.00, "ice": 0.00, "iva": 0.00, "propina": 0.00, "total": 0.00, ' +
     '"items": [{"cod_principal": "", "cod_auxiliar": "", "cantidad": 0, "descripcion": "", "detalle_adicional": "", ' +
     '"precio_unitario": 0.00, "descuento": 0.00, "precio_total": 0.00}]}. ' +
-    'Reglas: proveedor = razón social del EMISOR/vendedor (la empresa que emite la factura, arriba junto al RUC), NUNCA el nombre del cliente; ' +
+    'Reglas: proveedor = razón social COMPLETA del EMISOR/vendedor (la empresa o entidad que emite la factura, arriba junto al RUC), NUNCA el nombre del cliente; cópiala entera aunque sea larga o continúe en una segunda línea (ej. entidades públicas como "DIRECCION GENERAL DE REGISTRO CIVIL IDENTIFICACION Y CEDULACION" o "GOBIERNO AUTONOMO DESCENTRALIZADO DE LA PROVINCIA DE..."); NUNCA la cortes a la mitad ni dejes solo el final del nombre; ' +
     'ruc = RUC del EMISOR (13 dígitos, junto a "R.U.C."), NO la identificación del cliente; ' +
     'numero_factura = el "No." de la factura con formato 000-000-000000000 (NO el número de autorización ni la clave de acceso de 49 dígitos); ' +
     'autorizacion = "NÚMERO DE AUTORIZACIÓN" (49 dígitos, sin espacios; NO lo pongas en numero_factura); ' +
@@ -17585,7 +17632,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'iva = suma de todas las líneas de IVA; total = "VALOR TOTAL" o "TOTAL A PAGAR" (NO "valor total sin subsidio"). ' +
     'items: UNA entrada por CADA línea del detalle de la factura, en el mismo orden y de TODAS las páginas; no omitas, no resumas ni agrupes líneas. ' +
     'cod_principal = "Cod. Principal"; cod_auxiliar = "Cod. Auxiliar" (si viene partido en dos líneas, únelo sin espacios); ' +
-    'cantidad numérica (puede ser decimal); descripcion completa (une las líneas en que se parta el texto); detalle_adicional si existe; ' +
+    'cantidad numérica (puede ser decimal) tomada SOLO de la columna "Cant."/"Cantidad" de esa línea — normalmente un número pequeño (1, 2, 0.5, 12, etc.); NUNCA copies ahí un número de póliza, trámite, placa, cédula, código o cualquier identificador largo que no sea una cantidad real de unidades: si esa columna no es clara, usa 1 y deja el identificador dentro de descripcion o detalle_adicional en su lugar. La cantidad va SIEMPRE en su propio campo numérico, nunca pegada al texto de descripcion (mal: descripcion="1.00 EXTRA"; bien: cantidad=1, descripcion="EXTRA"); ' +
+    'descripcion completa (une las líneas en que se parta el texto, y quítale cualquier número de cantidad o precio que haya quedado pegado al inicio o al final); detalle_adicional si existe; ' +
     'precio_unitario con todos los decimales que se vean; descuento de esa línea; precio_total = columna "Precio Total" de esa línea (sin IVA). ' +
     'Devuelve el JSON minificado (una sola línea, sin espacios ni saltos de línea de más). En cada ítem omite las claves vacías o en 0, salvo cantidad, precio_unitario y precio_total. ' +
     'Si un dato no se lee con claridad usa "" o 0; no inventes valores. ' +
@@ -17992,7 +18040,124 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (o.tipo === '06' || o.tipo === '07') { o.aplica = false; o.motivoNoAplica = o.tipo === '07' ? 'Comprobante de retención: no es un gasto' : 'Guía de remisión: no es un gasto'; }
     if (o.tipo === '04') ncParsed(o);
     scopeNet(o);   // segunda opinión determinista: materiales de obra, combustible, vehículos
+    aplicarProveedorConocidoPersonal(o);
     return o;
+  }
+
+
+  // Historial real de facturas de este usuario (438 comprobantes ya clasificados a mano): por cada
+  // RUC que aparece siempre en el mismo módulo/categoría, se usa directo en vez de confiar en que la
+  // IA adivine cada vez — es más preciso y no se equivoca con proveedores ya conocidos.
+  var RUC_CONOCIDOS_PERSONAL = {
+    '1002423232001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO JERUSALEM x83 */,
+    '0702240771001':['obra',"Materiales"]  /* FERRETERIA METRO x58 */,
+    '0991331859001':['obra',"Gastos Indirectos"]  /* ATIMASA S.A. x35 */,
+    '1790041220001':['obra',"Materiales"]  /* COMERCIAL KYWI S.A. x20 */,
+    '1060041100001':['obra',"Gastos Trámites"]  /* EMPRESA PUBLICA DE MOVILIDAD DEL NORTE x15 */,
+    '1000889319001':['obra',"Materiales"]  /* DISENSA CARCELEN x14 */,
+    '1001708815001':['obra',"Gastos Indirectos"]  /* GASOLINERA PETROCOMERCIAL MOREJON 1 x14 */,
+    '1760003330001':['obra',"Gastos Indirectos"]  /* G.A.D.P.P x14 */,
+    '1719216192001':['obra',"Materiales"]  /* CONSTRUFER x9 */,
+    '1002550497001':['obra',"Materiales"]  /* MAXI-HIERROS x9 */,
+    '1060000260001':['obra',"Gastos Trámites"]  /* GOBIERNO AUTONOMO DESCENTRALIZADO DE IBARRA x8 */,
+    '1793205995001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO PEAJE NORTE x8 */,
+    '1792458935001':['obra',"Gastos Indirectos"]  /* ESTACIÓN DE SERVICIO NATABUELA x8 */,
+    '1791812484001':['obra',"Materiales"]  /* PINTULAC x6 */,
+    '1001108594001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO EL MAYORISTA x6 */,
+    '1713644514001':['personal',"Salud"]  /* ERIKA CRISTINA CESPEDES COUSIN x6 */,
+    '1791256115001':['obra',"Gastos Indirectos"]  /* OTECEL S.A. x5 */,
+    '1792132231001':['obra',"Gastos Indirectos"]  /* ESTACION YAHUARCOCHA x4 */,
+    '1791219058001':['obra',"Materiales"]  /* PUBLIPROMUEVE SA x3 */,
+    '0400687554001':['obra',"Materiales"]  /* ALATENAZA x3 */,
+    '1091724371001':['obra',"Materiales"]  /* ALMACENES JOTAYETESA SA x3 */,
+    '1707332647001':['obra',"Materiales"]  /* FERRETERIA BJ x3 */,
+    '0190123626001':['obra',"Gastos Indirectos"]  /* ASEGURADORA DEL SUR C. A. x3 */,
+    '1762036414001':['obra',"Gastos Indirectos"]  /* XUE CHENGHAI x3 */,
+    '1791984722001':['personal',"Salud"]  /* FARMAENLACE CIA. LTDA|ECO IBARRA LA CANDELARIA x3 */,
+    '1091705172001':['personal',"Educación, Arte y Cultura"]  /* PONTIFICIA UNIVERSIDAD CATOLICA DEL ECUADOR SEDE x3 */,
+    '0401349949001':['obra',"Materiales"]  /* IMPORTADORES CERELECTRIC x2 */,
+    '1091744631001':['obra',"Materiales"]  /* CONSTRUCCIONES CRANBEGAL CIA LTDA x2 */,
+    '1091759663001':['obra',"Materiales"]  /* VASFERRI SCC x2 */,
+    '1792261848001':['obra',"Gastos Trámites"]  /* SECURITY DATA SEGURIDAD EN DATOS Y FIRMA DIGITAL x2 */,
+    '1003089495001':['obra',"Gastos Indirectos"]  /* MOTOREPUESTOS QUIROZ x2 */,
+    '1792193931001':['obra',"Gastos Indirectos"]  /* E/S PETRONORTE x2 */,
+    '1002286357001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO LA FLORIDA x2 */,
+    '1706651112001':['obra',"Gastos Indirectos"]  /* LUBRIFRENOS x2 */,
+    '1717903007001':['obra',"Gastos Indirectos"]  /* MARIA ASUNCION x2 */,
+    '1900293646001':['obra',"Gastos Indirectos"]  /* ECONSA DIVISION AUTOMOTRIZ x2 */,
+    '1003583612001':['personal',"Alimentación"]  /* SUPERMERCADO EL RETORNO x2 */,
+    '1791809149001':['personal',"Educación, Arte y Cultura"]  /* UNIVERSIDAD UTE x2 */,
+    '1091741853001':['personal',"Educación, Arte y Cultura"]  /* NEGYCOM x2 */,
+    '1890086981001':['personal',"Turismo"]  /* COOPERATIVA DE TRANSPORTES CITA EXPRESS x2 */,
+    '0991286403001':['personal',"Otros (no deducible SRI)"]  /* RED ACTIVA - WESTERN UNION x2 */,
+    '1790349578001':['obra',"Materiales"]  /* ANETA x1 */,
+    '1091790897001':['obra',"Materiales"]  /* EMPRESAS DREIKO x1 */,
+    '1091789937001':['obra',"Materiales"]  /* NORSOLAR x1 */,
+    '1003855713001':['obra',"Materiales"]  /* COMERCIAL IZRAEL 2 x1 */,
+    '1001980125001':['obra',"Materiales"]  /* POLYSSOL x1 */,
+    '1004134142001':['obra',"Materiales"]  /* JACOME GUAMAN WILIAN ABEL x1 */,
+    '1091797731001':['obra',"Materiales"]  /* NOVA DISTRIBUCIONES x1 */,
+    '1003054192001':['obra',"Materiales"]  /* OVIEDO CHAVEZ LUIS ANIBAL x1 */,
+    '1001769908001':['obra',"Materiales"]  /* PINCHAO GARCIA ROSA ELVIA x1 */,
+    '1091734903001':['obra',"Materiales"]  /* PINTACASA IBARRA x1 */,
+    '1001966231001':['obra',"Materiales"]  /* PRODISENO x1 */,
+    '1793223488001':['obra',"Materiales"]  /* PINTURAS EXPRESS CONTRIBUYENTE REGIMEN x1 */,
+    '1793151175001':['obra',"Materiales"]  /* CORPAMF MATHERCONS SAS x1 */,
+    '1793194511001':['obra',"Materiales"]  /* PROMART x1 */,
+    '1091786490001':['obra',"Materiales"]  /* ELECTROTECNIA LUIS RODRIGUEZ S.C.C. x1 */,
+    '1768049390001':['obra',"Gastos Trámites"]  /* DIRECCIÓN GENERAL DE REGISTRO CIVIL IDENTIFICACIÓN x1 */,
+    '1060034160001':['obra',"Gastos Trámites"]  /* REGISTRO DE LA PROPIEDAD DEL CANTON IBARRA x1 */,
+    '0201751179001':['obra',"Gastos Trámites"]  /* SANCHEZ VINUEZA MARIO BRICENIO x1 */,
+    '1890010705001':['obra',"Gastos Indirectos"]  /* AMBACAR CIA LTDA. x1 */,
+    '0990697000001':['obra',"Gastos Indirectos"]  /* MAPFRE ECUADOR COMPAÑÍA DE SEGUROS S.A. x1 */,
+    '0990005737001':['obra',"Gastos Indirectos"]  /* BANCO DEL PACIFICO x1 */,
+    '1712315074001':['obra',"Gastos Indirectos"]  /* ESTACION DE SERVICIO PANTERA DOS x1 */,
+    '1793205800001':['obra',"Gastos Indirectos"]  /* NAZUA x1 */,
+    '0991285679001':['obra',"Gastos Indirectos"]  /* SERVIENTREGA ECUADOR S.A. x1 */,
+    '1759253444001':['obra',"Gastos Indirectos"]  /* LIN GUOZHONG x1 */,
+    '1203936669001':['obra',"Gastos Indirectos"]  /* LOOR PARRAGA FREDDY HUMBERTO x1 */,
+    '1768154690001':['obra',"Gastos Indirectos"]  /* E.P.M.M.O.P. EP x1 */,
+    '1793180000001':['obra',"Gastos Indirectos"]  /* MOTORFIL x1 */,
+    '1001656741001':['obra',"Gastos Indirectos"]  /* ORTIZ DURAN MARIA FERNANDA x1 */,
+    '1706271523001':['obra',"Gastos Indirectos"]  /* OÑA CAJAS JOSE PATRICIO x1 */,
+    '1713000733001':['obra',"Gastos Indirectos"]  /* TURBOMASTER x1 */,
+    '0490038663001':['obra',"Gastos Indirectos"]  /* COOPERATIVA DE TRANSPORTE INTERPROVINCIAL x1 */,
+    '1707731038001':['obra',"Gastos Indirectos"]  /* GASOLINERA CORNE x1 */,
+    '1003305651001':['personal',"Alimentación"]  /* LA PARRILLA DEL CHE x1 */,
+    '1790016919001':['personal',"Alimentación"]  /* CORPORACION FAVORITA C.A. x1 */,
+    '0993372239001':['personal',"Alimentación"]  /* BURGER KING x1 */,
+    '1001967718001':['personal',"Alimentación"]  /* HELADERIA LA ESQUINA x1 */,
+    '1004792758001':['personal',"Alimentación"]  /* CHIFA IBARRA 2 x1 */,
+    '0400471504001':['personal',"Alimentación"]  /* LUNA YOLANDA MAGDALENA x1 */,
+    '1002546263001':['personal',"Alimentación"]  /* LA ESTELITA x1 */,
+    '1003483441001':['personal',"Alimentación"]  /* CHIFA IBARRA x1 */,
+    '1305046847001':['personal',"Alimentación"]  /* Calificacion Artesanal Nro 125582 x1 */,
+    '1002884508001':['personal',"Alimentación"]  /* CHIFA IBARRA x1 */,
+    '1002972139001':['personal',"Alimentación"]  /* RICO MOTE x1 */,
+    '1002456349001':['personal',"Alimentación"]  /* COMERCIAL RIVERA x1 */,
+    '1004604714001':['personal',"Alimentación"]  /* GONZALEZ JAMA YESENIA IVONNE x1 */,
+    '1791415132001':['personal',"Alimentación"]  /* KENTUCKY FRIED CHICKEN x1 */,
+    '0401865811001':['personal',"Salud"]  /* LIKARPHARMA x1 */,
+    '1793189784001':['personal',"Salud"]  /* CEFALOMETRIX x1 */,
+    '1721406021001':['personal',"Salud"]  /* RXNOVUS x1 */,
+    '1791413237001':['personal',"Vestimenta"]  /* SUPERDEPORTE S.A. x1 */,
+    '1790397815001':['personal',"Vestimenta"]  /* LAVANDERIAS ECUATORIANAS C.A. x1 */,
+    '1793144632001':['personal',"Vestimenta"]  /* GRETELECUADOR S.A.S. x1 */,
+    '1722092564001':['personal',"Vestimenta"]  /* LIFESTYLE x1 */,
+    '1001358223001':['personal',"Otros (no deducible SRI)"]  /* MALES QUINCHE LUIS ALONSO x1 */,
+    '1001773223001':['personal',"Otros (no deducible SRI)"]  /* VALLEJO PAZ REINALDO RAFAEL x1 */,
+    '1793221239001':['personal',"Otros (no deducible SRI)"]  /* KATARIPLAZA S.A.S. x1 */
+  };
+  function aplicarProveedorConocidoPersonal(o) {
+    var hit = RUC_CONOCIDOS_PERSONAL[o.ruc];
+    if (!hit) return;
+    var moduloReal = hit[0], categoriaReal = hit[1];
+    if (moduloReal === 'personal') {
+      o.aplica = true; o.categoria = categoriaReal; o.motivoNoAplica = '';
+    } else {
+      o.aplica = false;
+      o.motivoNoAplica = 'Ya sabemos por tu historial que ' + (o.proveedor || 'este proveedor') + ' es un gasto de Gastos y Facturas (' + categoriaReal + '), no personal.';
+    }
   }
 
   function friendly(e) {

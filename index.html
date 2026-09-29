@@ -20897,15 +20897,17 @@ html[data-theme="dark"] #land .btn-ghost:hover .nz-btn{--nz-on-c:#38e1ff;--nz-on
 /* Luz de neón que circula sin parar por el borde de los botones. Velocidad constante: el recorrido se mide en px/s
    (la duración se calcula con el perímetro de cada botón), así no acelera ni frena en esquinas ni lados largos. */
 html[data-theme="dark"] #land .bm-ring{position:relative;box-shadow:0 0 18px -7px rgba(6,182,212,.5)}
-html[data-theme="dark"] #land .bm-ring>.bm-run{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px rgba(34,211,238,.85))}
-.bm-run rect{fill:none;stroke-linecap:round}
-.bm-run .r1{stroke:rgba(34,211,238,.28);stroke-width:2.6;stroke-dasharray:26 74;animation:bmRunA var(--bm-dur,4s) linear infinite}
-.bm-run .r2{stroke:rgba(103,232,249,.62);stroke-width:2;stroke-dasharray:14 86;animation:bmRunB var(--bm-dur,4s) linear infinite}
-.bm-run .r3{stroke:#f4feff;stroke-width:1.8;stroke-dasharray:5 95;animation:bmRunC var(--bm-dur,4s) linear infinite}
-@keyframes bmRunA{from{stroke-dashoffset:26}to{stroke-dashoffset:-74}}
-@keyframes bmRunB{from{stroke-dashoffset:14}to{stroke-dashoffset:-86}}
-@keyframes bmRunC{from{stroke-dashoffset:5}to{stroke-dashoffset:-95}}
+html[data-theme="dark"] #land .bm-ring>.bm-run{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px rgba(34,211,238,.7))}
+.bm-run rect{fill:none;stroke:#67e8f9;stroke-opacity:.14;stroke-width:2;stroke-linecap:butt;animation:bmRun var(--bm-dur,4s) linear infinite}
+@keyframes bmRun{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
 @media (prefers-reduced-motion:reduce){.bm-run rect{animation:none}}
+/* Borde inferior de la barra de la landing: misma luz que recorre la línea de la barra de la app (una luz que pasa sin parar + rayo de entrada) */
+#land nav::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,#67e8f9,transparent) no-repeat,linear-gradient(90deg,transparent,rgba(0,212,255,.45),transparent);
+  background-size:18% 100%,100% 100%;background-position:-25% 0,0 0;animation:bmHdrRun 7s linear infinite}
+#land nav::before{content:'';position:absolute;left:0;bottom:-1px;width:26%;height:2px;pointer-events:none;z-index:3;opacity:0;
+  background:linear-gradient(90deg,transparent,#22d3ee,#a78bfa,transparent);box-shadow:0 0 18px 3px rgba(6,182,212,.7);animation:bmHdrBeam 1.5s .25s ease-out 1 both}
+@media (prefers-reduced-motion:reduce){#land nav::after,#land nav::before{animation:none!important}}
 /* Subtítulo del inicio */
 html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--nz-on-s:0 0 8px rgba(103,232,249,.28),0 0 22px rgba(6,182,212,.18)}
 </style>
@@ -21016,9 +21018,15 @@ html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--
   function addRun(b) {
     var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'bm-run'); svg.setAttribute('aria-hidden', 'true');
-    ['r1', 'r2', 'r3'].forEach(function (c) {
-      var r = document.createElementNS(NS, 'rect'); r.setAttribute('class', c); r.setAttribute('pathLength', '100'); svg.appendChild(r);
-    });
+    // Estela suave: 16 capas del mismo color, de largo creciente y con la misma cabeza; se suman y el brillo baja poco a poco hacia la cola
+    var N = 16, G = 40, LMAX = 28, i, L, r;
+    for (i = 0; i < N; i++) {
+      L = LMAX * (i + 1) / N;
+      r = document.createElementNS(NS, 'rect');
+      r.setAttribute('pathLength', '100');
+      r.setAttribute('stroke-dasharray', '0 ' + (G - L).toFixed(2) + ' ' + L.toFixed(2) + ' ' + (100 - G).toFixed(2));
+      svg.appendChild(r);
+    }
     b.appendChild(svg);
     function fit() {
       var w = b.clientWidth, h = b.clientHeight;

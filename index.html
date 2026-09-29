@@ -2370,6 +2370,9 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .gx-scope .gx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (min-width:980px){ .gx-scope .gx-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)} }
+/* Mientras hay facturas cargadas en el lote, esa columna usa todo el ancho (la otra columna, que
+   mientras tanto no hace falta ver, pasa a mostrarse debajo en vez de dejar un espacio vacío). */
+@media (min-width:980px){ .gx-scope .gx-grid.gx-batch-open > .gx-col{grid-column:1 / -1} }
 
 .gx-scope .gx-card{background:var(--gx-card);border:1px solid var(--gx-br);border-radius:16px;padding:16px}
 .gx-scope .gx-title{font-size:13px;font-weight:700;letter-spacing:.02em;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -2526,6 +2529,10 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-dr2 .msg.err{color:var(--gx-err)}
 .gx-scope .gx-dr2 .msg.warn{color:var(--gx-warn)}
 .gx-scope .gx-st{font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:99px;border:1px solid var(--gx-br);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.gx-scope .gx-st.gx-st-clk{cursor:pointer;transition:filter .12s,transform .12s}
+.gx-scope .gx-st.gx-st-clk:hover{filter:brightness(1.25)}
+.gx-scope .gx-st.gx-st-clk:active{transform:scale(.96)}
+.gx-scope .gx-st.gx-st-clk:focus-visible{outline:2px solid var(--gx-ac,#00d4ff);outline-offset:2px}
 .gx-scope .gx-st.ok{color:var(--gx-ok);border-color:var(--gx-ok)}
 .gx-scope .gx-st.warn,.gx-scope .gx-st.incomplete{color:var(--gx-warn);border-color:var(--gx-warn)}
 .gx-scope .gx-st.err{color:var(--gx-err);border-color:var(--gx-err)}
@@ -15273,6 +15280,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '1001773223001':['personal',"Otros (no deducible SRI)"]  /* VALLEJO PAZ REINALDO RAFAEL x1 */,
     '1793221239001':['personal',"Otros (no deducible SRI)"]  /* KATARIPLAZA S.A.S. x1 */
   };
+  function resumenItems(o) {
+    var it = (o.items || [])[0];
+    if (!it) return '';
+    var txt = String(it.desc || '').trim();
+    return txt ? (' Detalle: "' + txt.slice(0, 90) + (txt.length > 90 ? '…' : '') + '".') : '';
+  }
   function aplicarProveedorConocido(o, moduloActual) {
     var hit = RUC_CONOCIDOS[o.ruc];
     if (!hit) return;
@@ -15282,7 +15295,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     } else {
       o.aplica = false;
       o.motivoNoAplica = 'Ya sabemos por tu historial que ' + (o.proveedor || 'este proveedor') + ' es un gasto de ' +
-        (moduloReal === 'obra' ? 'Gastos y Facturas' : 'Gastos Personales') + ' (' + categoriaReal + '), no de este módulo.';
+        (moduloReal === 'obra' ? 'Gastos y Facturas' : 'Gastos Personales') + ' (' + categoriaReal + '), no de este módulo.' + resumenItems(o);
     }
   }
 
@@ -17056,8 +17069,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function renderBatchNow() {
     var box = $('gx-batch'); if (!box) return;
     var ds = st.drafts;
-    if (!ds.length) { box.style.display = 'none'; return; }
+    var grid = box.closest ? box.closest('.gx-grid') : null;
+    if (!ds.length) { box.style.display = 'none'; if (grid) grid.classList.remove('gx-batch-open'); return; }
     box.style.display = '';
+    if (grid) grid.classList.add('gx-batch-open');
     var saved = loadSavedCached(), proyecto = val('gx-proyecto'), seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     // 1) calcula el estado de cada una en el orden original (el detector de duplicados depende de
@@ -17091,11 +17106,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
+      var decidible = (s === 'skip' || s === 'ok' || s === 'warn');
       var showCat = canEdit;
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
-        '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
+        '<span class="gx-st ' + s + (decidible ? ' gx-st-clk' : '') + '"' + (decidible ? ' data-dtoggle="' + esc(d.id) + '" role="button" tabindex="0" title="Toca para cambiar entre No corresponde / Sí corresponde"' : '') + '>' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
           (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
@@ -17228,6 +17244,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function draftById(id) { return st.drafts.filter(function (d) { return d.id === id; })[0]; }
   function removeDraft(id) { st.drafts = st.drafts.filter(function (d) { return d.id !== id; }); if (st.editing === id) st.editing = null; renderBatch(); }
+  // Corrección manual: toca la píldora "No corresponde"/"Sí corresponde" para invertir la
+  // decisión de la IA (por ejemplo, un proveedor conocido que en este caso sí aplica). Al marcar
+  // "Sí corresponde", la factura entra a la lista de guardado normal, como cualquier otra.
+  function toggleAplica(id) {
+    var d = draftById(id); if (!d || !d.data) return;
+    var yaAplica = (d.data.aplica !== false);
+    d.data.aplica = !yaAplica;
+    if (d.data.aplica) { d.data.motivoNoAplica = ''; }
+    else if (!d.data.motivoNoAplica) { d.data.motivoNoAplica = 'Marcado a mano como que no corresponde.'; }
+    renderBatch();
+  }
 
   function reviewDraft(id) {
     var d = draftById(id); if (!d || !d.data) return;
@@ -17365,6 +17392,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if ((b = t.closest && t.closest('[data-drev]'))) return reviewDraft(b.getAttribute('data-drev'));
       if ((b = t.closest && t.closest('[data-drm]'))) return removeDraft(b.getAttribute('data-drm'));
       if ((b = t.closest && t.closest('[data-dretry]'))) { var d = draftById(b.getAttribute('data-dretry')); if (d) { d.status = 'pending'; d.err = ''; renderBatch(); runBatch(); } }
+      if ((b = t.closest && t.closest('[data-dtoggle]'))) { toggleAplica(b.getAttribute('data-dtoggle')); return; }
+    });
+    $('gx-batch-list').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var b = e.target.closest && e.target.closest('[data-dtoggle]');
+      if (b) { e.preventDefault(); toggleAplica(b.getAttribute('data-dtoggle')); }
     });
     $('gx-batch-list').addEventListener('change', function (e) {
       var t = e.target, id = t.getAttribute && t.getAttribute('data-dcat');
@@ -18149,6 +18182,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '1001773223001':['personal',"Otros (no deducible SRI)"]  /* VALLEJO PAZ REINALDO RAFAEL x1 */,
     '1793221239001':['personal',"Otros (no deducible SRI)"]  /* KATARIPLAZA S.A.S. x1 */
   };
+  function resumenItemsPersonal(o) {
+    var it = (o.items || [])[0];
+    if (!it) return '';
+    var txt = String(it.desc || '').trim();
+    return txt ? (' Detalle: "' + txt.slice(0, 90) + (txt.length > 90 ? '…' : '') + '".') : '';
+  }
   function aplicarProveedorConocidoPersonal(o) {
     var hit = RUC_CONOCIDOS_PERSONAL[o.ruc];
     if (!hit) return;
@@ -18157,7 +18196,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       o.aplica = true; o.categoria = categoriaReal; o.motivoNoAplica = '';
     } else {
       o.aplica = false;
-      o.motivoNoAplica = 'Ya sabemos por tu historial que ' + (o.proveedor || 'este proveedor') + ' es un gasto de Gastos y Facturas (' + categoriaReal + '), no personal.';
+      o.motivoNoAplica = 'Ya sabemos por tu historial que ' + (o.proveedor || 'este proveedor') + ' es un gasto de Gastos y Facturas (' + categoriaReal + '), no personal.' + resumenItemsPersonal(o);
     }
   }
 
@@ -19900,8 +19939,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function renderBatchNow() {
     var box = $('gxp-batch'); if (!box) return;
     var ds = st.drafts;
-    if (!ds.length) { box.style.display = 'none'; return; }
+    var grid = box.closest ? box.closest('.gx-grid') : null;
+    if (!ds.length) { box.style.display = 'none'; if (grid) grid.classList.remove('gx-batch-open'); return; }
     box.style.display = '';
+    if (grid) grid.classList.add('gx-batch-open');
     var saved = loadSavedCached(), proyecto = PERSONAL_PROJECT, seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var items = ds.map(function (d, idx) {
@@ -19930,11 +19971,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
         '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
       var canEdit = (d.status === 'ok' || d.status === 'warn');
+      var decidible = (s === 'skip' || s === 'ok' || s === 'warn');
       var showCat = canEdit;
       return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
         '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
         '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
-        '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
+        '<span class="gx-st ' + s + (decidible ? ' gx-st-clk' : '') + '"' + (decidible ? ' data-dtoggle="' + esc(d.id) + '" role="button" tabindex="0" title="Toca para cambiar entre No corresponde / Sí corresponde"' : '') + '>' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
         (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
         '<div class="ctl">' +
           (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
@@ -20065,6 +20107,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   function draftById(id) { return st.drafts.filter(function (d) { return d.id === id; })[0]; }
   function removeDraft(id) { st.drafts = st.drafts.filter(function (d) { return d.id !== id; }); if (st.editing === id) st.editing = null; renderBatch(); }
+  // Corrección manual: toca la píldora "No corresponde"/"Sí corresponde" para invertir la
+  // decisión de la IA (por ejemplo, un proveedor conocido que en este caso sí aplica). Al marcar
+  // "Sí corresponde", la factura entra a la lista de guardado normal, como cualquier otra.
+  function toggleAplica(id) {
+    var d = draftById(id); if (!d || !d.data) return;
+    var yaAplica = (d.data.aplica !== false);
+    d.data.aplica = !yaAplica;
+    if (d.data.aplica) { d.data.motivoNoAplica = ''; }
+    else if (!d.data.motivoNoAplica) { d.data.motivoNoAplica = 'Marcado a mano como que no corresponde.'; }
+    renderBatch();
+  }
 
   function reviewDraft(id) {
     var d = draftById(id); if (!d || !d.data) return;
@@ -20201,6 +20254,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if ((b = t.closest && t.closest('[data-drev]'))) return reviewDraft(b.getAttribute('data-drev'));
       if ((b = t.closest && t.closest('[data-drm]'))) return removeDraft(b.getAttribute('data-drm'));
       if ((b = t.closest && t.closest('[data-dretry]'))) { var d = draftById(b.getAttribute('data-dretry')); if (d) { d.status = 'pending'; d.err = ''; renderBatch(); runBatch(); } }
+      if ((b = t.closest && t.closest('[data-dtoggle]'))) { toggleAplica(b.getAttribute('data-dtoggle')); return; }
+    });
+    $('gxp-batch-list').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var b = e.target.closest && e.target.closest('[data-dtoggle]');
+      if (b) { e.preventDefault(); toggleAplica(b.getAttribute('data-dtoggle')); }
     });
     $('gxp-batch-list').addEventListener('change', function (e) {
       var t = e.target, id = t.getAttribute && t.getAttribute('data-dcat');

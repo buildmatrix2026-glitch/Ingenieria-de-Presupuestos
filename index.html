@@ -4992,7 +4992,10 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 @keyframes bmcf-ov-in{from{opacity:0}to{opacity:1}}
 @keyframes bmcf-icon-pulse{0%,100%{box-shadow:0 0 0 0 var(--bmcf-ring)}50%{box-shadow:0 0 0 6px transparent}}
 .bmcf-ov{position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 40%,rgba(9,16,30,.78),rgba(3,7,15,.88));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:bmcf-ov-in .18s ease-out both;font-family:var(--font-main,'Outfit',sans-serif)}
-.bmcf-outer{position:relative;width:100%;max-width:440px;border-radius:17px;animation:bmcf-in .28s cubic-bezier(.19,1,.22,1) both;border:1px solid var(--bmcf-accent-dim);box-shadow:0 16px 40px -6px var(--bmcf-accent-glow),0 0 0 1px var(--bmcf-accent-glow);}
+.bmcf-outer{position:relative;width:100%;max-width:440px;border-radius:17px;animation:bmcf-in .28s cubic-bezier(.19,1,.22,1) both;box-shadow:0 18px 40px -10px rgba(0,0,0,.5)}
+.bmcf-outer>.bmcf-run{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px var(--bmcf-accent-glow));z-index:3}
+.bmcf-outer>.bmcf-run rect{fill:none;stroke:var(--bmcf-accent);stroke-opacity:.55;stroke-width:2;stroke-linecap:butt;animation:bmRun var(--bmcf-run-dur,3s) linear infinite}
+@media (prefers-reduced-motion: reduce){.bmcf-outer>.bmcf-run rect{animation:none}}
 .bmcf-card{position:relative;z-index:1;margin:1.5px;border-radius:16px;background:linear-gradient(180deg,#0c1526 0%,#0a1220 100%);box-shadow:0 24px 60px -12px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.02) inset;padding:26px 26px 22px;overflow:hidden}
 .bmcf-card::before{content:'';position:absolute;top:-60px;right:-60px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--bmcf-accent-glow),transparent 70%);opacity:.5;pointer-events:none}
 .bmcf-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:4px;position:relative}
@@ -5016,6 +5019,33 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 </style>
 <script>
 window.BM_CONFIRM = function (msg) {
+  function bmcfAddRun(el) {
+    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'bmcf-run'); svg.setAttribute('aria-hidden', 'true');
+    var N = 16, G = 40, LMAX = 28, i, L, r;
+    for (i = 0; i < N; i++) {
+      L = LMAX * (i + 1) / N;
+      r = document.createElementNS(NS, 'rect');
+      r.setAttribute('pathLength', '100');
+      r.setAttribute('stroke-dasharray', '0 ' + (G - L).toFixed(2) + ' ' + L.toFixed(2) + ' ' + (100 - G).toFixed(2));
+      svg.appendChild(r);
+    }
+    el.appendChild(svg);
+    function fit() {
+      var w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h) return;
+      var rad = 17;
+      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      Array.prototype.forEach.call(svg.children, function (rr) {
+        rr.setAttribute('x', 1); rr.setAttribute('y', 1);
+        rr.setAttribute('width', Math.max(0, w - 2)); rr.setAttribute('height', Math.max(0, h - 2));
+        rr.setAttribute('rx', Math.max(0, rad - 1));
+      });
+      svg.style.setProperty('--bmcf-run-dur', (2 * (w + h) / 180).toFixed(2) + 's');
+    }
+    requestAnimationFrame(fit);
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(el); else window.addEventListener('resize', fit);
+  }
   return new Promise(function (resolve) {
     // ── Clasifica el mensaje: acción destructiva, de advertencia o neutral ──
     var m = String(msg || '');
@@ -5087,6 +5117,7 @@ window.BM_CONFIRM = function (msg) {
     card.appendChild(row);
     outer.appendChild(card); ov.appendChild(outer);
     document.body.appendChild(ov);
+    bmcfAddRun(outer);
     document.addEventListener('keydown', onKey);
     bOk.focus();
   });

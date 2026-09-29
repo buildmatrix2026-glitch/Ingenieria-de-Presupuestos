@@ -3295,7 +3295,7 @@ input[type=date].inp::-webkit-calendar-picker-indicator {
 <footer>
   <div class="footer-brand">
     <svg class="lg-cube lg-static" width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true"><polygon class="lgc lgc-l" points="4.78,10.06 15.53,16.27 15.53,28.69 4.78,22.48" fill="#0052FF"/><polygon class="lgc lgc-r" points="27.22,10.06 27.22,22.48 16.47,28.69 16.47,16.27" fill="#0093FF"/><polygon class="lgc lgc-t" points="16.00,3.04 26.76,9.25 16.00,15.46 5.24,9.25" fill="#00D4FF"/></svg>
-    <span style="font-size:14px;font-weight:700;color:var(--white)">BuildMatrix</span>
+    <span style="font-size:14px;font-weight:700"><span style="color:var(--white)">Build</span><span style="color:var(--cyan)">Matrix</span></span>
   </div>
   <p class="footer-copy">© 2026 BuildMatrix · Ingeniería de Costos · Imbabura, Ecuador</p>
   <p class="footer-copy">Referencia: Cámara de Construcción Ecuador 2026</p>
@@ -8918,13 +8918,18 @@ function _pdfV2LoadFonts(doc){
 }
 
 function _pdfV2DrawLogo(doc,x,y,scale){
-  const ds=2.0*scale, gap=4.2*scale;
-  for(let r=0;r<3;r++){
-    for(let c=0;c<3;c++){
-      if((r===0&&c===2)||(r===2&&c===0)){ doc.setFillColor(180,205,255); } else { doc.setFillColor(0,82,255); }
-      doc.circle(x+c*gap, y+r*gap, ds/2, 'F');
-    }
+  // Cubo isométrico BuildMatrix — mismas 3 caras y colores que el logo del sitio (SVG 32x32)
+  const side=10.4*scale, k=side/32, x0=x-scale, y0=y-scale;
+  function P(px,py){ return [x0+px*k, y0+py*k]; }
+  function face(pts,r,g,b){
+    const p=pts.map(function(pt){ return P(pt[0],pt[1]); });
+    doc.setFillColor(r,g,b);
+    doc.triangle(p[0][0],p[0][1],p[1][0],p[1][1],p[2][0],p[2][1],'F');
+    doc.triangle(p[0][0],p[0][1],p[2][0],p[2][1],p[3][0],p[3][1],'F');
   }
+  face([[4.78,10.06],[15.53,16.27],[15.53,28.69],[4.78,22.48]], 0,82,255);   // cara izquierda
+  face([[27.22,10.06],[27.22,22.48],[16.47,28.69],[16.47,16.27]], 0,147,255); // cara derecha
+  face([[16.00,3.04],[26.76,9.25],[16.00,15.46],[5.24,9.25]], 0,212,255);    // cara superior
 }
 
 // ── Portada compartida — idéntica en los 3 PDFs, bloque pegado abajo ──

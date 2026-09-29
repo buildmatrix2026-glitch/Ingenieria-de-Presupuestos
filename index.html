@@ -6234,9 +6234,21 @@ function loadState(){
 }
 // Aplicar customInsumos a IMAP después de que esté definido
 function applyCustomInsumos(){
+  // Ojo: además de IMAP (lookup por código), hay que reinsertar el insumo en
+  // BD.I -la lista maestra- porque TODOS los buscadores/selectores de insumos
+  // (crear/editar APU, filtro por categoría, etc.) leen de BD.I, no de IMAP.
+  // Si solo se actualiza IMAP, un insumo creado por el usuario "desaparece"
+  // de esos buscadores en cuanto la página se recarga.
   if(S.customInsumos&&S.customInsumos.length){
     S.customInsumos.forEach(function(ins){
-      IMAP[ins[0]]=ins;
+      var existing=BD.I.find(function(r){return r[0]===ins[0];});
+      if(existing){
+        existing[1]=ins[1]; existing[2]=ins[2]; existing[3]=ins[3];
+        IMAP[ins[0]]=existing;
+      } else {
+        BD.I.push(ins);
+        IMAP[ins[0]]=ins;
+      }
     });
   }
 }
@@ -7079,13 +7091,47 @@ function enterApp(){
 }
 function enterAppTo(tab){
   document.body.classList.add('ia');
-  _restoreBD();
-  S=defaultState();
+  // Si había un proyecto activo (sesión previa o recarga de página), restaurarlo
+  // por completo -incluyendo sus insumos y APUs personalizados en BD- en vez de
+  // perderlo silenciosamente al iniciar/recargar la app.
+  var _activeProjName = S.proj || localStorage.getItem(ACTIVE_PROJ_KEY()) || '';
+  var _restored = false;
+  if(_activeProjName){
+    var _projs = getSavedProjects();
+    var _p = _projs.find(function(x){ return x.name===_activeProjName; });
+    if(_p){
+      var _hadLiveSession = !!S.proj;
+      if(!_hadLiveSession){
+        S.own=_p.own||''; S.proj=_p.name; S.date=_p.date||'';
+        S.ind=_p.ind??null; S.uti=_p.uti??null; S.iva=_p.iva??null;
+        S.caps=_p.caps||CAPS_DEFAULT.map(function(){return[];});
+        S.capNames=_p.capNames||[]; S.capNums=_p.capNums||[];
+        S.customAPU=_p.customAPU||{};
+        S.customInsumos=_p.customInsumos||[];
+      } else {
+        // Ya había una sesión viva (sessionStorage) con este proyecto: sus
+        // insumos/APUs personalizados pueden incluir cambios aún no guardados
+        // -no sobrescribirlos con la copia (posiblemente más vieja) de localStorage-.
+        if(!S.customAPU) S.customAPU={};
+        if(!S.customInsumos) S.customInsumos=[];
+      }
+      _restoreBD();
+      _applyProjectToBD({ customAPU:S.customAPU, customInsumos:S.customInsumos, customGroups:_p.customGroups });
+      var _tpn=$id('tpn'); if(_tpn) _tpn.textContent=_p.name||'';
+      var _tph=document.getElementById('tp-header'); if(_tph) _tph.style.display=_p.name?'':'none';
+      _restored=true;
+    }
+  }
+  if(!_restored){
+    _restoreBD();
+    S=defaultState();
+  }
   persist();
   renderSavedProjects();
   wireTopBarBtns();
   _syncUserWidget();
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;go(tab);
+  if(_restored && typeof renderBudget==='function') renderBudget();
   // Iniciar sincronización en tiempo real con Firestore
   _startProjectsSync();
 }

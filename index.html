@@ -15248,6 +15248,48 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }).catch(function (err) { CLOUD.pending = Math.max(0, CLOUD.pending - 1); cloudError(err); });
   }
 
+
+  // Sube muchos gastos de una sola vez (guardado masivo de un lote grande de facturas):
+  // usa write batches de Firestore (hasta 450 por batch, en vez de una petición de red por factura)
+  // y al terminar marca todos como sincronizados con UNA sola lectura/escritura de localStorage
+  // (en vez de una lectura+escritura completa del arreglo por cada factura, que es lo que colgaba la UI).
+  function pushCloudBatch(list) {
+    if (!list || !list.length) return;
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    var CHUNK = 450, chunks = [];
+    for (var i = 0; i < list.length; i += CHUNK) chunks.push(list.slice(i, i + CHUNK));
+    var syncedIds = [];
+    CLOUD.pending += list.length; renderSync();
+    function finish() {
+      if (syncedIds.length) {
+        var all = load(), map = {};
+        syncedIds.forEach(function (id) { map[id] = 1; });
+        var touched = false;
+        all.forEach(function (g) { if (map[g.id] && !g._s) { g._s = 1; touched = true; } });
+        if (touched) save(all);
+      }
+      renderSync();
+    }
+    function runChunk(idx) {
+      if (idx >= chunks.length) { finish(); return; }
+      var batch = firebase.firestore().batch();
+      chunks[idx].forEach(function (g) {
+        var data = toDoc(g); data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        batch.set(gcol().doc(g.id), data, { merge: true });
+      });
+      batch.commit().then(function () {
+        chunks[idx].forEach(function (g) { syncedIds.push(g.id); });
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        if (CLOUD.err !== 'perm') CLOUD.err = '';
+        runChunk(idx + 1);
+      }).catch(function (err) {
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        cloudError(err);
+        runChunk(idx + 1);
+      });
+    }
+    runChunk(0);
+  }
   function deleteCloud(id) {
     if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
     CLOUD.pending++; renderSync();
@@ -15279,7 +15321,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     CLOUD.got = true;
     if (CLOUD.err !== 'perm') CLOUD.err = '';
     if (changed) save(out);
-    toPush.forEach(pushCloud);
+    pushCloudBatch(toPush);
     toDel.forEach(deleteCloud);
     renderSync();
     if (changed) { var v = $('v-gas'); if (v && v.classList.contains('ac')) { renderProjects(); renderSummary(); renderList(); } }
@@ -15288,7 +15330,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function retryPending() {
     if (!CLOUD.uid || !CLOUD.got) return;
     var tomb = {}; readTombs().forEach(function (t) { tomb[t] = 1; });
-    load().forEach(function (g) { if (!g._s && !tomb[g.id]) pushCloud(g); });
+    pushCloudBatch(load().filter(function (g) { return !g._s && !tomb[g.id]; }));
     readTombs().forEach(deleteCloud);
   }
 
@@ -15677,6 +15719,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     list.push(g);
     if (!save(list)) return;
+    invalidateSavedCache();
     pushCloud(g);
     var fromDraft = st.editing;
     resetForm();
@@ -16819,12 +16862,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return '';
   }
 
-  function renderBatch() {
+  var _gxSavedCache = null;
+  function loadSavedCached() { if (!_gxSavedCache) _gxSavedCache = load(); return _gxSavedCache; }
+  function invalidateSavedCache() { _gxSavedCache = null; }
+
+  // renderBatch real: reconstruye la lista. Durante el procesamiento de un lote grande (cientos de
+  // facturas) el estado de cada una cambia muy seguido; redibujar el HTML completo de la lista en
+  // cada cambio (y releer+parsear localStorage completo cada vez) es lo que colgaba el mouse.
+  // renderBatchNow hace el trabajo real; renderBatch (más abajo) lo agrupa a máximo 1 vez por frame.
+  function renderBatchNow() {
     var box = $('gx-batch'); if (!box) return;
     var ds = st.drafts;
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
-    var saved = load(), proyecto = val('gx-proyecto'), seen = {};
+    var saved = loadSavedCached(), proyecto = val('gx-proyecto'), seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var html = ds.map(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
@@ -16863,6 +16914,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var note = $('gx-batch-note');
     var bproy = val('gx-batch-proyecto') || val('gx-proyecto');
     if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
+  }
+  var _gxRenderBatchQueued = false;
+  function renderBatch() {
+    // Agrupa ráfagas de llamadas (varias facturas cambiando de estado casi a la vez) en un solo
+    // repintado por frame, en vez de reconstruir la lista completa cientos de veces seguidas.
+    if (_gxRenderBatchQueued) return;
+    _gxRenderBatchQueued = true;
+    requestAnimationFrame(function () { _gxRenderBatchQueued = false; renderBatchNow(); });
   }
 
   function setBatchMsg(type, msg) {
@@ -17037,7 +17096,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Materiales'); list.push(g); created.push(g); });
     if (!save(list)) return;
-    created.forEach(pushCloud);
+    invalidateSavedCache();
+    pushCloudBatch(created);
     var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; }); skipped.forEach(function (d) { gone[d.id] = 1; });
     st.drafts = st.drafts.filter(function (d) { return !gone[d.id]; });
     if (st.editing && gone[st.editing]) st.editing = null;
@@ -17882,6 +17942,48 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }).catch(function (err) { CLOUD.pending = Math.max(0, CLOUD.pending - 1); cloudError(err); });
   }
 
+
+  // Sube muchos gastos de una sola vez (guardado masivo de un lote grande de facturas):
+  // usa write batches de Firestore (hasta 450 por batch, en vez de una petición de red por factura)
+  // y al terminar marca todos como sincronizados con UNA sola lectura/escritura de localStorage
+  // (en vez de una lectura+escritura completa del arreglo por cada factura, que es lo que colgaba la UI).
+  function pushCloudBatch(list) {
+    if (!list || !list.length) return;
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    var CHUNK = 450, chunks = [];
+    for (var i = 0; i < list.length; i += CHUNK) chunks.push(list.slice(i, i + CHUNK));
+    var syncedIds = [];
+    CLOUD.pending += list.length; renderSync();
+    function finish() {
+      if (syncedIds.length) {
+        var all = load(), map = {};
+        syncedIds.forEach(function (id) { map[id] = 1; });
+        var touched = false;
+        all.forEach(function (g) { if (map[g.id] && !g._s) { g._s = 1; touched = true; } });
+        if (touched) save(all);
+      }
+      renderSync();
+    }
+    function runChunk(idx) {
+      if (idx >= chunks.length) { finish(); return; }
+      var batch = firebase.firestore().batch();
+      chunks[idx].forEach(function (g) {
+        var data = toDoc(g); data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        batch.set(gcol().doc(g.id), data, { merge: true });
+      });
+      batch.commit().then(function () {
+        chunks[idx].forEach(function (g) { syncedIds.push(g.id); });
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        if (CLOUD.err !== 'perm') CLOUD.err = '';
+        runChunk(idx + 1);
+      }).catch(function (err) {
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        cloudError(err);
+        runChunk(idx + 1);
+      });
+    }
+    runChunk(0);
+  }
   function deleteCloud(id) {
     if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
     CLOUD.pending++; renderSync();
@@ -17913,7 +18015,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     CLOUD.got = true;
     if (CLOUD.err !== 'perm') CLOUD.err = '';
     if (changed) save(out);
-    toPush.forEach(pushCloud);
+    pushCloudBatch(toPush);
     toDel.forEach(deleteCloud);
     renderSync();
     if (changed) { var v = $('v-gasp'); if (v && v.classList.contains('ac')) { renderProjects(); renderSummary(); renderList(); } }
@@ -17922,7 +18024,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function retryPending() {
     if (!CLOUD.uid || !CLOUD.got) return;
     var tomb = {}; readTombs().forEach(function (t) { tomb[t] = 1; });
-    load().forEach(function (g) { if (!g._s && !tomb[g.id]) pushCloud(g); });
+    pushCloudBatch(load().filter(function (g) { return !g._s && !tomb[g.id]; }));
     readTombs().forEach(deleteCloud);
   }
 
@@ -18301,6 +18403,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     list.push(g);
     if (!save(list)) return;
+    invalidateSavedCache();
     pushCloud(g);
     var fromDraft = st.editing;
     resetForm();
@@ -19426,12 +19529,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return '';
   }
 
-  function renderBatch() {
+  var _gxpSavedCache = null;
+  function loadSavedCached() { if (!_gxpSavedCache) _gxpSavedCache = load(); return _gxpSavedCache; }
+  function invalidateSavedCache() { _gxpSavedCache = null; }
+
+  function renderBatchNow() {
     var box = $('gxp-batch'); if (!box) return;
     var ds = st.drafts;
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
-    var saved = load(), proyecto = PERSONAL_PROJECT, seen = {};
+    var saved = loadSavedCached(), proyecto = PERSONAL_PROJECT, seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var html = ds.map(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
@@ -19470,6 +19577,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var note = $('gxp-batch-note');
     var bproy = PERSONAL_PROJECT;
     if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
+  }
+  var _gxpRenderBatchQueued = false;
+  function renderBatch() {
+    if (_gxpRenderBatchQueued) return;
+    _gxpRenderBatchQueued = true;
+    requestAnimationFrame(function () { _gxpRenderBatchQueued = false; renderBatchNow(); });
   }
 
   function setBatchMsg(type, msg) {
@@ -19643,7 +19756,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var list = saved.slice(), created = [];
     ok.forEach(function (d) { var g = gastoFromData(d.data, proyecto, CATS.indexOf(d.cat) >= 0 ? d.cat : 'Alimentación'); list.push(g); created.push(g); });
     if (!save(list)) return;
-    created.forEach(pushCloud);
+    invalidateSavedCache();
+    pushCloudBatch(created);
     var gone = {}; ok.forEach(function (d) { gone[d.id] = 1; }); skipped.forEach(function (d) { gone[d.id] = 1; });
     st.drafts = st.drafts.filter(function (d) { return !gone[d.id]; });
     if (st.editing && gone[st.editing]) st.editing = null;

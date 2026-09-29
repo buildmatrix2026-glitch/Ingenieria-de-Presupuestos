@@ -1290,19 +1290,19 @@ html:not([data-theme="light"]) .ts{background:linear-gradient(90deg,rgba(6,182,2
 #v-apu #ae:empty{display:none}
 
 /* ── Grupos y rubros ── */
-.mn:has(#v-grp.grp-open){overflow-y:hidden;display:flex;flex-direction:column;padding-bottom:0}
-#v-grp.grp-open{display:flex;flex-direction:column;height:100%;min-height:0}
-#v-grp.grp-open>.vh{flex-shrink:0}
-#v-grp.grp-open #gdet{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;margin-bottom:24px}
-#v-grp.grp-open #gdet>div:first-child{flex-shrink:0}
-#v-grp.grp-open #gdet-list{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-#v-grp.grp-open #gdet-list>.vh{flex-shrink:0}
-#v-grp.grp-open #gdet-list>.card{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0!important}
-#v-grp.grp-open #gdet-list>.card>div{flex:1;min-height:0;overflow:auto}
-#v-grp.grp-open #gdet-editor{flex:1;min-height:0;overflow-y:auto;display:block}
-#v-grp.grp-open #gdet-editor:empty{display:none}
+#v-grp:has(#gdet:not([style*="none"])).ac{display:flex;flex-direction:column;height:100%;min-height:0}
+.mn:has(#v-grp #gdet:not([style*="none"])){display:flex;flex-direction:column;padding-bottom:0}
+#v-grp:has(#gdet:not([style*="none"]))>.vh{flex-shrink:0}
+#v-grp #gdet:not([style*="none"]){display:flex!important;flex-direction:column;flex:1 1 auto;min-height:min(420px,60dvh);margin-bottom:24px}
+#v-grp #gdet>div:first-child,#v-grp #gdet>.vh{flex-shrink:0}
+#v-grp #gdet-list{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+#v-grp #gdet-list>.vh{flex-shrink:0}
+#v-grp #gdet>.card,#v-grp #gdet-list>.card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0!important}
+#v-grp #gdet>.card>div,#v-grp #gdet-list>.card>div{flex:1;min-height:0;overflow:auto}
+#v-grp #gdet #gdet-editor{flex:0 1 auto;min-height:0;max-height:50%;overflow-y:auto}
+#v-grp #gdet-list[style*="none"]~#gdet-editor{flex:1 1 auto;max-height:none}
+#v-grp #gdet #gdet-editor:empty{display:none}
 #v-grp #gdet .tbl thead th{position:sticky;top:0;z-index:2;background:rgba(11,15,25,.98)}
-#gdet-nav-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
 /* Fase 9b: sin barra de desplazamiento exterior en Panel general, Constructor APU, Grupos y rubros, Presupuesto IA, Usuarios y Mis proyectos
    (ya tienen desplazamiento en sus ventanas internas). La rueda y el toque siguen funcionando por si el contenido excede la pantalla. */
@@ -7683,32 +7683,19 @@ function renderGG(q){
     gg.appendChild(btn);
   });
 }
-function fitGdetPanel(){
-  var gdet=$id('gdet');
-  if(!gdet||gdet.style.display==='none')return;
-  var rect=gdet.getBoundingClientRect();
-  var avail=Math.round(window.innerHeight-rect.top-24);
-  if(avail<240)avail=240;
-  gdet.style.height=avail+'px';
-  gdet.style.maxHeight=avail+'px';
-}
-window.addEventListener('resize',fitGdetPanel);
 function openGroup(name,targetCode){
   const g=BD.G.find(x=>x.n===name);if(!g)return;
   $id('ghome').style.display='none';
   $id('gdet').style.display='block';
-  $id('v-grp').classList.add('grp-open');
   window._grpDetGrp = g;
   window._grpDetGrpName = name;
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
   renderGrpDet(g,targetCode);
-  setTimeout(fitGdetPanel,0);
 }
 function openGroupRubro(name,code){
   const g=BD.G.find(x=>x.n===name);if(!g)return;
   $id('ghome').style.display='none';
   $id('gdet').style.display='block';
-  $id('v-grp').classList.add('grp-open');
   window._grpDetGrp = g;
   window._grpDetGrpName = name;
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
@@ -7716,16 +7703,12 @@ function openGroupRubro(name,code){
   const gIdx=BD.G.indexOf(g);
   const ri=g.r.findIndex(function(r){return r[0]===code;});
   if(ri>=0) openRubroEdit(gIdx,ri);
-  setTimeout(fitGdetPanel,0);
 }
 window._grpDetGrp = null;
 window._grpDetGrpName = null;
 function grpBack(){
   $id('ghome').style.display='';
   $id('gdet').style.display='none';
-  $id('v-grp').classList.remove('grp-open');
-  $id('gdet').style.height='';
-  $id('gdet').style.maxHeight='';
   window._grpDetGrp=null;
   window._grpDetGrpName=null;
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
@@ -7754,11 +7737,9 @@ function renderGrpDet(g,targetCode){
   });
   $id('gdet').innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">'
-    +'<div id="gdet-nav-left">'
     +'<button class="btn ghost" style="padding:8px 16px;font-size:13px" onclick="grpBack()">'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a grupos'
     +'</button>'
-    +'</div>'
     +'<span style="font-size:12px;color:var(--sld);font-family:var(--f-mo)">'+esc(g.p)+' · '+g.r.length+' rubros</span>'
     +'</div>'
     +'<div id="gdet-list">'
@@ -7849,12 +7830,8 @@ function openRubroEdit(gIdx, rIdx){
   if(!ed) return;
   var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='none';
 
-  var navLeft=document.getElementById('gdet-nav-left');
-  if(navLeft){
-    var oldBack=document.getElementById('gred-back'); if(oldBack) oldBack.remove();
-    navLeft.insertAdjacentHTML('beforeend','<button class="btn ghost" style="padding:8px 16px;font-size:13px" id="gred-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a la lista</button>');
-  }
-  var html='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
+  var html='<button class="btn ghost" style="padding:8px 16px;font-size:13px;margin-bottom:12px" id="gred-back">'    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:6px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver a la lista'    +'</button>';
+  html+='<div class="card" style="overflow:hidden;border-color:rgba(0,82,255,.35);margin-top:4px">';
 
   // Header
   html+='<div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:10px">';
@@ -8068,7 +8045,6 @@ function openRubroEdit(gIdx, rIdx){
   document.getElementById('gred-save').addEventListener('click', function(){ saveRubroEdit(gIdx,rIdx,a); });
 
   setTimeout(function(){ ed.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 80);
-  setTimeout(fitGdetPanel,0);
 }
 
 function saveRubroEdit(gIdx, rIdx, a){
@@ -8218,10 +8194,8 @@ function grRecalc(){
 function closeRubroEdit(){
   const ed=document.getElementById('gdet-editor');
   if(ed) ed.innerHTML='';
-  var backBtn=document.getElementById('gred-back'); if(backBtn) backBtn.remove();
   document.querySelectorAll('[id^="gdrow-"]').forEach(el=>el.style.background='');
   var listEl=document.getElementById('gdet-list'); if(listEl) listEl.style.display='';
-  setTimeout(fitGdetPanel,0);
 }
 
 // Eliminar fila del editor de grupos

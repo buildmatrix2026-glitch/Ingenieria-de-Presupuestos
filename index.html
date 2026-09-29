@@ -15296,6 +15296,48 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     runChunk(0);
   }
+
+  // Elimina muchos gastos de una sola vez (borrado masivo de un lote grande):
+  // marca todos los tombstones con UNA sola lectura/escritura de localStorage (en vez de una por
+  // cada id), borra en Firestore con write batches (hasta 450 por batch, en vez de una petición de
+  // red por comprobante) y al terminar limpia los tombstones también con UNA sola escritura.
+  // Esto es lo que colgaba el mouse al eliminar cientos de facturas de golpe.
+  function deleteCloudBatch(ids) {
+    if (!ids || !ids.length) return;
+    // tombstones: se agregan todos de una vez, no uno por uno
+    var tomb = readTombs(), tset = {}; tomb.forEach(function (t) { tset[t] = 1; });
+    var addedAny = false;
+    ids.forEach(function (id) { if (!tset[id]) { tset[id] = 1; tomb.push(id); addedAny = true; } });
+    if (addedAny) writeTombs(tomb);
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    var CHUNK = 450, chunks = [];
+    for (var i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+    var clearedIds = [];
+    CLOUD.pending += ids.length; renderSync();
+    function finish() {
+      if (clearedIds.length) {
+        var cset = {}; clearedIds.forEach(function (id) { cset[id] = 1; });
+        writeTombs(readTombs().filter(function (x) { return !cset[x]; }));
+      }
+      renderSync();
+    }
+    function runChunk(idx) {
+      if (idx >= chunks.length) { finish(); return; }
+      var batch = firebase.firestore().batch();
+      chunks[idx].forEach(function (id) { batch.delete(gcol().doc(id)); });
+      batch.commit().then(function () {
+        chunks[idx].forEach(function (id) { clearedIds.push(id); });
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        if (CLOUD.err !== 'perm') CLOUD.err = '';
+        runChunk(idx + 1);
+      }).catch(function (err) {
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        cloudError(err);
+        runChunk(idx + 1);
+      });
+    }
+    runChunk(0);
+  }
   function deleteCloud(id) {
     if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
     CLOUD.pending++; renderSync();
@@ -15761,7 +15803,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         !await BM_CONFIRM('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
     var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
     if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
-    if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
+    if (CLOUD.uid) { deleteCloudBatch(toDelete.map(function (g) { return g.id; })); }
     st.shown = 15;
     render();
     say(toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') + ' eliminado' + (toDelete.length === 1 ? '' : 's'));
@@ -17991,6 +18033,48 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     runChunk(0);
   }
+
+  // Elimina muchos gastos de una sola vez (borrado masivo de un lote grande):
+  // marca todos los tombstones con UNA sola lectura/escritura de localStorage (en vez de una por
+  // cada id), borra en Firestore con write batches (hasta 450 por batch, en vez de una petición de
+  // red por comprobante) y al terminar limpia los tombstones también con UNA sola escritura.
+  // Esto es lo que colgaba el mouse al eliminar cientos de facturas de golpe.
+  function deleteCloudBatch(ids) {
+    if (!ids || !ids.length) return;
+    // tombstones: se agregan todos de una vez, no uno por uno
+    var tomb = readTombs(), tset = {}; tomb.forEach(function (t) { tset[t] = 1; });
+    var addedAny = false;
+    ids.forEach(function (id) { if (!tset[id]) { tset[id] = 1; tomb.push(id); addedAny = true; } });
+    if (addedAny) writeTombs(tomb);
+    if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
+    var CHUNK = 450, chunks = [];
+    for (var i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+    var clearedIds = [];
+    CLOUD.pending += ids.length; renderSync();
+    function finish() {
+      if (clearedIds.length) {
+        var cset = {}; clearedIds.forEach(function (id) { cset[id] = 1; });
+        writeTombs(readTombs().filter(function (x) { return !cset[x]; }));
+      }
+      renderSync();
+    }
+    function runChunk(idx) {
+      if (idx >= chunks.length) { finish(); return; }
+      var batch = firebase.firestore().batch();
+      chunks[idx].forEach(function (id) { batch.delete(gcol().doc(id)); });
+      batch.commit().then(function () {
+        chunks[idx].forEach(function (id) { clearedIds.push(id); });
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        if (CLOUD.err !== 'perm') CLOUD.err = '';
+        runChunk(idx + 1);
+      }).catch(function (err) {
+        CLOUD.pending = Math.max(0, CLOUD.pending - chunks[idx].length);
+        cloudError(err);
+        runChunk(idx + 1);
+      });
+    }
+    runChunk(0);
+  }
   function deleteCloud(id) {
     if (!CLOUD.uid || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
     CLOUD.pending++; renderSync();
@@ -18446,7 +18530,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         !await BM_CONFIRM('Confirma una vez más: se eliminarán ' + toDelete.length + ' comprobantes de ' + scope + '. ¿Seguro?')) return;
     var ids = {}; toDelete.forEach(function (g) { ids[g.id] = 1; });
     if (!save(list.filter(function (g) { return !ids[g.id]; }))) return;
-    if (CLOUD.uid) { toDelete.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); }); }
+    if (CLOUD.uid) { deleteCloudBatch(toDelete.map(function (g) { return g.id; })); }
     st.shown = 15;
     render();
     say(toDelete.length + ' comprobante' + (toDelete.length === 1 ? '' : 's') + ' eliminado' + (toDelete.length === 1 ? '' : 's'));
@@ -18462,7 +18546,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (localStorage.getItem(flag)) return;
       var list = load();
       if (list.length) {
-        list.forEach(function (g) { addTomb(g.id); deleteCloud(g.id); });
+        deleteCloudBatch(list.map(function (g) { return g.id; }));
         save([]);
       }
       localStorage.setItem(flag, '1');

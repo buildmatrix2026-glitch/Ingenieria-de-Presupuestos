@@ -16852,7 +16852,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var loc = window.BM_SRI ? await BM_SRI.extract(file, 'obra', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
         if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
-        var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
+        var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(d.id); } });
         if (d) d.retry = 0;
         var parsed = parseAI(r.text);
         console.log('[BuildMatrix] categoria IA:', parsed.categoria, '| proveedor:', parsed.proveedor);
@@ -16903,38 +16903,50 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return '';
   }
 
-  function renderBatch() {
+  function renderBatchRow(d, s, o) {
+    var title = o.proveedor || d.name;
+    var note = draftNote(d, s);
+    var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
+      '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
+      '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
+    var canEdit = (d.status === 'ok' || d.status === 'warn');
+    var showCat = canEdit && s !== 'skip';
+    return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
+      '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
+      '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
+      '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
+      (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
+      '<div class="ctl">' +
+        (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+          '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
+        (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
+        '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
+  }
+
+  // changedId: si se pasa el id del borrador que cambió y la lista en pantalla ya tiene tantas filas como
+  // st.drafts, solo se reemplaza esa fila en el DOM (evita reconstruir cientos de filas en cada avance del
+  // lote). Sin id, o si cambió el número de borradores (se agregaron/quitaron), se redibuja todo como antes.
+  function renderBatch(changedId) {
     var box = $('gx-batch'); if (!box) return;
     var ds = st.drafts;
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
     var saved = load(), proyecto = val('gx-proyecto'), seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
-    var html = ds.map(function (d) {
+    var listEl = $('gx-batch-list');
+    var node = changedId ? listEl.querySelector('[data-did="' + changedId + '"]') : null;
+    var partial = !!(node && listEl.children.length === ds.length);
+    var rowsHtml = partial ? null : [];
+    ds.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
-      var title = o.proveedor || d.name;
-      var note = draftNote(d, s);
-      var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
-        '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
-        '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
-      var canEdit = (d.status === 'ok' || d.status === 'warn');
-      var showCat = canEdit && s !== 'skip';
-      return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
-        '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
-        '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
-        '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
-        (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
-        '<div class="ctl">' +
-          (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
-            '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
-          (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
-          '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
-    }).join('');
-    $('gx-batch-list').innerHTML = html;
+      if (partial) { if (d.id === changedId) node.outerHTML = renderBatchRow(d, s, o); }
+      else rowsHtml.push(renderBatchRow(d, s, o));
+    });
+    if (!partial) listEl.innerHTML = rowsHtml.join('');
     $('gx-batch-count').textContent = '(' + ds.length + ')';
     var pct = ds.length ? Math.round(done / ds.length * 100) : 0;
     $('gx-batch-bar').style.width = pct + '%';
@@ -16976,7 +16988,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
         running++;
-        d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
+        d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch(d.id);
         try {
           try {
           var r = await extractOne(d.file, d.tok, d);
@@ -16984,7 +16996,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           d.local = /^Local/.test(r.model || ''); d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated || r.data.revisar) ? 'warn' : 'ok';
           okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
-          if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
+          if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(d.id); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
           if (e && e.code === 'BAD_KEY') {                 // todas fallarían igual: detener (sin clave solo fallan las fotos, no los PDF)
             st.batchCancel = true; setBatchMsg('err', friendly(e) + ' Se detuvo el proceso; las facturas restantes quedan en cola.');
@@ -17001,7 +17013,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           }
         }
           } finally { running--; }
-        d.tok = null; renderBatch();
+        d.tok = null; renderBatch(d.id);
         if (!st.batchCancel && !d.local) await sleep(CFG.gap);
       }
     }
@@ -19458,7 +19470,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var loc = window.BM_SRI ? await BM_SRI.extract(file, 'personal', d && d.range) : null;   // PDF con texto: lectura local, sin Gemini
         if (loc) { if (d) d.retry = 0; return { data: loc, model: 'Local', ms: loc.ms }; }
         var img = await prepareFile(file);
-        var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(); } });
+        var r = await callGeminiFull(img, tok, function (info) { if (d) { d.retry = info.round; renderBatch(d.id); } });
         if (d) d.retry = 0;
         var parsed = parseAI(r.text);
         console.log('[BuildMatrix] categoria IA:', parsed.categoria, '| proveedor:', parsed.proveedor);
@@ -19509,38 +19521,50 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return '';
   }
 
-  function renderBatch() {
+  function renderBatchRow(d, s, o) {
+    var title = o.proveedor || d.name;
+    var note = draftNote(d, s);
+    var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
+      '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
+      '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
+    var canEdit = (d.status === 'ok' || d.status === 'warn');
+    var showCat = canEdit && s !== 'skip';
+    return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
+      '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
+      '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
+      '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
+      (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
+      '<div class="ctl">' +
+        (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+          '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
+        (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
+        '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
+  }
+
+  // changedId: si se pasa el id del borrador que cambió y la lista en pantalla ya tiene tantas filas como
+  // st.drafts, solo se reemplaza esa fila en el DOM (evita reconstruir cientos de filas en cada avance del
+  // lote). Sin id, o si cambió el número de borradores (se agregaron/quitaron), se redibuja todo como antes.
+  function renderBatch(changedId) {
     var box = $('gxp-batch'); if (!box) return;
     var ds = st.drafts;
     if (!ds.length) { box.style.display = 'none'; return; }
     box.style.display = '';
     var saved = load(), proyecto = PERSONAL_PROJECT, seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
-    var html = ds.map(function (d) {
+    var listEl = $('gxp-batch-list');
+    var node = changedId ? listEl.querySelector('[data-did="' + changedId + '"]') : null;
+    var partial = !!(node && listEl.children.length === ds.length);
+    var rowsHtml = partial ? null : [];
+    ds.forEach(function (d) {
       var s = draftState(d, saved, proyecto, seen), o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
-      var title = o.proveedor || d.name;
-      var note = draftNote(d, s);
-      var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
-        '<div class="d">' + (o.tipo === '04' ? '<span class="gx-chip gx-nc">NOTA DE CRÉDITO' + (o.facModificada ? ' · modifica ' + esc(o.facModificada) : '') + '</span>' : '') + '<span>' + esc(o.fecha ? fmtDateEs(o.fecha) : 'sin fecha') + '</span>' + (o.numero ? '<span>N° ' + esc(o.numero) + '</span>' : '') +
-        '<span>' + (o.items || []).length + ' ítem' + ((o.items || []).length === 1 ? '' : 's') + '</span></div>';
-      var canEdit = (d.status === 'ok' || d.status === 'warn');
-      var showCat = canEdit && s !== 'skip';
-      return '<div class="gx-dr2 ' + s + '" data-did="' + esc(d.id) + '">' +
-        '<div style="min-width:0"><div class="n">' + esc(title) + '</div>' + meta + '<div class="f">' + esc(d.name) + (d.ms ? ' · ' + secs(d.ms) : '') + '</div></div>' +
-        '<div style="text-align:right"><div class="v' + (o.total < 0 ? ' neg' : '') + '">' + (canEdit ? money(o.total) : '') + '</div>' +
-        '<span class="gx-st ' + s + '">' + (s === 'processing' ? '<span class="gx-spin"></span>' : '') + ST_LABEL[s] + (s === 'processing' && d.t0 ? ' ' + Math.round((Date.now() - d.t0) / 1000) + ' s' : '') + '</span></div>' +
-        (note ? '<div class="msg ' + ((s === 'error' || o.tipo === '04') ? 'err' : 'warn') + '">' + esc(note) + '</div>' : '') +
-        '<div class="ctl">' +
-          (showCat ? '<select class="gx-in" data-dcat="' + esc(d.id) + '" aria-label="Categoría">' + CATS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === d.cat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
-            '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
-          (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
-          '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
-    }).join('');
-    $('gxp-batch-list').innerHTML = html;
+      if (partial) { if (d.id === changedId) node.outerHTML = renderBatchRow(d, s, o); }
+      else rowsHtml.push(renderBatchRow(d, s, o));
+    });
+    if (!partial) listEl.innerHTML = rowsHtml.join('');
     $('gxp-batch-count').textContent = '(' + ds.length + ')';
     var pct = ds.length ? Math.round(done / ds.length * 100) : 0;
     $('gxp-batch-bar').style.width = pct + '%';
@@ -19582,7 +19606,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         var d = st.drafts.filter(function (x) { return x.status === 'pending'; })[0];
         if (!d) return;
         running++;
-        d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch();
+        d.status = 'processing'; d.t0 = Date.now(); d.tok = newTok(); renderBatch(d.id);
         try {
           try {
           var r = await extractOne(d.file, d.tok, d);
@@ -19590,7 +19614,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           d.local = /^Local/.test(r.model || ''); d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated || r.data.revisar) ? 'warn' : 'ok';
           okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
-          if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(); return; }   // detenida: vuelve a la cola
+          if (e && e.code === 'CANCEL') { d.status = 'pending'; d.tok = null; renderBatch(d.id); return; }   // detenida: vuelve a la cola
           d.status = 'error'; d.err = friendly(e);
           if (e && e.code === 'BAD_KEY') {                 // todas fallarían igual: detener (sin clave solo fallan las fotos, no los PDF)
             st.batchCancel = true; setBatchMsg('err', friendly(e) + ' Se detuvo el proceso; las facturas restantes quedan en cola.');
@@ -19607,7 +19631,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           }
         }
           } finally { running--; }
-        d.tok = null; renderBatch();
+        d.tok = null; renderBatch(d.id);
         if (!st.batchCancel && !d.local) await sleep(CFG.gap);
       }
     }

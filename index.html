@@ -20712,12 +20712,27 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   // solo pega esa imagen de respaldo sobre el canvas visible (una operación barata) y dibuja la
   // bolita encima, calculada sobre la curva real a velocidad constante. Así el movimiento de la
   // bolita queda totalmente desacoplado del costo de Chart.js y no hay más fotogramas perdidos.
+  //
+  // REHECHO DE NUEVO: los dos intentos anteriores tocaban el canvas de Chart.js (llamando a
+  // chart.draw() cada fotograma, o pegándole una imagen de respaldo encima). Cualquiera de las dos
+  // cosas puede desincronizarse — por resize, por animaciones internas de Chart.js, por el
+  // devicePixelRatio — y eso es justo lo que se vio: la bolita saliéndose de la curva y un triángulo
+  // suelto (residuo de un fotograma de Chart.js mal capturado).
+  //
+  // Ahora la bolita NUNCA toca el canvas de Chart.js. Vive en su PROPIO canvas transparente, puesto
+  // encima con CSS (position:absolute, mismo tamaño exacto que el canvas del gráfico, dentro del
+  // mismo contenedor que ya es position:relative). Chart.js sigue dibujando su gráfico normal, sin
+  // que nada externo lo toque jamás — y la bolita solo limpia y redibuja SU propio canvas en blanco
+  // cada fotograma, así que no hay forma de que queden residuos ni de que se desincronice.
   var NEON_T0 = Date.now(), neonRegistered = false;
   function ensureNeonPlugin() {
     if (neonRegistered || typeof Chart === 'undefined') return;
     neonRegistered = true;
     Chart.register({
       id: 'bmNeon',
+      // Brillo (shadowBlur) de la LÍNEA en sí — esto es aparte de la bolita que se mueve, es el
+      // glow fijo que ya tenía la curva. Ocurre durante el dibujado normal de Chart.js, así que no
+      // tiene nada que ver con los problemas de la bolita.
       beforeDatasetsDraw: function (chart, args, opts) {
         if (!opts || !opts.color || chart.config.type !== 'line') return;
         chart.ctx.save();
@@ -20728,86 +20743,92 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         if (!opts || !opts.color || chart.config.type !== 'line') return;
         chart.ctx.restore();
       },
-      // Se ejecuta al final de cada dibujado COMPLETO de Chart.js (solo ocurre cuando cambian los
-      // datos o se redimensiona — no en cada fotograma). Aquí: 1) recalculamos la geometría de la
-      // curva real (para mover la bolita a velocidad constante) y 2) guardamos una copia de los
-      // píxeles ya dibujados (sin la bolita) para que el bucle de 60fps los reuse sin recalcular nada.
+      // Solo recalcula la geometría real de la curva (para saber por dónde pasa) cuando Chart.js
+      // termina un dibujado completo — no en cada fotograma. La bolita en sí no se dibuja aquí.
       afterDraw: function (chart, args, opts) {
         if (!opts || !opts.color || chart.config.type !== 'line') return;
-        var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
         chart._bmNeonOpts = opts;
-        if (pts && pts.length >= 2) {
-          function segPts(i) {
-            var p0 = pts[i].getProps(['x', 'y', 'controlPointNextX', 'controlPointNextY'], true);
-            var p1 = pts[i + 1].getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY'], true);
-            return {
-              x0: p0.x, y0: p0.y,
-              c1x: (p0.controlPointNextX != null) ? p0.controlPointNextX : p0.x,
-              c1y: (p0.controlPointNextY != null) ? p0.controlPointNextY : p0.y,
-              c2x: (p1.controlPointPreviousX != null) ? p1.controlPointPreviousX : p1.x,
-              c2y: (p1.controlPointPreviousY != null) ? p1.controlPointPreviousY : p1.y,
-              x1: p1.x, y1: p1.y
-            };
-          }
-          function bez(s, lf) {
-            var u = 1 - lf;
-            return {
-              x: u * u * u * s.x0 + 3 * u * u * lf * s.c1x + 3 * u * lf * lf * s.c2x + lf * lf * lf * s.x1,
-              y: u * u * u * s.y0 + 3 * u * u * lf * s.c1y + 3 * u * lf * lf * s.c2y + lf * lf * lf * s.y1
-            };
-          }
-          // Longitud real de cada tramo (12 muestras), para poder avanzar a VELOCIDAD CONSTANTE
-          // sobre la curva verdadera y no "por tramo" (que es lo que hacía variar el ritmo cerca
-          // de los picos/valles, aunque ya no se note como una pausa gracias al punto de abajo).
-          var SAMPLES = 12;
-          var cacheKey = pts.length + ':' + pts.map(function (p) { return Math.round(p.x) + ',' + Math.round(p.y); }).join('|');
-          if (chart._bmNeonKey !== cacheKey) {
-            var segs = [], lens = [], total = 0;
-            for (var si = 0; si < pts.length - 1; si++) {
-              var s = segPts(si);
-              var prev = bez(s, 0), segLen = 0;
-              for (var k = 1; k <= SAMPLES; k++) {
-                var cur = bez(s, k / SAMPLES);
-                segLen += Math.hypot(cur.x - prev.x, cur.y - prev.y);
-                prev = cur;
-              }
-              segs.push(s); lens.push(segLen); total += segLen;
-            }
-            chart._bmNeonKey = cacheKey;
-            chart._bmNeonSegs = segs; chart._bmNeonLens = lens; chart._bmNeonTotal = total || 1;
-          }
-          chart._bmNeonBez = bez;
+        var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
+        if (!pts || pts.length < 2) return;
+        function segPts(i) {
+          var p0 = pts[i].getProps(['x', 'y', 'controlPointNextX', 'controlPointNextY'], true);
+          var p1 = pts[i + 1].getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY'], true);
+          return {
+            x0: p0.x, y0: p0.y,
+            c1x: (p0.controlPointNextX != null) ? p0.controlPointNextX : p0.x,
+            c1y: (p0.controlPointNextY != null) ? p0.controlPointNextY : p0.y,
+            c2x: (p1.controlPointPreviousX != null) ? p1.controlPointPreviousX : p1.x,
+            c2y: (p1.controlPointPreviousY != null) ? p1.controlPointPreviousY : p1.y,
+            x1: p1.x, y1: p1.y
+          };
         }
-        // Copiamos los píxeles YA dibujados (sin la bolita) a un canvas de respaldo. Se copia en
-        // espacio de píxeles "crudo" (sin transform) para que valga sea cual sea el devicePixelRatio.
-        var src = chart.canvas;
-        if (!chart._bmNeonBuf) chart._bmNeonBuf = document.createElement('canvas');
-        var buf = chart._bmNeonBuf;
-        if (buf.width !== src.width || buf.height !== src.height) { buf.width = src.width; buf.height = src.height; }
-        var bctx = buf.getContext('2d');
-        bctx.setTransform(1, 0, 0, 1, 0, 0);
-        bctx.clearRect(0, 0, buf.width, buf.height);
-        bctx.drawImage(src, 0, 0);
+        function bez(s, lf) {
+          var u = 1 - lf;
+          return {
+            x: u * u * u * s.x0 + 3 * u * u * lf * s.c1x + 3 * u * lf * lf * s.c2x + lf * lf * lf * s.x1,
+            y: u * u * u * s.y0 + 3 * u * u * lf * s.c1y + 3 * u * lf * lf * s.c2y + lf * lf * lf * s.y1
+          };
+        }
+        // Longitud real de cada tramo (24 muestras), para avanzar a VELOCIDAD CONSTANTE sobre la
+        // curva verdadera — así el tiempo que tarda en cruzar cada tramo es proporcional a lo largo
+        // que es ese tramo, y nunca "se pega" en los tramos cortos (los picos y valles).
+        var SAMPLES = 24;
+        var cacheKey = pts.length + ':' + pts.map(function (p) { return Math.round(p.x) + ',' + Math.round(p.y); }).join('|');
+        if (chart._bmNeonKey !== cacheKey) {
+          var segs = [], lens = [], total = 0;
+          for (var si = 0; si < pts.length - 1; si++) {
+            var s = segPts(si);
+            var prev = bez(s, 0), segLen = 0;
+            for (var k = 1; k <= SAMPLES; k++) {
+              var cur = bez(s, k / SAMPLES);
+              segLen += Math.hypot(cur.x - prev.x, cur.y - prev.y);
+              prev = cur;
+            }
+            segs.push(s); lens.push(segLen); total += segLen;
+          }
+          chart._bmNeonKey = cacheKey;
+          chart._bmNeonSegs = segs; chart._bmNeonLens = lens; chart._bmNeonTotal = total || 1;
+        }
+        chart._bmNeonBez = bez;
       }
     });
   }
-  // Bucle de 60fps DESACOPLADO del redibujado de Chart.js: solo pega la imagen de respaldo (barata)
-  // y dibuja la bolita encima, calculada sobre la curva real a velocidad constante. Nunca llama a
-  // chart.draw(), así que no hereda los cuellos de botella del layout completo de Chart.js.
+  // Crea (una sola vez por gráfico) el canvas transparente donde vive la bolita, puesto encima del
+  // canvas real de Chart.js dentro del mismo contenedor .gx-hud-canwrap (ya es position:relative).
+  function ensureNeonOverlay(chart) {
+    if (chart._bmNeonFx) return chart._bmNeonFx;
+    var src = chart.canvas, wrap = src.parentNode;
+    if (!wrap) return null;
+    var fx = document.createElement('canvas');
+    fx.style.position = 'absolute';
+    fx.style.left = '0'; fx.style.top = '0';
+    fx.style.width = '100%'; fx.style.height = '100%';
+    fx.style.pointerEvents = 'none';
+    wrap.appendChild(fx);
+    chart._bmNeonFx = fx;
+    return fx;
+  }
+  // Bucle de 60fps: SOLO limpia y redibuja el canvas propio de la bolita. Nunca llama a
+  // chart.draw() ni toca el canvas de Chart.js de ninguna forma — así no hay manera de que se
+  // desincronicen ni queden residuos de un fotograma anterior.
   var HUD_INSTANCES = [];
   (function neonLoop() {
     HUD_INSTANCES.forEach(function (inst) {
       if (inst.root.offsetParent === null) return;
       var chart = inst.getLine();
-      if (!chart || !chart._bmNeonBuf || !chart._bmNeonSegs || !chart._bmNeonOpts) return;
-      var canvas = chart.canvas, ctx = chart.ctx, opts = chart._bmNeonOpts;
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(chart._bmNeonBuf, 0, 0);
-      ctx.restore();
+      if (!chart || !chart._bmNeonSegs || !chart._bmNeonOpts) return;
+      var fx = ensureNeonOverlay(chart); if (!fx) return;
+      var src = chart.canvas;
+      var cssW = src.clientWidth || src.offsetWidth, cssH = src.clientHeight || src.offsetHeight;
+      if (!cssW || !cssH) return;
+      var dpr = window.devicePixelRatio || 1;
+      var needW = Math.round(cssW * dpr), needH = Math.round(cssH * dpr);
+      if (fx.width !== needW || fx.height !== needH) { fx.width = needW; fx.height = needH; }
+      var ctx = fx.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
 
-      var segs = chart._bmNeonSegs, lens = chart._bmNeonLens, total = chart._bmNeonTotal;
+      var segs = chart._bmNeonSegs, lens = chart._bmNeonLens, total = chart._bmNeonTotal, opts = chart._bmNeonOpts;
       var t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
       var target = t * total, acc = 0, i = 0, lf = 0;
       for (i = 0; i < lens.length; i++) {
@@ -20816,11 +20837,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }
       lf = Math.max(0, Math.min(1, lf));
       var pt = chart._bmNeonBez(segs[i], lf);
-      // 'lighter' = mezcla ADITIVA: la bolita SUMA luz sobre lo que ya está dibujado (el punto de
-      // dato con su borde oscuro, la grilla, lo que sea) en vez de mezclarse normalmente con esos
-      // colores. Con mezcla normal, pasar por encima del borde oscuro del marcador de cada dato
-      // (que cae justo en los picos/valles) "apagaba" visualmente la bolita ahí — con 'lighter' se
-      // ve igual de brillante en cualquier punto de la curva, sin importar qué haya debajo.
+      // 'lighter' = mezcla ADITIVA: la bolita SUMA luz sobre lo que haya debajo (el marcador de
+      // cada dato con su borde oscuro, la grilla) en vez de mezclarse normalmente con esos colores.
+      // Así se ve igual de brillante en cualquier punto de la curva, sin importar qué haya debajo.
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.shadowColor = opts.color; ctx.shadowBlur = 26;

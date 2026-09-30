@@ -16624,8 +16624,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         doc.setFillColor(0, 82, 255); doc.rect(bx, by, Math.max(0.4, bw * (groups[d.row.index].tot / maxTot)), 2.4, 'F');
       }
     };
-    opts.didDrawPage = function (d) { if (d.pageNumber > startPage) pHeader(doc, ctx.proj, ctx.sub); };
     doc.autoTable(opts);
+    // El encabezado (con el logo) se dibuja DESPUÉS de que la tabla termine, no durante — llamarlo
+    // desde dentro de autoTable (didDrawPage) dejaba un estado de dibujo sucio que hacía que el
+    // logo no apareciera en las páginas nuevas, aunque el texto sí se viera.
+    var endPage1 = doc.internal.getNumberOfPages();
+    for (var pp1 = startPage + 1; pp1 <= endPage1; pp1++) { doc.setPage(pp1); pHeader(doc, ctx.proj, ctx.sub); }
+    doc.setPage(endPage1);
     return doc.lastAutoTable.finalY + 8;
   }
 
@@ -16866,8 +16871,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     lo.columnStyles = ctx.landscape
       ? { 0: { cellWidth: 25 }, 1: { fontStyle: 'bold' }, 2: { cellWidth: 36 }, 3: { cellWidth: 34 }, 4: { halign: 'right', cellWidth: 22 }, 5: { halign: 'right', cellWidth: 19 }, 6: { halign: 'right', cellWidth: 22, fontStyle: 'bold' }, 7: { halign: 'center', cellWidth: 15 } }
       : { 0: { cellWidth: 25 }, 1: { fontStyle: 'bold' }, 2: { cellWidth: 31 }, 3: { cellWidth: 22 }, 4: { halign: 'right', cellWidth: 20 }, 5: { halign: 'right', cellWidth: 17 }, 6: { halign: 'right', cellWidth: 20, fontStyle: 'bold' }, 7: { halign: 'center', cellWidth: 15 } };
-    lo.didDrawPage = function (d) { if (d.pageNumber > startPage) pHeader(doc, proj, ctx.sub); };
     doc.autoTable(lo);
+    var endPage2 = doc.internal.getNumberOfPages();
+    for (var pp2 = startPage + 1; pp2 <= endPage2; pp2++) { doc.setPage(pp2); pHeader(doc, proj, ctx.sub); }
+    doc.setPage(endPage2);
 
     /* ── Una página por comprobante ── */
     rows.forEach(function (g, i) { pInvoice(doc, ctx, g, i, n); });
@@ -19521,8 +19528,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         doc.setFillColor(0, 82, 255); doc.rect(bx, by, Math.max(0.4, bw * (groups[d.row.index].tot / maxTot)), 2.4, 'F');
       }
     };
-    opts.didDrawPage = function (d) { if (d.pageNumber > startPage) pHeader(doc, ctx.proj, ctx.sub); };
     doc.autoTable(opts);
+    // El encabezado (con el logo) se dibuja DESPUÉS de que la tabla termine, no durante — llamarlo
+    // desde dentro de autoTable (didDrawPage) dejaba un estado de dibujo sucio que hacía que el
+    // logo no apareciera en las páginas nuevas, aunque el texto sí se viera.
+    var endPage1 = doc.internal.getNumberOfPages();
+    for (var pp1 = startPage + 1; pp1 <= endPage1; pp1++) { doc.setPage(pp1); pHeader(doc, ctx.proj, ctx.sub); }
+    doc.setPage(endPage1);
     return doc.lastAutoTable.finalY + 8;
   }
 
@@ -19756,8 +19768,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     lo.columnStyles = ctx.landscape
       ? { 0: { cellWidth: 25 }, 1: { fontStyle: 'bold' }, 2: { cellWidth: 36 }, 3: { cellWidth: 34 }, 4: { halign: 'right', cellWidth: 22 }, 5: { halign: 'right', cellWidth: 19 }, 6: { halign: 'right', cellWidth: 22, fontStyle: 'bold' }, 7: { halign: 'center', cellWidth: 15 } }
       : { 0: { cellWidth: 25 }, 1: { fontStyle: 'bold' }, 2: { cellWidth: 31 }, 3: { cellWidth: 22 }, 4: { halign: 'right', cellWidth: 20 }, 5: { halign: 'right', cellWidth: 17 }, 6: { halign: 'right', cellWidth: 20, fontStyle: 'bold' }, 7: { halign: 'center', cellWidth: 15 } };
-    lo.didDrawPage = function (d) { if (d.pageNumber > startPage) pHeader(doc, proj, ctx.sub); };
     doc.autoTable(lo);
+    var endPage2 = doc.internal.getNumberOfPages();
+    for (var pp2 = startPage + 1; pp2 <= endPage2; pp2++) { doc.setPage(pp2); pHeader(doc, proj, ctx.sub); }
+    doc.setPage(endPage2);
 
     /* ── Una página por comprobante ── */
     rows.forEach(function (g, i) { pInvoice(doc, ctx, g, i, n); });
@@ -20682,9 +20696,49 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   // Los efectos de luz animados (contorno recorriendo el panel + brillo giratorio en los gráficos)
   // se quitaron: obligaban a redibujar todo en cada fotograma sin parar y hacían lenta la interfaz.
   // Se dejan estas funciones vacías para no tener que tocar cada punto donde se llamaban.
-  function addRunHud() {}
-  function ensureNeonPlugin() {}
+  function addRunHud() {}   // el contorno de luz de los paneles se quitó (hacía lenta la interfaz)
+
+  // Brillo neón SOLO en la curva del oscilograma: un punto de luz que la recorre sin parar.
+  // (No se aplica a nada más — ni al contorno de los paneles ni a los medidores por categoría.)
+  var NEON_T0 = Date.now(), neonRegistered = false;
+  function ensureNeonPlugin() {
+    if (neonRegistered || typeof Chart === 'undefined') return;
+    neonRegistered = true;
+    Chart.register({
+      id: 'bmNeon',
+      beforeDatasetsDraw: function (chart, args, opts) {
+        if (!opts || !opts.color || chart.config.type !== 'line') return;
+        chart.ctx.save();
+        chart.ctx.shadowColor = opts.color;
+        chart.ctx.shadowBlur = opts.blur || 12;
+      },
+      afterDatasetsDraw: function (chart, args, opts) {
+        if (!opts || !opts.color || chart.config.type !== 'line') return;
+        chart.ctx.restore();
+        var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
+        if (!pts || pts.length < 2) return;
+        var t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
+        var segF = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(segF)), lf = segF - i;
+        var p0 = pts[i].getProps(['x', 'y'], true), p1 = pts[i + 1].getProps(['x', 'y'], true);
+        var x = p0.x + (p1.x - p0.x) * lf, y = p0.y + (p1.y - p0.y) * lf;
+        var ctx = chart.ctx;
+        ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 22;
+        ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .5; ctx.fill();
+        ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.restore();
+      }
+    });
+  }
+  // Redibuja SOLO la curva (un canvas liviano) mientras el panel está visible, para que la luz
+  // se vea en movimiento continuo sin afectar el resto de la interfaz.
   var HUD_INSTANCES = [];
+  (function neonLoop() {
+    HUD_INSTANCES.forEach(function (inst) {
+      if (inst.root.offsetParent === null) return;
+      var lc = inst.getLine(); if (lc) lc.draw();
+    });
+    requestAnimationFrame(neonLoop);
+  })();
 
   var GAUGE_ICONS = {
     'Materiales': '<rect x="2.5" y="9" width="6" height="5.5" rx=".5"/><rect x="9" y="9" width="6" height="5.5" rx=".5"/><rect x="5.7" y="3.5" width="6" height="5.5" rx=".5"/>',

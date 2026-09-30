@@ -20724,15 +20724,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     Chart.register({
       id: 'bmNeon',
       beforeDatasetsDraw: function (chart, args, opts) {
-        if (!opts || !opts.color) return;
+        if (!opts || !opts.color || chart.config.type === 'doughnut') return;   // la dona no lleva halo ambiental, solo la luz que la recorre
         chart.ctx.save();
         chart.ctx.shadowColor = opts.color;
         chart.ctx.shadowBlur = opts.blur || 12;
       },
       afterDatasetsDraw: function (chart, args, opts) {
         if (!opts || !opts.color) return;
-        chart.ctx.restore();
-        var ctx = chart.ctx, t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
+        var ctx = chart.ctx;
+        if (chart.config.type !== 'doughnut') ctx.restore();
+        var t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
         if (chart.config.type === 'line') {
           var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
           if (!pts || pts.length < 2) return;
@@ -20744,13 +20745,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
           ctx.restore();
         } else if (chart.config.type === 'doughnut') {
+          // un foco de luz que gira alrededor del anillo, iluminando el tramo por el que pasa
+          // (en vez de un halo permanente alrededor de todo el círculo, que se veía recargado)
           var m2 = chart.getDatasetMeta(0), arc0 = m2 && m2.data && m2.data[0];
           if (!arc0) return;
           var props = arc0.getProps(['x', 'y', 'innerRadius', 'outerRadius'], true);
-          var rad = (props.innerRadius + props.outerRadius) / 2, ang = t * Math.PI * 2 - Math.PI / 2;
-          var x2 = props.x + Math.cos(ang) * rad, y2 = props.y + Math.sin(ang) * rad;
-          ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 20;
-          ctx.beginPath(); ctx.arc(x2, y2, 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+          var rad = (props.innerRadius + props.outerRadius) / 2, thick = props.outerRadius - props.innerRadius;
+          var ang = t * Math.PI * 2 - Math.PI / 2, span = 0.55;
+          var fx = props.x + Math.cos(ang) * rad, fy = props.y + Math.sin(ang) * rad;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          var grad = ctx.createRadialGradient(fx, fy, 0, fx, fy, thick * 0.95);
+          grad.addColorStop(0, '#ffffff'); grad.addColorStop(.35, opts.color); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.beginPath(); ctx.arc(props.x, props.y, rad, ang - span / 2, ang + span / 2);
+          ctx.lineWidth = thick; ctx.strokeStyle = grad; ctx.stroke();
+          ctx.restore();
+          ctx.save(); ctx.shadowColor = '#fff'; ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.arc(fx, fy, 3.5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
           ctx.restore();
         }
       }
@@ -20881,9 +20892,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (donutChart) donutChart.destroy();
       donutChart = new Chart($('chart-donut').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }] },
+        data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: colors, borderColor: colors, borderWidth: 1.5, borderAlign: 'inner', spacing: 5, hoverOffset: 6 }] },
         options: {
-          responsive: true, maintainAspectRatio: false, cutout: '70%',
+          responsive: true, maintainAspectRatio: false, cutout: '70%', radius: '70%',
           plugins: { legend: { display: false },
             bmNeon: { color: cfg.lineColor, duration: 4200 },
             tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: '#e5e7eb', padding: 10, titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },

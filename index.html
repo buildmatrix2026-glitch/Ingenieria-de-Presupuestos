@@ -2662,17 +2662,19 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--gx-tx2);background:rgba(11,15,25,.55);border-radius:10px}
 .gx-scope .gx-hud-charts{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;position:relative;z-index:1}
 @media(max-width:860px){ .gx-scope .gx-hud-charts{grid-template-columns:1fr} }
-.gx-scope .gx-hud-panel{border:1px solid rgba(6,182,212,.2);border-radius:14px;padding:16px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden}
+.gx-scope .gx-hud-panel{border:1px solid rgba(6,182,212,.2);border-radius:14px;padding:16px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;min-width:0;position:relative}
 .gx-scope .gx-hud.pu .gx-hud-panel{border-color:rgba(139,92,246,.2)}
-.gx-scope .gx-hud-panel>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 4px currentColor)}
-.gx-scope .gx-hud-panel>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.7;stroke-width:2;animation:bmHudRun var(--bmhud-dur,4s) linear infinite}
-.gx-scope .gx-hud-panel>.bmhud-run{color:#06b6d4}
-.gx-scope .gx-hud.pu .gx-hud-panel>.bmhud-run{color:#a855f7}
 .gx-scope .gx-hud>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 5px currentColor);color:#06b6d4}
 .gx-scope .gx-hud.pu>.bmhud-run{color:#a855f7}
 .gx-scope .gx-hud>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.6;stroke-width:2;animation:bmHudRun var(--bmhud-dur,7s) linear infinite}
 @keyframes bmHudRun{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
 @media (prefers-reduced-motion: reduce){ .gx-scope .bmhud-run rect{animation:none} }
+.gx-scope .gx-hud-datepick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-8px 0 18px;position:relative;z-index:1}
+.gx-scope .gx-hud-dp{background:rgba(255,255,255,.03);border:1px solid rgba(6,182,212,.4);border-radius:8px;color:#e5faff;
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;padding:7px 10px;height:32px;color-scheme:dark;min-height:0}
+.gx-scope .gx-hud.pu .gx-hud-dp{border-color:rgba(139,92,246,.4)}
+.gx-scope .gx-hud-dp-year{width:170px}
+.gx-scope .gx-hud-dp-range{display:flex;align-items:center;gap:8px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;font-size:11px}
 .gx-scope .gx-hud-panel h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gx-tx2);margin:0 0 12px;font-weight:700}
 .gx-scope .gx-hud-panel .gx-hud-canwrap{position:relative;height:230px}
 .gx-scope .gx-hud-panel .gx-hud-canwrap canvas{max-width:100%}
@@ -4163,8 +4165,18 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <button type="button" data-p="mes" class="on">MES</button>
       <button type="button" data-p="anio">AÑO</button>
       <button type="button" data-p="historico">HISTÓRICO TOTAL</button>
+      <button type="button" data-p="rango">RANGO</button>
     </div>
     </div>
+        </div>
+        <div class="gx-hud-datepick" id="gxh-datepick" style="display:none">
+          <input type="date" class="gx-hud-dp" id="gxh-dp-date" data-for="dia,semana" aria-label="Elige el día exacto">
+          <input type="number" class="gx-hud-dp gx-hud-dp-year" id="gxh-dp-year" data-for="anio" placeholder="Año exacto (ej. 2024)" min="2000" max="2100">
+          <span class="gx-hud-dp-range" id="gxh-dp-rangewrap" data-for="rango">
+            <input type="date" class="gx-hud-dp" id="gxh-dp-from" aria-label="Desde">
+            <span>→</span>
+            <input type="date" class="gx-hud-dp" id="gxh-dp-to" aria-label="Hasta">
+          </span>
         </div>
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxh-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxh-kpi1-val">$0,00</div><div class="sub" id="gxh-kpi1-sub">vs. período anterior</div></div>
@@ -4423,7 +4435,17 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <button type="button" data-p="mes" class="on">MES</button>
       <button type="button" data-p="anio">AÑO</button>
       <button type="button" data-p="historico">HISTÓRICO TOTAL</button>
+      <button type="button" data-p="rango">RANGO</button>
     </div>
+        </div>
+        <div class="gx-hud-datepick" id="gxph-datepick" style="display:none">
+          <input type="date" class="gx-hud-dp" id="gxph-dp-date" data-for="dia,semana" aria-label="Elige el día exacto">
+          <input type="number" class="gx-hud-dp gx-hud-dp-year" id="gxph-dp-year" data-for="anio" placeholder="Año exacto (ej. 2024)" min="2000" max="2100">
+          <span class="gx-hud-dp-range" id="gxph-dp-rangewrap" data-for="rango">
+            <input type="date" class="gx-hud-dp" id="gxph-dp-from" aria-label="Desde">
+            <span>→</span>
+            <input type="date" class="gx-hud-dp" id="gxph-dp-to" aria-label="Hasta">
+          </span>
         </div>
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxph-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxph-kpi1-val">$0,00</div><div class="sub" id="gxph-kpi1-sub">vs. período anterior</div></div>
@@ -20560,8 +20582,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function inR(d, a, b) { return d >= a && d < b; }
 
   // ── Análisis de los gastos reales para una temporalidad ──
-  function analyze(period, list, now) {
-    var today = sod(now), rows = [];
+  function analyze(period, list, now, rangeA, rangeB) {
+    var today = sod(now), realToday = sod(new Date()), rows = [];
     list.forEach(function (g) {
       var d = parseD(g.fecha);
       if (d) rows.push({ d: d, t: Number(g.total) || 0, cat: g.categoria || '', prov: g.proveedor || '(sin nombre)', creado: g.creado || 0 });
@@ -20572,6 +20594,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     else if (period === 'semana') { a = mondayOf(today); b = addDays(a, 7); pa = addDays(a, -7); pb = a; prevLbl = 'semana anterior'; }
     else if (period === 'mes') { a = new Date(today.getFullYear(), today.getMonth(), 1); b = new Date(today.getFullYear(), today.getMonth() + 1, 1); pa = new Date(today.getFullYear(), today.getMonth() - 1, 1); pb = a; prevLbl = 'mes anterior'; }
     else if (period === 'anio') { a = new Date(today.getFullYear(), 0, 1); b = new Date(today.getFullYear() + 1, 0, 1); pa = new Date(today.getFullYear() - 1, 0, 1); pb = a; prevLbl = 'año anterior'; }
+    else if (period === 'rango') { a = rangeA ? sod(rangeA) : new Date(1900, 0, 1); b = rangeB ? addDays(sod(rangeB), 1) : new Date(9999, 0, 1); }
     else { a = new Date(1900, 0, 1); b = new Date(9999, 0, 1); }
 
     var items = rows.filter(function (r) { return inR(r.d, a, b); });
@@ -20587,18 +20610,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       items.forEach(function (r) { labels.push(short(r.prov, 12)); values.push(r.t); tips.push(r.prov); });
       avgLbl = 'Promedio por comprobante'; avg = items.length ? total / items.length : 0;
     } else if (period === 'semana') {
-      for (i = 0; i < 7; i++) { var dd = addDays(a, i); labels.push(DIA_C[i]); tips.push(DIA_L[i] + ' ' + dd.getDate() + ' ' + MES_C[dd.getMonth()].toLowerCase()); values.push(dd > today ? null : 0); }
+      var esActualWk = (realToday >= a && realToday < b);
+      for (i = 0; i < 7; i++) { var dd = addDays(a, i); labels.push(DIA_C[i]); tips.push(DIA_L[i] + ' ' + dd.getDate() + ' ' + MES_C[dd.getMonth()].toLowerCase()); values.push(esActualWk && dd > realToday ? null : 0); }
       items.forEach(function (r) { var k = diffDays(a, r.d); if (k >= 0 && k < 7 && values[k] !== null) values[k] += r.t; });
-      avgLbl = 'Promedio diario'; avg = total / (diffDays(a, today) + 1);
+      avgLbl = 'Promedio diario'; avg = esActualWk ? total / (diffDays(a, realToday) + 1) : total / 7;
     } else if (period === 'mes') {
       n = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      for (i = 1; i <= n; i++) { labels.push(String(i)); tips.push(i + ' de ' + MES_L[today.getMonth()]); values.push(i > today.getDate() ? null : 0); }
+      var esActualMes = (today.getFullYear() === realToday.getFullYear() && today.getMonth() === realToday.getMonth());
+      for (i = 1; i <= n; i++) { labels.push(String(i)); tips.push(i + ' de ' + MES_L[today.getMonth()]); values.push(esActualMes && i > realToday.getDate() ? null : 0); }
       items.forEach(function (r) { var k = r.d.getDate() - 1; if (values[k] !== null) values[k] += r.t; });
-      avgLbl = 'Promedio diario'; avg = total / today.getDate();
+      avgLbl = 'Promedio diario'; avg = esActualMes ? total / realToday.getDate() : total / n;
     } else if (period === 'anio') {
-      for (i = 0; i < 12; i++) { labels.push(MES_C[i]); tips.push(cap(MES_L[i]) + ' ' + today.getFullYear()); values.push(i > today.getMonth() ? null : 0); }
+      var esActualAnio = (today.getFullYear() === realToday.getFullYear());
+      for (i = 0; i < 12; i++) { labels.push(MES_C[i]); tips.push(cap(MES_L[i]) + ' ' + today.getFullYear()); values.push(esActualAnio && i > realToday.getMonth() ? null : 0); }
       items.forEach(function (r) { var k = r.d.getMonth(); if (values[k] !== null) values[k] += r.t; });
-      avgLbl = 'Promedio mensual'; avg = total / (today.getMonth() + 1);
+      avgLbl = 'Promedio mensual'; avg = esActualAnio ? total / (realToday.getMonth() + 1) : total / 12;
+    } else if (period === 'rango' && rangeA && rangeB && diffDays(a, b) <= 62) {
+      n = diffDays(a, b);
+      for (i = 0; i < n; i++) { var ddr = addDays(a, i); labels.push(ddr.getDate() + '/' + (ddr.getMonth() + 1)); tips.push(ddr.getDate() + ' ' + MES_L[ddr.getMonth()] + ' ' + ddr.getFullYear()); values.push(0); }
+      items.forEach(function (r) { var k = diffDays(a, r.d); if (k >= 0 && k < n) values[k] += r.t; });
+      avgLbl = 'Promedio diario'; avg = n ? total / n : 0;
     } else {
       if (items.length) {
         var minD = items[0].d, maxD = items[0].d;
@@ -20744,7 +20775,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var lineChart = null, donutChart = null, current = 'mes', lastSig = '', proj = '__all__';
     HUD_INSTANCES.push({ root: root, getLine: function () { return lineChart; }, getDonut: function () { return donutChart; } });
     addRunHud(root);
-    root.querySelectorAll('.gx-hud-panel').forEach(function (p) { addRunHud(p); });
 
     function $(s) { return document.getElementById(cfg.prefix + '-' + s); }
     function getData() {
@@ -20785,7 +20815,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     function draw(force) {
       if (root.offsetParent === null) return;          // pestaña oculta: se dibuja al entrar
-      var an = analyze(current, syncProj(getData()), new Date());
+      var an = analyze(current, syncProj(getData()), getRefDate(), getRange().from, getRange().to);
       var catKeys = cfg.cats.slice();
       Object.keys(an.cats).forEach(function (k) { if (catKeys.indexOf(k) < 0) catKeys.push(k); });
       var catVals = catKeys.map(function (k) { return Math.max(0, Math.round((an.cats[k] || 0) * 100) / 100); });   // una nota de crédito puede dejar una categoría en negativo: no se dibuja
@@ -20851,9 +20881,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (donutChart) donutChart.destroy();
       donutChart = new Chart($('chart-donut').getContext('2d'), {
         type: 'doughnut',
-        data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: colors, borderColor: '#0b0f19', borderWidth: 2, hoverOffset: 6 }] },
+        data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }] },
         options: {
-          responsive: true, maintainAspectRatio: false, cutout: '68%',
+          responsive: true, maintainAspectRatio: false, cutout: '70%',
           plugins: { legend: { display: false },
             bmNeon: { color: cfg.lineColor, duration: 4200 },
             tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: '#e5e7eb', padding: 10, titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
@@ -20868,11 +20898,34 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     var ps = $('proj');
     if (ps) ps.addEventListener('change', function () { proj = ps.value || '__all__'; draw(true); });
+
+    // Fecha exacta / año exacto / rango de fechas: el panel de abajo cambia según la pestaña elegida.
+    function parseDateInput(v) { if (!v) return null; var p = v.split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+    function getRefDate() {
+      if (current === 'anio') { var y = parseInt((($('dp-year') || {}).value || ''), 10); if (y) return new Date(y, 0, 15); }
+      else if (current === 'dia' || current === 'semana') { var d = parseDateInput(($('dp-date') || {}).value); if (d) return d; }
+      return new Date();
+    }
+    function getRange() {
+      if (current !== 'rango') return { from: null, to: null };
+      return { from: parseDateInput(($('dp-from') || {}).value), to: parseDateInput(($('dp-to') || {}).value) };
+    }
+    var dp = $('datepick');
+    function syncDatepick() {
+      if (!dp) return;
+      dp.style.display = (current === 'mes' || current === 'historico') ? 'none' : 'flex';
+      dp.querySelectorAll('[data-for]').forEach(function (el) {
+        el.style.display = el.getAttribute('data-for').split(',').indexOf(current) >= 0 ? '' : 'none';
+      });
+    }
+    if (dp) dp.addEventListener('change', function () { draw(true); });
+    syncDatepick();
+
     var tf = $('tf');
     if (tf) tf.addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button[data-p]') : null; if (!btn) return;
       tf.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
-      btn.classList.add('on'); current = btn.getAttribute('data-p'); draw(true);
+      btn.classList.add('on'); current = btn.getAttribute('data-p'); syncDatepick(); draw(true);
     });
 
     window[cfg.globalName] = function () { draw(false); };

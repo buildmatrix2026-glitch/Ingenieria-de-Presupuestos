@@ -2681,18 +2681,18 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-hud-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--gx-tx2)}
 .gx-scope .gx-hud-legend span{display:inline-flex;align-items:center;gap:5px}
 .gx-scope .gx-hud-legend i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-.gx-scope .gx-gauge-wrap{height:auto;min-height:230px;display:flex;align-items:center;justify-content:center;padding:6px 0}
-.gx-scope .gx-gauge-grid{display:flex;flex-wrap:wrap;gap:20px 16px;justify-content:center;align-items:flex-start;width:100%}
-.gx-scope .bm-gauge{display:flex;flex-direction:column;align-items:center;gap:9px;width:96px;flex:0 0 auto}
-.gx-scope .bm-gauge-circle{position:relative;width:96px;height:96px}
+.gx-scope .gx-gauge-wrap{height:auto !important;min-height:230px;display:flex;align-items:center;justify-content:center;padding:14px 4px}
+.gx-scope .gx-gauge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));row-gap:26px;column-gap:6px;width:100%}
+.gx-scope .bm-gauge{display:flex;flex-direction:column;align-items:center;gap:9px;width:100%}
+.gx-scope .bm-gauge-circle{position:relative;width:82px;height:82px}
 .gx-scope .bm-gauge-circle svg{width:100%;height:100%;display:block}
-.gx-scope .bm-tick{opacity:.14;transition:opacity .5s ease,filter .5s ease}
+.gx-scope .bm-tick{opacity:.14;transition:opacity .9s ease,filter .9s ease}
 .gx-scope .bm-tick.on.lit{opacity:1}
 .gx-scope .bm-gauge-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .gx-scope .bm-gauge-pct{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:18px;line-height:1;text-shadow:0 0 10px currentColor}
 .gx-scope .bm-gauge-lbl{display:flex;align-items:center;gap:5px;font-size:9.5px;letter-spacing:.02em;color:var(--gx-tx2);text-align:center;max-width:100px;line-height:1.25}
 .gx-scope .bm-gauge-lbl svg{width:13px;height:13px;flex:0 0 auto;opacity:.85}
-@media(max-width:560px){ .gx-scope .bm-gauge,.gx-scope .bm-gauge-circle{width:80px;height:80px} .gx-scope .bm-gauge-pct{font-size:15px} }
+@media(max-width:560px){ .gx-scope .bm-gauge-circle{width:68px;height:68px} .gx-scope .bm-gauge-pct{font-size:14px} }
 .gx-scope .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
 .gx-scope .gx-date-in{
   background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;
@@ -20826,7 +20826,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     return '<div class="bm-gauge">' +
       '<div class="bm-gauge-circle"><svg viewBox="0 0 120 120" aria-hidden="true">' + ticks + '</svg>' +
-        '<div class="bm-gauge-center"><div class="bm-gauge-pct" style="color:' + color + '">' + Math.round(pct) + '%</div></div>' +
+        '<div class="bm-gauge-center"><div class="bm-gauge-pct" data-target="' + Math.round(pct) + '" style="color:' + color + '">0%</div></div>' +
       '</div>' +
       '<div class="bm-gauge-lbl"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg><span>' + esc(label) + '</span></div>' +
     '</div>';
@@ -20841,13 +20841,27 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     el.innerHTML = html;
     playGaugeCharge(el);
   }
-  // Enciende los trazos en secuencia (efecto de carga). Se dispara de nuevo cada vez que se
-  // reconstruye la grilla (cambio de período), y también la primera vez que entra en pantalla
-  // al hacer scroll, gracias al IntersectionObserver (que avisa de inmediato si ya está visible).
+  // Cuenta el número desde 0 hasta su valor real, en el mismo tiempo que tardan en encender los
+  // trazos, para que ambos efectos se sientan como una sola animación de carga.
+  function animateCount(elText, target, durationMs) {
+    var t0 = performance.now();
+    function tick(now) {
+      var p = Math.min(1, (now - t0) / durationMs);
+      var eased = 1 - Math.pow(1 - p, 3);   // easeOutCubic: rápido al inicio, se asienta al final
+      elText.textContent = Math.round(target * eased) + '%';
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  // Enciende los trazos en secuencia, despacio y visible (efecto de carga real, no instantáneo).
+  // Se dispara de nuevo cada vez que se reconstruye la grilla (cambio de período), y también la
+  // primera vez que entra en pantalla al hacer scroll, gracias al IntersectionObserver.
   function playGaugeCharge(el) {
     var gauges = el.querySelectorAll('.bm-gauge-circle');
-    if (!gauges.length || !('IntersectionObserver' in window)) {
+    if (!gauges.length) return;
+    if (!('IntersectionObserver' in window)) {
       el.querySelectorAll('.bm-tick.on').forEach(function (t) { t.classList.add('lit'); });
+      el.querySelectorAll('.bm-gauge-pct').forEach(function (p) { p.textContent = p.getAttribute('data-target') + '%'; });
       return;
     }
     gauges.forEach(function (g, gi) {
@@ -20855,13 +20869,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         entries.forEach(function (en) {
           if (!en.isIntersecting) return;
           io.disconnect();
+          var startDelay = gi * 160;
           var ticks = g.querySelectorAll('.bm-tick.on');
-          ticks.forEach(function (t, i) {
-            t.style.transitionDelay = (gi * 60 + i * 14) + 'ms';
-          });
+          var totalMs = 1800 + ticks.length * 32;
+          ticks.forEach(function (t, i) { t.style.transitionDelay = (startDelay + i * 32) + 'ms'; });
           requestAnimationFrame(function () { requestAnimationFrame(function () {
             ticks.forEach(function (t) { t.classList.add('lit'); });
           }); });
+          var pctEl = g.querySelector('.bm-gauge-pct');
+          if (pctEl) setTimeout(function () { animateCount(pctEl, parseInt(pctEl.getAttribute('data-target'), 10) || 0, totalMs); }, startDelay);
         });
       }, { threshold: .2 });
       io.observe(g);

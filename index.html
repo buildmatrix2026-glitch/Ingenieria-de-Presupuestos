@@ -2681,6 +2681,15 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-hud-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--gx-tx2)}
 .gx-scope .gx-hud-legend span{display:inline-flex;align-items:center;gap:5px}
 .gx-scope .gx-hud-legend i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+.gx-scope .gx-gauge-wrap{height:auto;min-height:230px;display:flex;align-items:center;justify-content:center;padding:6px 0}
+.gx-scope .gx-gauge-grid{display:flex;flex-wrap:wrap;gap:16px 14px;justify-content:center;align-items:flex-start;width:100%}
+.gx-scope .bm-gauge{position:relative;width:108px;height:108px;flex:0 0 auto}
+.gx-scope .bm-gauge svg{width:100%;height:100%;display:block;animation:bmGaugePulse 2.6s ease-in-out infinite}
+@keyframes bmGaugePulse{0%,100%{opacity:1}50%{opacity:.82}}
+.gx-scope .bm-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;padding:0 8px}
+.gx-scope .bm-gauge-pct{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:19px;line-height:1.1;text-shadow:0 0 10px currentColor}
+.gx-scope .bm-gauge-lbl{font-size:9px;letter-spacing:.03em;color:var(--gx-tx2);margin-top:3px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:560px){ .gx-scope .bm-gauge{width:92px;height:92px} .gx-scope .bm-gauge-pct{font-size:16px} }
 .gx-scope .gx-daterange-lbl{font-size:11px;color:var(--gx-tx2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
 .gx-scope .gx-date-in{
   background:var(--gx-bg);color:var(--gx-tx);border:1px solid var(--gx-br);border-radius:8px;padding:6px 10px;
@@ -4186,7 +4195,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         </div>
         <div class="gx-hud-charts">
           <div class="gx-hud-panel"><h4>Oscilograma de gasto</h4><div class="gx-hud-canwrap"><canvas id="gxh-chart-line"></canvas></div></div>
-          <div class="gx-hud-panel"><h4>Distribución por rubro</h4><div class="gx-hud-canwrap"><canvas id="gxh-chart-donut"></canvas></div><div class="gx-hud-legend" id="gxh-legend"></div></div>
+          <div class="gx-hud-panel"><h4>Distribución por rubro</h4><div class="gx-hud-canwrap gx-gauge-wrap"><div class="gx-gauge-grid" id="gxh-gauges"></div></div></div>
         </div>
       </div>
 
@@ -4455,7 +4464,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         </div>
         <div class="gx-hud-charts">
           <div class="gx-hud-panel"><h4>Oscilograma de gasto</h4><div class="gx-hud-canwrap"><canvas id="gxph-chart-line"></canvas></div></div>
-          <div class="gx-hud-panel"><h4>Distribución por rubro</h4><div class="gx-hud-canwrap"><canvas id="gxph-chart-donut"></canvas></div><div class="gx-hud-legend" id="gxph-legend"></div></div>
+          <div class="gx-hud-panel"><h4>Distribución por rubro</h4><div class="gx-hud-canwrap gx-gauge-wrap"><div class="gx-gauge-grid" id="gxph-gauges"></div></div></div>
         </div>
       </div>
 
@@ -20780,6 +20789,46 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     requestAnimationFrame(neonLoop);
   })();
 
+  var GAUGE_ICONS = {
+    'Materiales': '🧱', 'Mano de Obra': '👷', 'Equipos y Maquinaria': '🚜', 'Subcontratos': '📋',
+    'Gastos Indirectos': '🧾', 'Gastos Trámites': '📄',
+    'Alimentación': '🍽️', 'Vestimenta': '👕', 'Vivienda': '🏠', 'Salud': '💊',
+    'Educación, Arte y Cultura': '🎨', 'Turismo': '✈️', 'Otros (no deducible SRI)': '📦'
+  };
+
+  // Un medidor circular por categoría (en vez de una sola dona repartida): un anillo hecho de
+  // trazos separados que se van "encendiendo" según el porcentaje, con el ícono, el nombre y el
+  // % en el centro. Cada uno es independiente, así se entiende de un vistazo cuál es cuál.
+  function buildGauge(pct, color, label, icon) {
+    var N = 40, cx = 60, cy = 60, r1 = 40, r2 = 50;
+    var lit = Math.round(N * Math.max(0, Math.min(100, pct)) / 100);
+    var ticks = '';
+    for (var i = 0; i < N; i++) {
+      var a = (Math.PI * 2 * i / N) - Math.PI / 2;
+      var x1 = (cx + Math.cos(a) * r1).toFixed(2), y1 = (cy + Math.sin(a) * r1).toFixed(2);
+      var x2 = (cx + Math.cos(a) * r2).toFixed(2), y2 = (cy + Math.sin(a) * r2).toFixed(2);
+      var on = i < lit;
+      ticks += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (on ? color : 'rgba(255,255,255,.09)') +
+        '" stroke-width="3.4" stroke-linecap="round"' + (on ? ' style="filter:drop-shadow(0 0 3px ' + color + ')"' : '') + '/>';
+    }
+    return '<div class="bm-gauge">' +
+      '<svg viewBox="0 0 120 120" aria-hidden="true">' + ticks + '</svg>' +
+      '<div class="bm-gauge-center">' +
+        '<div class="bm-gauge-pct" style="color:' + color + '">' + Math.round(pct) + '%</div>' +
+        '<div class="bm-gauge-lbl">' + icon + ' ' + esc(label) + '</div>' +
+      '</div></div>';
+  }
+  function renderGaugeGrid(el, catKeys, catVals, colors, sum) {
+    if (!el) return;
+    var html = '';
+    catKeys.forEach(function (k, i) {
+      if (catVals[i] <= 0) return;
+      var pct = sum ? (catVals[i] / sum * 100) : 0;
+      html += buildGauge(pct, colors[i], k, GAUGE_ICONS[k] || '•');
+    });
+    el.innerHTML = html || '<div class="gx-hud-empty" style="position:static">SIN DATOS PARA MOSTRAR</div>';
+  }
+
   function initHud(cfg) {
     var root = document.getElementById(cfg.prefix + '-hud');
     if (!root) return;
@@ -20887,24 +20936,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         }
       });
 
-      // ── Anillo por categoría ──
+      // ── Medidores individuales por categoría (en vez de una sola dona) ──
       var colors = catKeys.map(function (k) { return cfg.catColors[k] || '#64748b'; });
-      if (donutChart) donutChart.destroy();
-      donutChart = new Chart($('chart-donut').getContext('2d'), {
-        type: 'doughnut',
-        data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: colors, borderColor: colors, borderWidth: 1.5, borderAlign: 'inner', spacing: 5, hoverOffset: 6 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false, cutout: '70%', radius: '70%',
-          plugins: { legend: { display: false },
-            bmNeon: { color: cfg.lineColor, duration: 4200 },
-            tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: '#e5e7eb', padding: 10, titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
-              callbacks: { label: function (c) { var s = c.dataset.data.reduce(function (x, y) { return x + y; }, 0); return c.label + ': ' + fmtUSD(c.parsed) + (s ? ' (' + (c.parsed / s * 100).toFixed(1) + '%)' : ''); } } } }
-        }
-      });
       var sum = catVals.reduce(function (x, y) { return x + y; }, 0);
-      $('legend').innerHTML = catKeys.map(function (k, i) {
-        return catVals[i] > 0 ? '<span><i style="background:' + colors[i] + '"></i>' + esc(k) + ' · ' + (sum ? (catVals[i] / sum * 100).toFixed(0) : 0) + '%</span>' : '';
-      }).join('');
+      renderGaugeGrid($('gauges'), catKeys, catVals, colors, sum);
     }
 
     var ps = $('proj');

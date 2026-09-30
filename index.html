@@ -2664,38 +2664,6 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 @media(max-width:860px){ .gx-scope .gx-hud-charts{grid-template-columns:1fr} }
 .gx-scope .gx-hud-panel{border:1px solid rgba(6,182,212,.2);border-radius:14px;padding:16px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden}
 .gx-scope .gx-hud.pu .gx-hud-panel{border-color:rgba(139,92,246,.2)}
-.gx-scope .gx-hud-panel>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 4px currentColor);color:#06b6d4}
-.gx-scope .gx-hud-panel>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.65;stroke-width:2;animation:bmHudRun var(--bmhud-dur,4.5s) linear infinite}
-.gx-scope .gx-hud.pu .gx-hud-panel>.bmhud-run{color:#a855f7}
-.gx-scope .gx-hud>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 5px currentColor);color:#06b6d4}
-.gx-scope .gx-hud.pu>.bmhud-run{color:#a855f7}
-.gx-scope .gx-hud>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.6;stroke-width:2;animation:bmHudRun var(--bmhud-dur,7s) linear infinite}
-@keyframes bmHudRun{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
-@media (prefers-reduced-motion: reduce){ .gx-scope .bmhud-run rect{animation:none} }
-.gx-scope .gx-hud-tf{position:relative}
-.gx-hud-dpmodal{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;
-  padding:20px;background:rgba(5,8,15,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.gx-hud-dpmodal.open{display:flex}
-.gx-hud-dpcard{width:min(360px,100%);background:#0b0f19;border:1px solid rgba(6,182,212,.4);border-radius:16px;
-  padding:22px 22px 18px;box-shadow:0 30px 90px -20px rgba(0,0,0,.85);animation:gxDpIn .22s ease}
-.gx-hud-dpmodal.pu .gx-hud-dpcard{border-color:rgba(139,92,246,.4)}
-@keyframes gxDpIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-.gx-hud-dpttl{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
-  color:#67e8f9;margin-bottom:16px;text-align:center}
-.gx-hud-dpmodal.pu .gx-hud-dpttl{color:#d8b4fe}
-.gx-hud-dpbody{display:flex;flex-direction:column;gap:12px}
-.gx-hud-dp-range{display:flex;gap:10px}
-.gx-hud-dp-range .gx-hud-dpfield{flex:1}
-.gx-hud-dpfield{display:flex;flex-direction:column;gap:5px}
-.gx-hud-dpfield span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--gx-tx2);font-weight:700}
-.gx-hud-dp{background:rgba(255,255,255,.04);border:1px solid rgba(6,182,212,.4);border-radius:9px;color:#e5faff;
-  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;padding:9px 10px;height:38px;color-scheme:dark;min-height:0;width:100%;box-sizing:border-box}
-.gx-hud-dpmodal.pu .gx-hud-dp{border-color:rgba(139,92,246,.4)}
-.gx-hud-dpactions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-.gx-hud-dpbtn{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.04em;padding:9px 16px;border-radius:9px;
-  border:1px solid rgba(6,182,212,.5);background:rgba(6,182,212,.14);color:#67e8f9;cursor:pointer;min-height:0;width:auto}
-.gx-hud-dpmodal.pu .gx-hud-dpbtn{border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.14);color:#d8b4fe}
-.gx-hud-dpbtn.ghost{background:transparent;border-color:rgba(255,255,255,.15);color:var(--gx-tx2)}
 .gx-scope .gx-hud-panel h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gx-tx2);margin:0 0 12px;font-weight:700}
 .gx-scope .gx-hud-panel .gx-hud-canwrap{position:relative;height:230px}
 .gx-scope .gx-hud-panel .gx-hud-canwrap canvas{max-width:100%}
@@ -4194,33 +4162,13 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <label class="gx-hud-proj"><span>OBRA</span><select id="gxh-proj" aria-label="Elegir obra para ver sus estadísticas"><option value="__all__">TODOS LOS PROYECTOS</option></select></label>
       <div class="gx-hud-tf" id="gxh-tf">
       <button type="button" data-p="dia">DÍA</button>
-      <button type="button" data-p="semana">SEMANA</button>
       <button type="button" data-p="mes" class="on">MES</button>
       <button type="button" data-p="anio">AÑO</button>
       <button type="button" data-p="historico">HISTÓRICO TOTAL</button>
-      <button type="button" data-p="rango">RANGO</button>
     </div>
     </div>
         </div>
-        <div class="gx-hud-dpmodal" id="gxh-dpmodal">
-          <div class="gx-hud-dpcard">
-            <div class="gx-hud-dpttl" id="gxh-dpttl">Elige la fecha exacta</div>
-            <div class="gx-hud-dpbody">
-              <label class="gx-hud-dpfield" data-for="dia,semana,anio">
-                <span>Fecha</span>
-                <input type="date" class="gx-hud-dp" id="gxh-dp-date" aria-label="Elige una fecha">
-              </label>
-              <div class="gx-hud-dp-range" data-for="rango">
-                <label class="gx-hud-dpfield"><span>Desde</span><input type="date" class="gx-hud-dp" id="gxh-dp-from" aria-label="Desde"></label>
-                <label class="gx-hud-dpfield"><span>Hasta</span><input type="date" class="gx-hud-dp" id="gxh-dp-to" aria-label="Hasta"></label>
-              </div>
-            </div>
-            <div class="gx-hud-dpactions">
-              <button type="button" class="gx-hud-dpbtn ghost" id="gxh-dpcancel">Cancelar</button>
-              <button type="button" class="gx-hud-dpbtn" id="gxh-dpapply">Aplicar</button>
-            </div>
-          </div>
-        </div>
+
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxh-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxh-kpi1-val">$0,00</div><div class="sub" id="gxh-kpi1-sub">vs. período anterior</div></div>
           <div class="gx-hud-kpi"><div class="lbl" id="gxh-kpi2-lbl">Promedio</div><div class="val" id="gxh-kpi2-val">$0,00</div><div class="sub">por unidad de tiempo</div></div>
@@ -4474,32 +4422,12 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           <div class="gx-hud-title"><span class="gx-hud-dot"></span>LIVE MONITORING · ANÁLISIS DE GASTOS PERSONALES</div>
     <div class="gx-hud-tf" id="gxph-tf">
       <button type="button" data-p="dia">DÍA</button>
-      <button type="button" data-p="semana">SEMANA</button>
       <button type="button" data-p="mes" class="on">MES</button>
       <button type="button" data-p="anio">AÑO</button>
       <button type="button" data-p="historico">HISTÓRICO TOTAL</button>
-      <button type="button" data-p="rango">RANGO</button>
     </div>
         </div>
-        <div class="gx-hud-dpmodal pu" id="gxph-dpmodal">
-          <div class="gx-hud-dpcard">
-            <div class="gx-hud-dpttl" id="gxph-dpttl">Elige la fecha exacta</div>
-            <div class="gx-hud-dpbody">
-              <label class="gx-hud-dpfield" data-for="dia,semana,anio">
-                <span>Fecha</span>
-                <input type="date" class="gx-hud-dp" id="gxph-dp-date" aria-label="Elige una fecha">
-              </label>
-              <div class="gx-hud-dp-range" data-for="rango">
-                <label class="gx-hud-dpfield"><span>Desde</span><input type="date" class="gx-hud-dp" id="gxph-dp-from" aria-label="Desde"></label>
-                <label class="gx-hud-dpfield"><span>Hasta</span><input type="date" class="gx-hud-dp" id="gxph-dp-to" aria-label="Hasta"></label>
-              </div>
-            </div>
-            <div class="gx-hud-dpactions">
-              <button type="button" class="gx-hud-dpbtn ghost" id="gxph-dpcancel">Cancelar</button>
-              <button type="button" class="gx-hud-dpbtn" id="gxph-dpapply">Aplicar</button>
-            </div>
-          </div>
-        </div>
+
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxph-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxph-kpi1-val">$0,00</div><div class="sub" id="gxph-kpi1-sub">vs. período anterior</div></div>
           <div class="gx-hud-kpi"><div class="lbl" id="gxph-kpi2-lbl">Promedio</div><div class="val" id="gxph-kpi2-val">$0,00</div><div class="sub">por unidad de tiempo</div></div>
@@ -16531,6 +16459,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return txt + '...';
   }
 
+  // Fuerza a que cada página nueva mantenga la misma orientación del documento (vertical/
+  // horizontal) en vez de dejarlo por defecto — así el logo y el encabezado no se descolocan
+  // en los PDF horizontales cuando el reporte salta de página.
+  function pAddPage(doc) {
+    var w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+    doc.addPage('a4', w >= h ? 'landscape' : 'portrait');
+  }
   function pHeader(doc, proj, sub) {
     var pageW = doc.internal.pageSize.getWidth(), mx = 14, yh = 12;
     _pdfV2DrawLogo(doc, mx, yh - 2, 0.55);
@@ -16665,7 +16600,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Tabla de resumen agrupado con barra de participación
   function pGroupTable(doc, ctx, y, title, keyLabel, groups, order) {
-    if (y > ctx.pageH - 48) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y > ctx.pageH - 48) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     y = pHeading(doc, ctx.mx, y, title, ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
     if (order === 'key') groups = groups.slice().sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });   // cronológico
@@ -16683,7 +16618,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     opts.margin = { left: ctx.mx, right: ctx.mx, top: 27, bottom: 16 };
     opts.columnStyles = { 0: { fontStyle: 'bold' }, 1: { halign: 'center', cellWidth: 11 }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' }, 5: { halign: 'right', cellWidth: 15 }, 6: { cellWidth: ctx.landscape ? 60 : 30 } };
     opts.didDrawCell = function (d) {
-      if (d.section === 'body' && d.column.index === 6 && d.row.index < groups.length) {
+      if (d.section === 'body' && d.column.index === 6 && d.row.index < groups.length && groups[d.row.index]) {
         var bx = d.cell.x + 2, bw = d.cell.width - 4, by = d.cell.y + d.cell.height / 2 - 1.2;
         doc.setFillColor(232, 238, 255); doc.rect(bx, by, bw, 2.4, 'F');
         doc.setFillColor(0, 82, 255); doc.rect(bx, by, Math.max(0.4, bw * (groups[d.row.index].tot / maxTot)), 2.4, 'F');
@@ -16698,7 +16633,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function pSection(doc, ctx, y, numIcon, title, rows, cols, totalLabel, totalVal) {
     var mx = ctx.mx, tableW = ctx.tableW;
     function ensure(needed) {
-      if (y + needed > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+      if (y + needed > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     }
     ensure(14 + Math.min(rows.length, 3) * 5.5);
     doc.setFillColor(0, 51, 160); doc.rect(mx, y, tableW, 6, 'F');
@@ -16734,7 +16669,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var rowH = 5.5 + (maxLines - 1) * 3.6;
       if (y + rowH > ctx.pageH - 16) {                       // salto de página dentro de la sección
         verticals(y);
-        doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); segTop = y;
+        pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); segTop = y;
       }
       cx = mx;
       r.forEach(function (val, i) {
@@ -16757,7 +16692,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       y += rowH;
     });
     verticals(y);
-    if (y + 7 > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y + 7 > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     doc.setFillColor(238, 242, 255); doc.rect(mx, y, tableW, 6, 'F');
     doc.setFontSize(7.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(0, 51, 160);
     doc.text(totalLabel, mx + 3, y + 4.2);
@@ -16779,7 +16714,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   function pInvoice(doc, ctx, g, idx, n) {
-    doc.addPage();
+    pAddPage(doc);
     ctx.sub = 'Comprobante ' + (idx + 1) + ' de ' + n;
     var mx = ctx.mx, tableW = ctx.tableW, y = pHeader(doc, ctx.proj, ctx.sub);
     y = pHeading(doc, mx, y, (isNC(g) ? 'NOTA DE CRÉDITO N° ' : 'Comprobante N° ') + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
@@ -16830,7 +16765,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       noteH = 10 + noteLines.reduce(function (s, ls) { return s + ls.length * 3.8 + 1.6; }, 0);
     }
     var need = Math.max(7 + tl.length * 6 + 8, noteH) + 4;
-    if (y + need > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y + need > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     var top = y;
     doc.setFillColor(0, 51, 160); doc.rect(finX, y, finW, 7, 'F');
     doc.setFontSize(7.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(255, 255, 255);
@@ -16873,7 +16808,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     pCover(doc, proj, dateStr, { periodo: periodo, total: pMoney(sums.tot), comprobantes: n + ' comprobante' + (n === 1 ? '' : 's') + ' · ' + sums.it + ' ítem' + (sums.it === 1 ? '' : 's'), autor: meta.autor });
 
     /* ── Resumen ── */
-    doc.addPage();
+    pAddPage(doc);
     var y = pHeader(doc, proj, ctx.sub);
     y = pHeading(doc, mx, y, 'Resumen de gastos', ctx.tableW) + 2;
     y = pKpis(doc, mx, y, ctx.tableW, [
@@ -16913,7 +16848,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }), 'key');
 
     /* ── Listado de comprobantes ── */
-    doc.addPage();
+    pAddPage(doc);
     y = pHeader(doc, proj, ctx.sub);
     y = pHeading(doc, mx, y, 'Listado de comprobantes', ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
@@ -19421,6 +19356,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return txt + '...';
   }
 
+  // Fuerza a que cada página nueva mantenga la misma orientación del documento (vertical/
+  // horizontal) en vez de dejarlo por defecto — así el logo y el encabezado no se descolocan
+  // en los PDF horizontales cuando el reporte salta de página.
+  function pAddPage(doc) {
+    var w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+    doc.addPage('a4', w >= h ? 'landscape' : 'portrait');
+  }
   function pHeader(doc, proj, sub) {
     var pageW = doc.internal.pageSize.getWidth(), mx = 14, yh = 12;
     _pdfV2DrawLogo(doc, mx, yh - 2, 0.55);
@@ -19555,7 +19497,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   // Tabla de resumen agrupado con barra de participación
   function pGroupTable(doc, ctx, y, title, keyLabel, groups, order) {
-    if (y > ctx.pageH - 48) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y > ctx.pageH - 48) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     y = pHeading(doc, ctx.mx, y, title, ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
     if (order === 'key') groups = groups.slice().sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });   // cronológico
@@ -19573,7 +19515,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     opts.margin = { left: ctx.mx, right: ctx.mx, top: 27, bottom: 16 };
     opts.columnStyles = { 0: { fontStyle: 'bold' }, 1: { halign: 'center', cellWidth: 11 }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' }, 5: { halign: 'right', cellWidth: 15 }, 6: { cellWidth: ctx.landscape ? 60 : 30 } };
     opts.didDrawCell = function (d) {
-      if (d.section === 'body' && d.column.index === 6 && d.row.index < groups.length) {
+      if (d.section === 'body' && d.column.index === 6 && d.row.index < groups.length && groups[d.row.index]) {
         var bx = d.cell.x + 2, bw = d.cell.width - 4, by = d.cell.y + d.cell.height / 2 - 1.2;
         doc.setFillColor(232, 238, 255); doc.rect(bx, by, bw, 2.4, 'F');
         doc.setFillColor(0, 82, 255); doc.rect(bx, by, Math.max(0.4, bw * (groups[d.row.index].tot / maxTot)), 2.4, 'F');
@@ -19588,7 +19530,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function pSection(doc, ctx, y, numIcon, title, rows, cols, totalLabel, totalVal) {
     var mx = ctx.mx, tableW = ctx.tableW;
     function ensure(needed) {
-      if (y + needed > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+      if (y + needed > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     }
     ensure(14 + Math.min(rows.length, 3) * 5.5);
     doc.setFillColor(0, 51, 160); doc.rect(mx, y, tableW, 6, 'F');
@@ -19624,7 +19566,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var rowH = 5.5 + (maxLines - 1) * 3.6;
       if (y + rowH > ctx.pageH - 16) {                       // salto de página dentro de la sección
         verticals(y);
-        doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); segTop = y;
+        pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); segTop = y;
       }
       cx = mx;
       r.forEach(function (val, i) {
@@ -19647,7 +19589,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       y += rowH;
     });
     verticals(y);
-    if (y + 7 > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y + 7 > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     doc.setFillColor(238, 242, 255); doc.rect(mx, y, tableW, 6, 'F');
     doc.setFontSize(7.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(0, 51, 160);
     doc.text(totalLabel, mx + 3, y + 4.2);
@@ -19669,7 +19611,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   function pInvoice(doc, ctx, g, idx, n) {
-    doc.addPage();
+    pAddPage(doc);
     ctx.sub = 'Comprobante ' + (idx + 1) + ' de ' + n;
     var mx = ctx.mx, tableW = ctx.tableW, y = pHeader(doc, ctx.proj, ctx.sub);
     y = pHeading(doc, mx, y, (isNC(g) ? 'NOTA DE CRÉDITO N° ' : 'Comprobante N° ') + (g.numero || 'S/N') + '  —  ' + String(g.proveedor || '').trim(), tableW) + 1;
@@ -19720,7 +19662,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       noteH = 10 + noteLines.reduce(function (s, ls) { return s + ls.length * 3.8 + 1.6; }, 0);
     }
     var need = Math.max(7 + tl.length * 6 + 8, noteH) + 4;
-    if (y + need > ctx.pageH - 16) { doc.addPage(); y = pHeader(doc, ctx.proj, ctx.sub); }
+    if (y + need > ctx.pageH - 16) { pAddPage(doc); y = pHeader(doc, ctx.proj, ctx.sub); }
     var top = y;
     doc.setFillColor(0, 51, 160); doc.rect(finX, y, finW, 7, 'F');
     doc.setFontSize(7.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(255, 255, 255);
@@ -19763,7 +19705,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     pCover(doc, proj, dateStr, { periodo: periodo, total: pMoney(sums.tot), comprobantes: n + ' comprobante' + (n === 1 ? '' : 's') + ' · ' + sums.it + ' ítem' + (sums.it === 1 ? '' : 's'), autor: meta.autor });
 
     /* ── Resumen ── */
-    doc.addPage();
+    pAddPage(doc);
     var y = pHeader(doc, proj, ctx.sub);
     y = pHeading(doc, mx, y, 'Resumen de gastos', ctx.tableW) + 2;
     y = pKpis(doc, mx, y, ctx.tableW, [
@@ -19796,7 +19738,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }), 'key');
 
     /* ── Listado de comprobantes ── */
-    doc.addPage();
+    pAddPage(doc);
     y = pHeader(doc, proj, ctx.sub);
     y = pHeading(doc, mx, y, 'Listado de comprobantes', ctx.tableW);
     var startPage = doc.internal.getNumberOfPages();
@@ -20737,101 +20679,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     })();
   }
 
-  // Luz tipo cometa que recorre el borde de un panel (mismo recurso visual que los botones
-  // "Comenzar/Calcular" y los modales de confirmación): un trazo con cola que se desvanece,
-  // dando la vuelta al contorno en bucle. Se ajusta sola al tamaño real del panel.
-  function addRunHud(el, durSec) {
-    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('class', 'bmhud-run'); svg.setAttribute('aria-hidden', 'true');
-    var N = 14, G = 36, LMAX = 24, i, L, r;
-    for (i = 0; i < N; i++) {
-      L = LMAX * (i + 1) / N;
-      r = document.createElementNS(NS, 'rect');
-      r.setAttribute('pathLength', '100');
-      r.setAttribute('stroke-dasharray', '0 ' + (G - L).toFixed(2) + ' ' + L.toFixed(2) + ' ' + (100 - G).toFixed(2));
-      svg.appendChild(r);
-    }
-    el.appendChild(svg);
-    function fit() {
-      var w = el.clientWidth, h = el.clientHeight;
-      if (!w || !h) return;
-      var cs = getComputedStyle(el), rad = parseFloat(cs.borderRadius) || 14;
-      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-      Array.prototype.forEach.call(svg.children, function (rr) {
-        rr.setAttribute('x', 1); rr.setAttribute('y', 1);
-        rr.setAttribute('width', Math.max(0, w - 2)); rr.setAttribute('height', Math.max(0, h - 2));
-        rr.setAttribute('rx', Math.max(0, rad - 1));
-      });
-      svg.style.setProperty('--bmhud-dur', (durSec || (2 * (w + h) / 220)).toFixed(2) + 's');
-    }
-    requestAnimationFrame(fit);
-    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(el); else window.addEventListener('resize', fit);
-  }
-
-  // Brillo neón + un punto de luz que recorre la curva (línea) o el anillo (dona), dibujado
-  // encima de Chart.js en cada cuadro. Se activa solo mientras el panel está visible.
-  var NEON_T0 = Date.now(), neonRegistered = false;
-  function ensureNeonPlugin() {
-    if (neonRegistered || typeof Chart === 'undefined') return;
-    neonRegistered = true;
-    Chart.register({
-      id: 'bmNeon',
-      beforeDatasetsDraw: function (chart, args, opts) {
-        if (!opts || !opts.color || chart.config.type === 'doughnut') return;   // la dona no lleva halo ambiental, solo la luz que la recorre
-        chart.ctx.save();
-        chart.ctx.shadowColor = opts.color;
-        chart.ctx.shadowBlur = opts.blur || 12;
-      },
-      afterDatasetsDraw: function (chart, args, opts) {
-        if (!opts || !opts.color) return;
-        var ctx = chart.ctx;
-        if (chart.config.type !== 'doughnut') ctx.restore();
-        var t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
-        if (chart.config.type === 'line') {
-          var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
-          if (!pts || pts.length < 2) return;
-          var segF = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(segF)), lf = segF - i;
-          var p0 = pts[i].getProps(['x', 'y'], true), p1 = pts[i + 1].getProps(['x', 'y'], true);
-          var x = p0.x + (p1.x - p0.x) * lf, y = p0.y + (p1.y - p0.y) * lf;
-          ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 22;
-          ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .5; ctx.fill();
-          ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-          ctx.restore();
-        } else if (chart.config.type === 'doughnut') {
-          // un foco de luz que gira alrededor del anillo, iluminando el tramo por el que pasa
-          // (en vez de un halo permanente alrededor de todo el círculo, que se veía recargado)
-          var m2 = chart.getDatasetMeta(0), arc0 = m2 && m2.data && m2.data[0];
-          if (!arc0) return;
-          var props = arc0.getProps(['x', 'y', 'innerRadius', 'outerRadius'], true);
-          var rad = (props.innerRadius + props.outerRadius) / 2, thick = props.outerRadius - props.innerRadius;
-          var ang = t * Math.PI * 2 - Math.PI / 2, span = 0.55;
-          var fx = props.x + Math.cos(ang) * rad, fy = props.y + Math.sin(ang) * rad;
-          ctx.save();
-          ctx.globalCompositeOperation = 'lighter';
-          var grad = ctx.createRadialGradient(fx, fy, 0, fx, fy, thick * 0.95);
-          grad.addColorStop(0, '#ffffff'); grad.addColorStop(.35, opts.color); grad.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.beginPath(); ctx.arc(props.x, props.y, rad, ang - span / 2, ang + span / 2);
-          ctx.lineWidth = thick; ctx.strokeStyle = grad; ctx.stroke();
-          ctx.restore();
-          ctx.save(); ctx.shadowColor = '#fff'; ctx.shadowBlur = 14;
-          ctx.beginPath(); ctx.arc(fx, fy, 3.5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-          ctx.restore();
-        }
-      }
-    });
-  }
-  // Redibuja los gráficos activos en cada frame para que la luz se vea en movimiento continuo
-  // (sin esto el punto quedaría fijo, ya que Chart.js no redibuja solo cuando nada cambia).
+  // Los efectos de luz animados (contorno recorriendo el panel + brillo giratorio en los gráficos)
+  // se quitaron: obligaban a redibujar todo en cada fotograma sin parar y hacían lenta la interfaz.
+  // Se dejan estas funciones vacías para no tener que tocar cada punto donde se llamaban.
+  function addRunHud() {}
+  function ensureNeonPlugin() {}
   var HUD_INSTANCES = [];
-  (function neonLoop() {
-    HUD_INSTANCES.forEach(function (inst) {
-      if (inst.root.offsetParent === null) return;   // pestaña oculta: no gasta CPU
-      var lc = inst.getLine(), dc = inst.getDonut();
-      if (lc) lc.draw();
-      if (dc) dc.draw();
-    });
-    requestAnimationFrame(neonLoop);
-  })();
 
   var GAUGE_ICONS = {
     'Materiales': '<rect x="2.5" y="9" width="6" height="5.5" rx=".5"/><rect x="9" y="9" width="6" height="5.5" rx=".5"/><rect x="5.7" y="3.5" width="6" height="5.5" rx=".5"/>',
@@ -20991,7 +20844,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
     function draw(force) {
       if (root.offsetParent === null) return;          // pestaña oculta: se dibuja al entrar
-      var an = analyze(current, syncProj(getData()), getRefDate(), getRange().from, getRange().to);
+      var an = analyze(current, syncProj(getData()), new Date());
       var catKeys = cfg.cats.slice();
       Object.keys(an.cats).forEach(function (k) { if (catKeys.indexOf(k) < 0) catKeys.push(k); });
       var catVals = catKeys.map(function (k) { return Math.max(0, Math.round((an.cats[k] || 0) * 100) / 100); });   // una nota de crédito puede dejar una categoría en negativo: no se dibuja
@@ -21061,64 +20914,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var ps = $('proj');
     if (ps) ps.addEventListener('change', function () { proj = ps.value || '__all__'; draw(true); });
 
-    // Fecha exacta / año exacto / rango de fechas: ventana modal centrada (igual en cualquier
-    // dispositivo), con fondo difuminado detrás. Nada se recalcula hasta pulsar "Aplicar".
-    function parseDateInput(v) { if (!v) return null; var p = v.split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
-    var refDate = null, rangeFrom = null, rangeTo = null;
-    function getRefDate() { return refDate || new Date(); }
-    function getRange() { return { from: rangeFrom, to: rangeTo }; }
-
-    var modal = $('dpmodal'), dpTtl = $('dpttl'), dpDate = $('dp-date'), dpFrom = $('dp-from'), dpTo = $('dp-to');
-    if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);   // fuera del panel: evita que un backdrop-filter ancestro lo desubique
-    var TITLES = { dia: 'Elige el día exacto', semana: 'Elige un día de esa semana', anio: 'Elige el año exacto', rango: 'Elige el rango de fechas' };
-    var pendingP = null;
-    function syncModalFields(p) {
-      if (!modal) return;
-      modal.querySelectorAll('[data-for]').forEach(function (el) {
-        el.style.display = el.getAttribute('data-for').split(',').indexOf(p) >= 0 ? '' : 'none';
-      });
-      if (dpTtl) dpTtl.textContent = TITLES[p] || 'Elige la fecha';
-    }
-    function openModal(p) {
-      if (!modal) return;
-      pendingP = p; syncModalFields(p);
-      modal.classList.add('open');
-      setTimeout(function () { var f = modal.querySelector('input[type=date]:not([style*="display: none"])'); if (f) f.focus(); }, 60);
-    }
-    function closeModal() { if (modal) modal.classList.remove('open'); }
-    var applyBtn = $('dpapply'), cancelBtn = $('dpcancel');
-    if (applyBtn) applyBtn.addEventListener('click', function () {
-      if (pendingP === 'rango') {
-        rangeFrom = parseDateInput(dpFrom.value); rangeTo = parseDateInput(dpTo.value);
-        if (!rangeFrom || !rangeTo) { toastGx('Elige las dos fechas'); return; }
-        if (rangeFrom > rangeTo) { var tmp = rangeFrom; rangeFrom = rangeTo; rangeTo = tmp; }
-      } else {
-        var d = parseDateInput(dpDate.value);
-        if (!d) { toastGx('Elige una fecha'); return; }
-        refDate = d;
-      }
-      current = pendingP;
-      var tf2 = $('tf');
-      if (tf2) tf2.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-p') === current); });
-      closeModal(); draw(true);
-    });
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-    if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeModal(); });
-    function toastGx(msg) {
-      if (!dpTtl) return;
-      var old = dpTtl.textContent;
-      dpTtl.textContent = msg; dpTtl.style.color = '#f87171';
-      setTimeout(function () { dpTtl.textContent = old; dpTtl.style.color = ''; }, 1400);
-    }
-
     var tf = $('tf');
     if (tf) tf.addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button[data-p]') : null; if (!btn) return;
-      var p = btn.getAttribute('data-p');
-      if (p === 'dia' || p === 'semana' || p === 'anio' || p === 'rango') { openModal(p); return; }
       tf.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
-      btn.classList.add('on'); current = p; draw(true);
+      btn.classList.add('on'); current = btn.getAttribute('data-p'); draw(true);
     });
 
     window[cfg.globalName] = function () { draw(false); };

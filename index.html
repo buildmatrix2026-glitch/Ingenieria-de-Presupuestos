@@ -20768,14 +20768,38 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var props = pts.map(function (p) {
       return p.getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY', 'controlPointNextX', 'controlPointNextY'], true);
     });
+    // OJO: aquí NO se emiten comandos "C" (curva bézier) — se aproxima cada tramo con muchos
+    // segmentos RECTOS muy cortos ("L"), que visualmente se ven idénticos a la curva suave pero
+    // resuelven un bug real de los navegadores: con pathLength="100", el navegador tiene que medir
+    // la longitud de arco del trazo para repartir la animación proporcionalmente, y en tramos
+    // bézier esa medición no siempre es exacta (algunos motores la aproximan con la distancia en
+    // línea recta entre los puntos de control, más corta que el camino curvo real) — eso es lo que
+    // hacía que la luz "cortara en línea recta" justo en el tramo donde la curva se dobla más
+    // fuerte (el pico). Con tramos rectos de verdad, la longitud de arco es exacta en cualquier
+    // navegador, porque no hay nada que aproximar.
+    function bez(s, lf) {
+      var u = 1 - lf;
+      return {
+        x: u * u * u * s.x0 + 3 * u * u * lf * s.c1x + 3 * u * lf * lf * s.c2x + lf * lf * lf * s.x1,
+        y: u * u * u * s.y0 + 3 * u * u * lf * s.c1y + 3 * u * lf * lf * s.c2y + lf * lf * lf * s.y1
+      };
+    }
+    var SAMPLES = 24; // por tramo — denso de sobra para que se vea perfectamente suave
     var d = 'M' + props[0].x.toFixed(1) + ',' + props[0].y.toFixed(1);
     for (var i = 1; i < props.length; i++) {
       var a = props[i - 1], b = props[i];
-      var c1x = (a.controlPointNextX != null) ? a.controlPointNextX : a.x;
-      var c1y = (a.controlPointNextY != null) ? a.controlPointNextY : a.y;
-      var c2x = (b.controlPointPreviousX != null) ? b.controlPointPreviousX : b.x;
-      var c2y = (b.controlPointPreviousY != null) ? b.controlPointPreviousY : b.y;
-      d += ' C' + c1x.toFixed(1) + ',' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ',' + c2y.toFixed(1) + ' ' + b.x.toFixed(1) + ',' + b.y.toFixed(1);
+      var s = {
+        x0: a.x, y0: a.y,
+        c1x: (a.controlPointNextX != null) ? a.controlPointNextX : a.x,
+        c1y: (a.controlPointNextY != null) ? a.controlPointNextY : a.y,
+        c2x: (b.controlPointPreviousX != null) ? b.controlPointPreviousX : b.x,
+        c2y: (b.controlPointPreviousY != null) ? b.controlPointPreviousY : b.y,
+        x1: b.x, y1: b.y
+      };
+      for (var k = 1; k <= SAMPLES; k++) {
+        var p = bez(s, k / SAMPLES);
+        d += ' L' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
+      }
     }
     pathEl.setAttribute('d', d);
     pathEl.style.stroke = opts.color;

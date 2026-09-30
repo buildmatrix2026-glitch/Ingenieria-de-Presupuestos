@@ -20833,10 +20833,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
   function renderGaugeGrid(el, catKeys, catVals, colors, sum) {
     if (!el) return;
+    // de mayor a menor porcentaje (a igualdad, se respeta el orden en que ya venían)
+    var orden = catKeys.map(function (k, i) { return { k: k, v: catVals[i], c: colors[i], i: i }; });
+    orden.sort(function (a, b) { return b.v - a.v || a.i - b.i; });
     var html = '';
-    catKeys.forEach(function (k, i) {
-      var pct = sum ? (catVals[i] / sum * 100) : 0;
-      html += buildGauge(pct, colors[i], k, GAUGE_ICONS[k] || '<circle cx="10" cy="10" r="6"/>');
+    orden.forEach(function (o) {
+      var pct = sum ? (o.v / sum * 100) : 0;
+      html += buildGauge(pct, o.c, o.k, GAUGE_ICONS[o.k] || '<circle cx="10" cy="10" r="6"/>');
     });
     el.innerHTML = html;
     playGaugeCharge(el);

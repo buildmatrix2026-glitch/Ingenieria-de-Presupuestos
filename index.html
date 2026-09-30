@@ -20715,19 +20715,58 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         chart.ctx.restore();
         var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
         if (!pts || pts.length < 2) return;
+        // Helpers de la curva bézier real de cada tramo (idénticos a los que usa Chart.js para
+        // dibujar la línea), para poder movernos sobre la curva exacta y no sobre una recta.
+        function segPts(i) {
+          var p0 = pts[i].getProps(['x', 'y', 'controlPointNextX', 'controlPointNextY'], true);
+          var p1 = pts[i + 1].getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY'], true);
+          return {
+            x0: p0.x, y0: p0.y,
+            c1x: (p0.controlPointNextX != null) ? p0.controlPointNextX : p0.x,
+            c1y: (p0.controlPointNextY != null) ? p0.controlPointNextY : p0.y,
+            c2x: (p1.controlPointPreviousX != null) ? p1.controlPointPreviousX : p1.x,
+            c2y: (p1.controlPointPreviousY != null) ? p1.controlPointPreviousY : p1.y,
+            x1: p1.x, y1: p1.y
+          };
+        }
+        function bez(s, lf) {
+          var u = 1 - lf;
+          return {
+            x: u * u * u * s.x0 + 3 * u * u * lf * s.c1x + 3 * u * lf * lf * s.c2x + lf * lf * lf * s.x1,
+            y: u * u * u * s.y0 + 3 * u * u * lf * s.c1y + 3 * u * lf * lf * s.c2y + lf * lf * lf * s.y1
+          };
+        }
+        // Recalcula la longitud aproximada de cada tramo (barata: 12 muestras) cada vez que
+        // cambian los datos, para poder avanzar a VELOCIDAD CONSTANTE a lo largo de toda la curva
+        // real, en vez de a velocidad constante "por tramo" — que es lo que hacía que la bolita se
+        // viera frenar (y perdiera brillo por el cambio de ritmo) cerca de los picos/valles.
+        var SAMPLES = 12;
+        var cacheKey = pts.length + ':' + pts.map(function (p) { return Math.round(p.x) + ',' + Math.round(p.y); }).join('|');
+        if (chart._bmNeonKey !== cacheKey) {
+          var segs = [], lens = [], total = 0;
+          for (var si = 0; si < pts.length - 1; si++) {
+            var s = segPts(si);
+            var prev = bez(s, 0), segLen = 0;
+            for (var k = 1; k <= SAMPLES; k++) {
+              var cur = bez(s, k / SAMPLES);
+              segLen += Math.hypot(cur.x - prev.x, cur.y - prev.y);
+              prev = cur;
+            }
+            segs.push(s); lens.push(segLen); total += segLen;
+          }
+          chart._bmNeonKey = cacheKey;
+          chart._bmNeonSegs = segs; chart._bmNeonLens = lens; chart._bmNeonTotal = total || 1;
+        }
+        var segs = chart._bmNeonSegs, lens = chart._bmNeonLens, total = chart._bmNeonTotal;
         var t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
-        var segF = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(segF)), lf = segF - i;
-        // La línea se dibuja como curva bézier (no recta), así que el punto se calcula sobre la
-        // misma curva real — si no, la bolita se ve "salida" de la línea en los picos y valles.
-        var p0 = pts[i].getProps(['x', 'y', 'controlPointNextX', 'controlPointNextY'], true);
-        var p1 = pts[i + 1].getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY'], true);
-        var c1x = (p0.controlPointNextX != null) ? p0.controlPointNextX : p0.x;
-        var c1y = (p0.controlPointNextY != null) ? p0.controlPointNextY : p0.y;
-        var c2x = (p1.controlPointPreviousX != null) ? p1.controlPointPreviousX : p1.x;
-        var c2y = (p1.controlPointPreviousY != null) ? p1.controlPointPreviousY : p1.y;
-        var u = 1 - lf;
-        var x = u * u * u * p0.x + 3 * u * u * lf * c1x + 3 * u * lf * lf * c2x + lf * lf * lf * p1.x;
-        var y = u * u * u * p0.y + 3 * u * u * lf * c1y + 3 * u * lf * lf * c2y + lf * lf * lf * p1.y;
+        var target = t * total, acc = 0, i = 0, lf = 0;
+        for (i = 0; i < lens.length; i++) {
+          if (acc + lens[i] >= target || i === lens.length - 1) { lf = lens[i] > 0 ? (target - acc) / lens[i] : 0; break; }
+          acc += lens[i];
+        }
+        lf = Math.max(0, Math.min(1, lf));
+        var pt = bez(segs[i], lf);
+        var x = pt.x, y = pt.y;
         var ctx = chart.ctx;
         ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 22;
         ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .5; ctx.fill();

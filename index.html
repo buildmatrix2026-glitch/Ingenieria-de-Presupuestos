@@ -20793,19 +20793,32 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }
     });
   }
-  // Crea (una sola vez por gráfico) el canvas transparente donde vive la bolita, puesto encima del
-  // canvas real de Chart.js dentro del mismo contenedor .gx-hud-canwrap (ya es position:relative).
+  // Crea el canvas transparente donde vive la bolita, puesto encima del canvas real de Chart.js
+  // dentro del mismo contenedor .gx-hud-canwrap (ya es position:relative).
+  //
+  // OJO — el bug de "aparecen varios puntos sueltos": cada vez que cambian los datos (cambiar de
+  // período, refrescar KPIs, etc.) el código de más abajo hace lineChart.destroy() y crea una
+  // instancia de Chart.js NUEVA. Si el overlay se guarda colgado del objeto chart (chart._bmNeonFx),
+  // cada chart nuevo no encuentra ese overlay (es un objeto distinto) y crea OTRO más, sin borrar el
+  // anterior — así se iban acumulando canvases superpuestos, cada uno congelado en el último punto
+  // donde quedó su bolita cuando esa instancia de Chart.js se destruyó. Eso es exactamente lo que se
+  // veía en la captura: varios puntos sueltos y quietos.
+  //
+  // La corrección: el overlay se guarda colgado del DIV contenedor (.gx-hud-canwrap), que es el
+  // mismo elemento del DOM durante toda la vida de la página — nunca se destruye ni se recrea,
+  // aunque el chart de adentro sí. Así el overlay se crea UNA sola vez de verdad y se reutiliza
+  // siempre, sin importar cuántas veces se recree el chart.
   function ensureNeonOverlay(chart) {
-    if (chart._bmNeonFx) return chart._bmNeonFx;
     var src = chart.canvas, wrap = src.parentNode;
     if (!wrap) return null;
+    if (wrap._bmNeonFx) return wrap._bmNeonFx;
     var fx = document.createElement('canvas');
     fx.style.position = 'absolute';
     fx.style.left = '0'; fx.style.top = '0';
     fx.style.width = '100%'; fx.style.height = '100%';
     fx.style.pointerEvents = 'none';
     wrap.appendChild(fx);
-    chart._bmNeonFx = fx;
+    wrap._bmNeonFx = fx;
     return fx;
   }
   // Bucle de 60fps: SOLO limpia y redibuja el canvas propio de la bolita. Nunca llama a

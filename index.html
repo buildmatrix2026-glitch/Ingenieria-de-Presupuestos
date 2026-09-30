@@ -4189,8 +4189,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     </div>
         </div>
         <div class="gx-hud-datepick" id="gxh-datepick">
-          <input type="date" class="gx-hud-dp" id="gxh-dp-date" data-for="dia,semana" aria-label="Elige el día exacto">
-          <input type="number" class="gx-hud-dp gx-hud-dp-year" id="gxh-dp-year" data-for="anio" placeholder="Año exacto (ej. 2024)" min="2000" max="2100">
+          <input type="date" class="gx-hud-dp" id="gxh-dp-date" data-for="dia,semana,anio" aria-label="Elige una fecha">
           <span class="gx-hud-dp-range" id="gxh-dp-rangewrap" data-for="rango">
             <input type="date" class="gx-hud-dp" id="gxh-dp-from" aria-label="Desde">
             <span>→</span>
@@ -4458,8 +4457,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     </div>
         </div>
         <div class="gx-hud-datepick" id="gxph-datepick">
-          <input type="date" class="gx-hud-dp" id="gxph-dp-date" data-for="dia,semana" aria-label="Elige el día exacto">
-          <input type="number" class="gx-hud-dp gx-hud-dp-year" id="gxph-dp-year" data-for="anio" placeholder="Año exacto (ej. 2024)" min="2000" max="2100">
+          <input type="date" class="gx-hud-dp" id="gxph-dp-date" data-for="dia,semana,anio" aria-label="Elige una fecha">
           <span class="gx-hud-dp-range" id="gxph-dp-rangewrap" data-for="rango">
             <input type="date" class="gx-hud-dp" id="gxph-dp-from" aria-label="Desde">
             <span>→</span>
@@ -20863,6 +20861,22 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     requestAnimationFrame(tick);
   }
+  // Mismo efecto de conteo para los 4 cuadros de KPIs (Total, Promedio, Pico, Comprobantes):
+  // sube desde cero cada vez que se dibujan, ya sea al cargar la página o al cambiar de período.
+  function animateKpi(el, target, isMoney) {
+    if (!el) return;
+    var t0 = performance.now(), duration = 1300, myTok = {};
+    el._bmKpiTok = myTok;   // si llega un nuevo valor antes de terminar, cancela la anterior
+    function tick(now) {
+      if (el._bmKpiTok !== myTok) return;
+      var p = Math.min(1, (now - t0) / duration);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = target * eased;
+      el.textContent = isMoney ? fmtUSD(val) : String(Math.round(val));
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
   // Enciende los trazos en secuencia, despacio y visible (efecto de carga real, no instantáneo).
   // Se dispara de nuevo cada vez que se reconstruye la grilla (cambio de período), y también la
   // primera vez que entra en pantalla al hacer scroll, gracias al IntersectionObserver.
@@ -20949,7 +20963,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (!force && sig === lastSig && lineChart) { lineChart.resize(); if (donutChart) donutChart.resize(); return; }
 
       // ── KPIs ──
-      $('kpi1-val').textContent = fmtUSD(an.total);
+      animateKpi($('kpi1-val'), an.total, true);
       var badge = $('kpi1-badge'), sub = $('kpi1-sub');
       if (an.prevTotal === null) { badge.textContent = 'TOTAL'; badge.className = 'badge flat'; sub.textContent = 'acumulado de todos los períodos'; }
       else {
@@ -20963,10 +20977,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         sub.textContent = 'vs. ' + an.prevLbl + ' · ' + fmtUSD(an.prevTotal);
       }
       $('kpi2-lbl').textContent = an.avgLbl;
-      $('kpi2-val').textContent = fmtUSD(an.avg);
-      $('kpi3-val').textContent = fmtUSD(an.picoValor);
+      animateKpi($('kpi2-val'), an.avg, true);
+      animateKpi($('kpi3-val'), an.picoValor, true);
       $('kpi3-sub').textContent = an.picoLabel;
-      $('kpi4-val').textContent = an.count;
+      animateKpi($('kpi4-val'), an.count, false);
       setEmpty(an.count === 0);
 
       if (typeof Chart === 'undefined') {
@@ -21011,11 +21025,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var ps = $('proj');
     if (ps) ps.addEventListener('change', function () { proj = ps.value || '__all__'; draw(true); });
 
-    // Fecha exacta / año exacto / rango de fechas: el panel de abajo cambia según la pestaña elegida.
+    // Fecha exacta / año exacto / rango de fechas: abre el selector NATIVO del sistema (calendario
+    // de Windows, rueda de fechas de iPhone/iPad, picker de Android) en vez de un cuadro propio.
     function parseDateInput(v) { if (!v) return null; var p = v.split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
     function getRefDate() {
-      if (current === 'anio') { var y = parseInt((($('dp-year') || {}).value || ''), 10); if (y) return new Date(y, 0, 15); }
-      else if (current === 'dia' || current === 'semana') { var d = parseDateInput(($('dp-date') || {}).value); if (d) return d; }
+      if (current === 'dia' || current === 'semana' || current === 'anio') {
+        var d = parseDateInput(($('dp-date') || {}).value); if (d) return d;
+      }
       return new Date();
     }
     function getRange() {
@@ -21029,9 +21045,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         el.style.display = el.getAttribute('data-for').split(',').indexOf(current) >= 0 ? '' : 'none';
       });
     }
-    function openDatepick(on) { if (dp) dp.classList.toggle('open', !!on); }
+    function openDatepick(on) { if (dp) dp.classList.toggle('open', !!on); }   // respaldo si el navegador no soporta showPicker()
+    function nativePicker(input) {
+      if (!input) return false;
+      try { input.showPicker(); return true; } catch (e) { return false; }
+    }
     if (dp) dp.addEventListener('change', function () { draw(true); });
-    if (dp) dp.addEventListener('click', function (e) { e.stopPropagation(); });   // no cerrar al tocar dentro
+    if (dp) dp.addEventListener('click', function (e) { e.stopPropagation(); });
+    var dpFrom = $('dp-from'), dpTo = $('dp-to');
+    if (dpFrom) dpFrom.addEventListener('change', function () { if (dpFrom.value && dpTo && !dpTo.value) nativePicker(dpTo); });
     syncDatepick();
 
     var tf = $('tf');
@@ -21039,7 +21061,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var btn = e.target.closest ? e.target.closest('button[data-p]') : null; if (!btn) return;
       tf.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
       btn.classList.add('on'); current = btn.getAttribute('data-p'); syncDatepick();
-      openDatepick(current === 'dia' || current === 'semana' || current === 'anio' || current === 'rango');
+      var p = current;
+      if (p === 'dia' || p === 'semana' || p === 'anio') { if (!nativePicker($('dp-date'))) openDatepick(true); }
+      else if (p === 'rango') { if (!nativePicker(dpFrom)) openDatepick(true); }
+      else openDatepick(false);
       draw(true);
     });
     document.addEventListener('click', function (e) {

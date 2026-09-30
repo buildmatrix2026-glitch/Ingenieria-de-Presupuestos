@@ -17084,14 +17084,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     // 2) para mostrarlas, las reordena: primero "No corresponde", luego las que hay que "Revisar"
     //    (avisos, incompletas, duplicadas o con error), y al final las que ya están "Lista".
     //    Las que aún se están leyendo se muestran al final, porque todavía no se sabe en qué grupo caen.
-    function prioridad(s) {
+    //    Si la corriges a mano con la píldora, su lugar en la lista queda fijo desde ese momento (no
+    //    salta de sitio cada vez que cambias de opinión — solo cambia la píldora).
+    function prioridad(d, s) {
+      if (d.sortLock !== undefined) return d.sortLock;
       if (s === 'skip') return 0;
       if (s === 'warn' || s === 'incomplete' || s === 'dup' || s === 'error') return 1;
       if (s === 'ok') return 2;
       return 3;   // pending | processing
     }
     var ordenados = items.slice().sort(function (a, b) {
-      var pa = prioridad(a.s), pb = prioridad(b.s);
+      var pa = prioridad(a.d, a.s), pb = prioridad(b.d, b.s);
       return pa !== pb ? pa - pb : a.idx - b.idx;
     });
     var html = ordenados.map(function (it) {
@@ -17174,6 +17177,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Gastos Indirectos');
+          if (d.origAplica === undefined) d.origAplica = r.data.aplica;   // para no reordenar la fila si luego se corrige a mano
           d.local = /^Local/.test(r.model || ''); d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated || r.data.revisar) ? 'warn' : 'ok';
           okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
@@ -17250,6 +17254,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function toggleAplica(id) {
     var d = draftById(id); if (!d || !d.data) return;
     var yaAplica = (d.data.aplica !== false);
+    if (d.sortLock === undefined) {
+      // congela su lugar en la lista tal como está AHORA, antes de cambiar de opinión, para que
+      // la fila no salte de sitio cada vez que tocas la píldora (solo cambia el texto/color).
+      d.sortLock = yaAplica ? (d.status === 'warn' ? 1 : 2) : 0;
+    }
     d.data.aplica = !yaAplica;
     if (d.data.aplica) { d.data.motivoNoAplica = ''; }
     else if (!d.data.motivoNoAplica) { d.data.motivoNoAplica = 'Marcado a mano como que no corresponde.'; }
@@ -19949,14 +19958,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var s = draftState(d, saved, proyecto, seen);
       return { d: d, s: s, idx: idx };
     });
-    function prioridad(s) {
+    function prioridad(d, s) {
+      if (d.sortLock !== undefined) return d.sortLock;
       if (s === 'skip') return 0;
       if (s === 'warn' || s === 'incomplete' || s === 'dup' || s === 'error') return 1;
       if (s === 'ok') return 2;
       return 3;   // pending | processing
     }
     var ordenados = items.slice().sort(function (a, b) {
-      var pa = prioridad(a.s), pb = prioridad(b.s);
+      var pa = prioridad(a.d, a.s), pb = prioridad(b.d, b.s);
       return pa !== pb ? pa - pb : a.idx - b.idx;
     });
     var html = ordenados.map(function (it) {
@@ -20037,6 +20047,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           try {
           var r = await extractOne(d.file, d.tok, d);
           d.data = r.data; d.ms = r.ms; d.model = r.model; d.cat = (r.data.categoria && CATS.indexOf(r.data.categoria) >= 0) ? r.data.categoria : (d.cat || 'Alimentación');
+          if (d.origAplica === undefined) d.origAplica = r.data.aplica;   // para no reordenar la fila si luego se corrige a mano
           d.local = /^Local/.test(r.model || ''); d.status = (r.data.warn || r.data.itemsWarn || r.data.truncated || r.data.revisar) ? 'warn' : 'ok';
           okStreak++; if (okStreak >= 3 && CFG.concurrency < CFG.maxConc) { CFG.concurrency++; okStreak = 0; }
         } catch (e) {
@@ -20113,6 +20124,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function toggleAplica(id) {
     var d = draftById(id); if (!d || !d.data) return;
     var yaAplica = (d.data.aplica !== false);
+    if (d.sortLock === undefined) {
+      // congela su lugar en la lista tal como está AHORA, antes de cambiar de opinión, para que
+      // la fila no salte de sitio cada vez que tocas la píldora (solo cambia el texto/color).
+      d.sortLock = yaAplica ? (d.status === 'warn' ? 1 : 2) : 0;
+    }
     d.data.aplica = !yaAplica;
     if (d.data.aplica) { d.data.motivoNoAplica = ''; }
     else if (!d.data.motivoNoAplica) { d.data.motivoNoAplica = 'Marcado a mano como que no corresponde.'; }

@@ -2668,9 +2668,7 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-hud-panel h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gx-tx2);margin:0 0 12px;font-weight:700}
 .gx-scope .gx-hud-panel .gx-hud-canwrap{position:relative;height:230px}
 .gx-scope .gx-hud-panel .gx-hud-canwrap canvas{max-width:100%}
-.gx-scope .gx-hud-panel .gx-hud-canwrap .bm-neon-svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
-.gx-scope .gx-hud-panel .gx-hud-canwrap .bm-neon-path{stroke-width:3;stroke-linecap:round;fill:none;stroke-dasharray:9 91;filter:drop-shadow(0 0 3px currentColor) drop-shadow(0 0 9px currentColor);animation:bmNeonTravel 3.2s linear infinite}
-@keyframes bmNeonTravel{to{stroke-dashoffset:-100}}
+
 .gx-scope .gx-hud-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--gx-tx2)}
 .gx-scope .gx-hud-legend span{display:inline-flex;align-items:center;gap:5px}
 .gx-scope .gx-hud-legend i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
@@ -20716,96 +20714,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   // "congelado": si el período queda vacío, el dataset de Chart.js queda con 0 puntos y el atributo
   // "d" del path se vacía — no hay luz ni bolita que mostrar, sencillamente desaparece.
   var neonRegistered = false;
-  function ensureNeonPlugin() {
-    if (neonRegistered || typeof Chart === 'undefined') return;
-    neonRegistered = true;
-    Chart.register({
-      id: 'bmNeon',
-      // Brillo (shadowBlur) fijo de la línea del propio Chart.js — el glow base de la curva.
-      // Aparte de la luz que la recorre; ocurre durante el dibujado normal de Chart.js.
-      beforeDatasetsDraw: function (chart, args, opts) {
-        if (!opts || !opts.color || chart.config.type !== 'line') return;
-        chart.ctx.save();
-        chart.ctx.shadowColor = opts.color;
-        chart.ctx.shadowBlur = opts.blur || 12;
-      },
-      afterDatasetsDraw: function (chart, args, opts) {
-        if (!opts || !opts.color || chart.config.type !== 'line') return;
-        chart.ctx.restore();
-        updateNeonPath(chart, opts);
-      }
-    });
-  }
-  // Crea (una sola vez, colgado del DIV contenedor .gx-hud-canwrap — NO del objeto chart, que
-  // Chart.js destruye y recrea cada vez que cambian los datos) el <svg><path> por donde corre la luz.
-  function ensureNeonSvg(chart) {
-    var src = chart.canvas, wrap = src.parentNode;
-    if (!wrap) return null;
-    if (wrap._bmNeonSvg) return wrap._bmNeonSvg;
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'bm-neon-svg');
-    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('class', 'bm-neon-path');
-    path.setAttribute('pathLength', '100');
-    path.setAttribute('fill', 'none');
-    svg.appendChild(path);
-    wrap.appendChild(svg);
-    wrap._bmNeonSvg = svg;
-    wrap._bmNeonPathEl = path;
-    return svg;
-  }
-  // Reconstruye el trazo del <path> a partir de la geometría real que Chart.js acaba de calcular
-  // para la curva (los mismos puntos y curvas de control bézier que usa para dibujar la línea) —
-  // así la luz recorre EXACTAMENTE el mismo camino que ve el ojo, nunca uno aproximado.
-  function updateNeonPath(chart, opts) {
-    var svg = ensureNeonSvg(chart); if (!svg) return;
-    var wrap = chart.canvas.parentNode, pathEl = wrap._bmNeonPathEl;
-    var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
-    if (!pts || pts.length < 2) { pathEl.setAttribute('d', ''); return; }
-    var src = chart.canvas;
-    var w = src.clientWidth || src.offsetWidth, h = src.clientHeight || src.offsetHeight;
-    if (w && h) { svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h); svg.style.width = w + 'px'; svg.style.height = h + 'px'; }
-    var props = pts.map(function (p) {
-      return p.getProps(['x', 'y', 'controlPointPreviousX', 'controlPointPreviousY', 'controlPointNextX', 'controlPointNextY'], true);
-    });
-    // OJO: aquí NO se emiten comandos "C" (curva bézier) — se aproxima cada tramo con muchos
-    // segmentos RECTOS muy cortos ("L"), que visualmente se ven idénticos a la curva suave pero
-    // resuelven un bug real de los navegadores: con pathLength="100", el navegador tiene que medir
-    // la longitud de arco del trazo para repartir la animación proporcionalmente, y en tramos
-    // bézier esa medición no siempre es exacta (algunos motores la aproximan con la distancia en
-    // línea recta entre los puntos de control, más corta que el camino curvo real) — eso es lo que
-    // hacía que la luz "cortara en línea recta" justo en el tramo donde la curva se dobla más
-    // fuerte (el pico). Con tramos rectos de verdad, la longitud de arco es exacta en cualquier
-    // navegador, porque no hay nada que aproximar.
-    function bez(s, lf) {
-      var u = 1 - lf;
-      return {
-        x: u * u * u * s.x0 + 3 * u * u * lf * s.c1x + 3 * u * lf * lf * s.c2x + lf * lf * lf * s.x1,
-        y: u * u * u * s.y0 + 3 * u * u * lf * s.c1y + 3 * u * lf * lf * s.c2y + lf * lf * lf * s.y1
-      };
-    }
-    var SAMPLES = 24; // por tramo — denso de sobra para que se vea perfectamente suave
-    var d = 'M' + props[0].x.toFixed(1) + ',' + props[0].y.toFixed(1);
-    for (var i = 1; i < props.length; i++) {
-      var a = props[i - 1], b = props[i];
-      var s = {
-        x0: a.x, y0: a.y,
-        c1x: (a.controlPointNextX != null) ? a.controlPointNextX : a.x,
-        c1y: (a.controlPointNextY != null) ? a.controlPointNextY : a.y,
-        c2x: (b.controlPointPreviousX != null) ? b.controlPointPreviousX : b.x,
-        c2y: (b.controlPointPreviousY != null) ? b.controlPointPreviousY : b.y,
-        x1: b.x, y1: b.y
-      };
-      for (var k = 1; k <= SAMPLES; k++) {
-        var p = bez(s, k / SAMPLES);
-        d += ' L' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
-      }
-    }
-    pathEl.setAttribute('d', d);
-    pathEl.style.stroke = opts.color;
-    pathEl.style.color = opts.color; // para que el filter:drop-shadow(currentColor) tome el color correcto
-  }
-
+  function ensureNeonPlugin() {}
   var GAUGE_ICONS = {
     'Materiales': '<rect x="2.5" y="9" width="6" height="5.5" rx=".5"/><rect x="9" y="9" width="6" height="5.5" rx=".5"/><rect x="5.7" y="3.5" width="6" height="5.5" rx=".5"/>',
     'Mano de Obra': '<path d="M3 14a7 7 0 0 1 14 0"/><rect x="2" y="14" width="16" height="2.3" rx="1"/>',
@@ -21022,7 +20931,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            bmNeon: { color: cfg.lineColor, duration: 3200 },
             tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: cfg.lineColor, borderColor: cfg.lineColor, borderWidth: 1, padding: 10,
               titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
               callbacks: { title: function (it) { return an.tips[it[0].dataIndex] || it[0].label; }, label: function (c) { return fmtUSD(c.parsed.y); } } }

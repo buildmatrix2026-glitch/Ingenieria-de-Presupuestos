@@ -15918,36 +15918,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!(g.total > 0)) { say('El monto total debe ser mayor a 0'); var t = $('gx-total'); if (t) t.focus(); return; }
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
 
-    // Si se llegó aquí desde "Revisar" en el LOTE: no se guarda de inmediato ni sale de la
-    // lista. Se actualizan sus datos (ya corregidos y confirmados a mano) y queda "Lista" (verde)
-    // para entrar junto con las demás al pulsar "Guardar todas".
-    if (st.editing) {
-      var dEdit = draftById(st.editing);
-      if (dEdit) {
-        var o = dEdit.data || {};
-        o.proveedor = g.proveedor; o.ruc = g.ruc; o.numero = g.numero; o.fecha = g.fecha;
-        o.subtotal = g.subtotal; o.iva = g.iva; o.total = g.total; o.categoria = g.categoria;
-        o.autorizacion = g.autorizacion; o.cliente = g.cliente; o.clienteId = g.clienteId; o.formaPago = g.formaPago;
-        o.tipo = g.extra.tipo; o.facModificada = g.extra.facModificada || ''; o.motivoNC = g.extra.motivoNC || '';
-        o.desglose = g.extra.desglose; o.subtotal0 = g.extra.subtotal0; o.noObjeto = g.extra.noObjeto;
-        o.exento = g.extra.exento; o.descuento = g.extra.descuento; o.ice = g.extra.ice; o.propina = g.extra.propina;
-        o.items = g.items;
-        // el usuario ya revisó y confirmó a mano: pasa a "Sí corresponde" / lista, sin avisos pendientes
-        o.aplica = true; o.motivoNoAplica = '';
-        o.sinItems = false; o.warn = false; o.itemsWarn = false; o.truncated = false; o.revisar = false;
-        dEdit.data = o;
-        dEdit.sortLock = undefined;
-        if (CATS.indexOf(g.categoria) >= 0) dEdit.cat = g.categoria;
-        dEdit.status = 'ok';
-      }
-      st.editing = null;
-      resetForm();
-      closeManualModal();
-      renderBatch();
-      say(dEdit ? 'Datos actualizados: "' + g.proveedor + '" ya está lista para guardar.' : 'Datos actualizados.');
-      return;
-    }
-
     ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
@@ -15957,7 +15927,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!save(list)) return;
     invalidateSavedCache();
     pushCloud(g);
+    var fromDraft = st.editing;
     resetForm();
+    if (fromDraft) removeDraft(fromDraft);
     closeManualModal();
     render();
     say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));
@@ -18860,36 +18832,6 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!(g.total > 0)) { say('El monto total debe ser mayor a 0'); var t = $('gxp-total'); if (t) t.focus(); return; }
     if (!g.subtotal) g.subtotal = round2(Math.max(0, g.total - g.iva));
 
-    // Si se llegó aquí desde "Revisar" en el LOTE: no se guarda de inmediato ni sale de la
-    // lista. Se actualizan sus datos (ya corregidos y confirmados a mano) y queda "Lista" (verde)
-    // para entrar junto con las demás al pulsar "Guardar todas".
-    if (st.editing) {
-      var dEdit = draftById(st.editing);
-      if (dEdit) {
-        var o = dEdit.data || {};
-        o.proveedor = g.proveedor; o.ruc = g.ruc; o.numero = g.numero; o.fecha = g.fecha;
-        o.subtotal = g.subtotal; o.iva = g.iva; o.total = g.total; o.categoria = g.categoria;
-        o.autorizacion = g.autorizacion; o.cliente = g.cliente; o.clienteId = g.clienteId; o.formaPago = g.formaPago;
-        o.tipo = g.extra.tipo; o.facModificada = g.extra.facModificada || ''; o.motivoNC = g.extra.motivoNC || '';
-        o.desglose = g.extra.desglose; o.subtotal0 = g.extra.subtotal0; o.noObjeto = g.extra.noObjeto;
-        o.exento = g.extra.exento; o.descuento = g.extra.descuento; o.ice = g.extra.ice; o.propina = g.extra.propina;
-        o.items = g.items;
-        // el usuario ya revisó y confirmó a mano: pasa a "Sí corresponde" / lista, sin avisos pendientes
-        o.aplica = true; o.motivoNoAplica = '';
-        o.sinItems = false; o.warn = false; o.itemsWarn = false; o.truncated = false; o.revisar = false;
-        dEdit.data = o;
-        dEdit.sortLock = undefined;
-        if (CATS.indexOf(g.categoria) >= 0) dEdit.cat = g.categoria;
-        dEdit.status = 'ok';
-      }
-      st.editing = null;
-      resetForm();
-      closeManualModal();
-      renderBatch();
-      say(dEdit ? 'Datos actualizados: "' + g.proveedor + '" ya está lista para guardar.' : 'Datos actualizados.');
-      return;
-    }
-
     ncApply(g);   // nota de crédito: montos y cantidades en negativo
     var list = load();
     if (g.numero && list.some(function (x) { return x.proyecto === g.proyecto && x.numero === g.numero && x.proveedor.toLowerCase() === g.proveedor.toLowerCase(); })) {
@@ -18899,7 +18841,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!save(list)) return;
     invalidateSavedCache();
     pushCloud(g);
+    var fromDraft = st.editing;
     resetForm();
+    if (fromDraft) removeDraft(fromDraft);
     closeManualModal();
     render();
     say((nc ? 'Nota de crédito guardada: ' : 'Gasto guardado: ') + money(g.total));

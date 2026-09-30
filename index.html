@@ -20816,8 +20816,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       }
       lf = Math.max(0, Math.min(1, lf));
       var pt = chart._bmNeonBez(segs[i], lf);
-      ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 22;
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .5; ctx.fill();
+      // 'lighter' = mezcla ADITIVA: la bolita SUMA luz sobre lo que ya está dibujado (el punto de
+      // dato con su borde oscuro, la grilla, lo que sea) en vez de mezclarse normalmente con esos
+      // colores. Con mezcla normal, pasar por encima del borde oscuro del marcador de cada dato
+      // (que cae justo en los picos/valles) "apagaba" visualmente la bolita ahí — con 'lighter' se
+      // ve igual de brillante en cualquier punto de la curva, sin importar qué haya debajo.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = opts.color; ctx.shadowBlur = 26;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 8.5, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .65; ctx.fill();
       ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.restore();
     });

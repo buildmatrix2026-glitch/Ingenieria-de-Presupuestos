@@ -2662,8 +2662,17 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--gx-tx2);background:rgba(11,15,25,.55);border-radius:10px}
 .gx-scope .gx-hud-charts{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;position:relative;z-index:1}
 @media(max-width:860px){ .gx-scope .gx-hud-charts{grid-template-columns:1fr} }
-.gx-scope .gx-hud-panel{border:1px solid rgba(6,182,212,.2);border-radius:14px;padding:16px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;min-width:0}
+.gx-scope .gx-hud-panel{border:1px solid rgba(6,182,212,.2);border-radius:14px;padding:16px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden}
 .gx-scope .gx-hud.pu .gx-hud-panel{border-color:rgba(139,92,246,.2)}
+.gx-scope .gx-hud-panel>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 4px currentColor)}
+.gx-scope .gx-hud-panel>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.7;stroke-width:2;animation:bmHudRun var(--bmhud-dur,4s) linear infinite}
+.gx-scope .gx-hud-panel>.bmhud-run{color:#06b6d4}
+.gx-scope .gx-hud.pu .gx-hud-panel>.bmhud-run{color:#a855f7}
+.gx-scope .gx-hud>.bmhud-run{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2;filter:drop-shadow(0 0 5px currentColor);color:#06b6d4}
+.gx-scope .gx-hud.pu>.bmhud-run{color:#a855f7}
+.gx-scope .gx-hud>.bmhud-run rect{fill:none;stroke:currentColor;stroke-opacity:.6;stroke-width:2;animation:bmHudRun var(--bmhud-dur,7s) linear infinite}
+@keyframes bmHudRun{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
+@media (prefers-reduced-motion: reduce){ .gx-scope .bmhud-run rect{animation:none} }
 .gx-scope .gx-hud-panel h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gx-tx2);margin:0 0 12px;font-weight:700}
 .gx-scope .gx-hud-panel .gx-hud-canwrap{position:relative;height:230px}
 .gx-scope .gx-hud-panel .gx-hud-canwrap canvas{max-width:100%}
@@ -20644,10 +20653,98 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     })();
   }
 
+  // Luz tipo cometa que recorre el borde de un panel (mismo recurso visual que los botones
+  // "Comenzar/Calcular" y los modales de confirmación): un trazo con cola que se desvanece,
+  // dando la vuelta al contorno en bucle. Se ajusta sola al tamaño real del panel.
+  function addRunHud(el, durSec) {
+    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'bmhud-run'); svg.setAttribute('aria-hidden', 'true');
+    var N = 14, G = 36, LMAX = 24, i, L, r;
+    for (i = 0; i < N; i++) {
+      L = LMAX * (i + 1) / N;
+      r = document.createElementNS(NS, 'rect');
+      r.setAttribute('pathLength', '100');
+      r.setAttribute('stroke-dasharray', '0 ' + (G - L).toFixed(2) + ' ' + L.toFixed(2) + ' ' + (100 - G).toFixed(2));
+      svg.appendChild(r);
+    }
+    el.appendChild(svg);
+    function fit() {
+      var w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h) return;
+      var cs = getComputedStyle(el), rad = parseFloat(cs.borderRadius) || 14;
+      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      Array.prototype.forEach.call(svg.children, function (rr) {
+        rr.setAttribute('x', 1); rr.setAttribute('y', 1);
+        rr.setAttribute('width', Math.max(0, w - 2)); rr.setAttribute('height', Math.max(0, h - 2));
+        rr.setAttribute('rx', Math.max(0, rad - 1));
+      });
+      svg.style.setProperty('--bmhud-dur', (durSec || (2 * (w + h) / 220)).toFixed(2) + 's');
+    }
+    requestAnimationFrame(fit);
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(el); else window.addEventListener('resize', fit);
+  }
+
+  // Brillo neón + un punto de luz que recorre la curva (línea) o el anillo (dona), dibujado
+  // encima de Chart.js en cada cuadro. Se activa solo mientras el panel está visible.
+  var NEON_T0 = Date.now(), neonRegistered = false;
+  function ensureNeonPlugin() {
+    if (neonRegistered || typeof Chart === 'undefined') return;
+    neonRegistered = true;
+    Chart.register({
+      id: 'bmNeon',
+      beforeDatasetsDraw: function (chart, args, opts) {
+        if (!opts || !opts.color) return;
+        chart.ctx.save();
+        chart.ctx.shadowColor = opts.color;
+        chart.ctx.shadowBlur = opts.blur || 12;
+      },
+      afterDatasetsDraw: function (chart, args, opts) {
+        if (!opts || !opts.color) return;
+        chart.ctx.restore();
+        var ctx = chart.ctx, t = ((Date.now() - NEON_T0) / (opts.duration || 3200)) % 1;
+        if (chart.config.type === 'line') {
+          var meta = chart.getDatasetMeta(0), pts = meta && meta.data;
+          if (!pts || pts.length < 2) return;
+          var segF = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(segF)), lf = segF - i;
+          var p0 = pts[i].getProps(['x', 'y'], true), p1 = pts[i + 1].getProps(['x', 'y'], true);
+          var x = p0.x + (p1.x - p0.x) * lf, y = p0.y + (p1.y - p0.y) * lf;
+          ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 22;
+          ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fillStyle = opts.color; ctx.globalAlpha = .5; ctx.fill();
+          ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+          ctx.restore();
+        } else if (chart.config.type === 'doughnut') {
+          var m2 = chart.getDatasetMeta(0), arc0 = m2 && m2.data && m2.data[0];
+          if (!arc0) return;
+          var props = arc0.getProps(['x', 'y', 'innerRadius', 'outerRadius'], true);
+          var rad = (props.innerRadius + props.outerRadius) / 2, ang = t * Math.PI * 2 - Math.PI / 2;
+          var x2 = props.x + Math.cos(ang) * rad, y2 = props.y + Math.sin(ang) * rad;
+          ctx.save(); ctx.shadowColor = opts.color; ctx.shadowBlur = 20;
+          ctx.beginPath(); ctx.arc(x2, y2, 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+          ctx.restore();
+        }
+      }
+    });
+  }
+  // Redibuja los gráficos activos en cada frame para que la luz se vea en movimiento continuo
+  // (sin esto el punto quedaría fijo, ya que Chart.js no redibuja solo cuando nada cambia).
+  var HUD_INSTANCES = [];
+  (function neonLoop() {
+    HUD_INSTANCES.forEach(function (inst) {
+      if (inst.root.offsetParent === null) return;   // pestaña oculta: no gasta CPU
+      var lc = inst.getLine(), dc = inst.getDonut();
+      if (lc) lc.draw();
+      if (dc) dc.draw();
+    });
+    requestAnimationFrame(neonLoop);
+  })();
+
   function initHud(cfg) {
     var root = document.getElementById(cfg.prefix + '-hud');
     if (!root) return;
     var lineChart = null, donutChart = null, current = 'mes', lastSig = '', proj = '__all__';
+    HUD_INSTANCES.push({ root: root, getLine: function () { return lineChart; }, getDonut: function () { return donutChart; } });
+    addRunHud(root);
+    root.querySelectorAll('.gx-hud-panel').forEach(function (p) { addRunHud(p); });
 
     function $(s) { return document.getElementById(cfg.prefix + '-' + s); }
     function getData() {
@@ -20720,6 +20817,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         loadChart(function (ok) { if (ok) { setMsg(''); draw(true); } else setMsg('NO SE PUDO CARGAR LA LIBRERÍA DE GRÁFICOS · REVISA TU CONEXIÓN Y RECARGA'); });
         return;
       }
+      ensureNeonPlugin();
       lastSig = sig;
 
       // ── Oscilograma ──
@@ -20736,6 +20834,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
+            bmNeon: { color: cfg.lineColor, duration: 3200 },
             tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: cfg.lineColor, borderColor: cfg.lineColor, borderWidth: 1, padding: 10,
               titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
               callbacks: { title: function (it) { return an.tips[it[0].dataIndex] || it[0].label; }, label: function (c) { return fmtUSD(c.parsed.y); } } }
@@ -20756,6 +20855,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         options: {
           responsive: true, maintainAspectRatio: false, cutout: '68%',
           plugins: { legend: { display: false },
+            bmNeon: { color: cfg.lineColor, duration: 4200 },
             tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: '#e5e7eb', padding: 10, titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
               callbacks: { label: function (c) { var s = c.dataset.data.reduce(function (x, y) { return x + y; }, 0); return c.label + ': ' + fmtUSD(c.parsed) + (s ? ' (' + (c.parsed / s * 100).toFixed(1) + '%)' : ''); } } } }
         }

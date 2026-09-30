@@ -2673,15 +2673,29 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 @keyframes bmHudRun{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
 @media (prefers-reduced-motion: reduce){ .gx-scope .bmhud-run rect{animation:none} }
 .gx-scope .gx-hud-tf{position:relative}
-.gx-scope .gx-hud-datepick{display:none;position:absolute;top:64px;right:22px;z-index:30;align-items:center;gap:10px;flex-wrap:wrap;
-  background:#0b0f19;border:1px solid rgba(6,182,212,.4);border-radius:12px;padding:12px 14px;box-shadow:0 16px 40px -10px rgba(0,0,0,.7);max-width:280px}
-.gx-scope .gx-hud-datepick.open{display:flex}
-.gx-scope .gx-hud.pu .gx-hud-datepick{border-color:rgba(139,92,246,.4)}
-.gx-scope .gx-hud-dp{background:rgba(255,255,255,.03);border:1px solid rgba(6,182,212,.4);border-radius:8px;color:#e5faff;
-  font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;padding:7px 10px;height:32px;color-scheme:dark;min-height:0}
-.gx-scope .gx-hud.pu .gx-hud-dp{border-color:rgba(139,92,246,.4)}
-.gx-scope .gx-hud-dp-year{width:100%}
-.gx-scope .gx-hud-dp-range{display:flex;align-items:center;gap:8px;color:var(--gx-tx2);font-family:'JetBrains Mono',monospace;font-size:11px;flex-wrap:wrap}
+.gx-hud-dpmodal{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;
+  padding:20px;background:rgba(5,8,15,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.gx-hud-dpmodal.open{display:flex}
+.gx-hud-dpcard{width:min(360px,100%);background:#0b0f19;border:1px solid rgba(6,182,212,.4);border-radius:16px;
+  padding:22px 22px 18px;box-shadow:0 30px 90px -20px rgba(0,0,0,.85);animation:gxDpIn .22s ease}
+.gx-hud-dpmodal.pu .gx-hud-dpcard{border-color:rgba(139,92,246,.4)}
+@keyframes gxDpIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.gx-hud-dpttl{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
+  color:#67e8f9;margin-bottom:16px;text-align:center}
+.gx-hud-dpmodal.pu .gx-hud-dpttl{color:#d8b4fe}
+.gx-hud-dpbody{display:flex;flex-direction:column;gap:12px}
+.gx-hud-dp-range{display:flex;gap:10px}
+.gx-hud-dp-range .gx-hud-dpfield{flex:1}
+.gx-hud-dpfield{display:flex;flex-direction:column;gap:5px}
+.gx-hud-dpfield span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--gx-tx2);font-weight:700}
+.gx-hud-dp{background:rgba(255,255,255,.04);border:1px solid rgba(6,182,212,.4);border-radius:9px;color:#e5faff;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;padding:9px 10px;height:38px;color-scheme:dark;min-height:0;width:100%;box-sizing:border-box}
+.gx-hud-dpmodal.pu .gx-hud-dp{border-color:rgba(139,92,246,.4)}
+.gx-hud-dpactions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.gx-hud-dpbtn{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.04em;padding:9px 16px;border-radius:9px;
+  border:1px solid rgba(6,182,212,.5);background:rgba(6,182,212,.14);color:#67e8f9;cursor:pointer;min-height:0;width:auto}
+.gx-hud-dpmodal.pu .gx-hud-dpbtn{border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.14);color:#d8b4fe}
+.gx-hud-dpbtn.ghost{background:transparent;border-color:rgba(255,255,255,.15);color:var(--gx-tx2)}
 .gx-scope .gx-hud-panel h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gx-tx2);margin:0 0 12px;font-weight:700}
 .gx-scope .gx-hud-panel .gx-hud-canwrap{position:relative;height:230px}
 .gx-scope .gx-hud-panel .gx-hud-canwrap canvas{max-width:100%}
@@ -4188,13 +4202,24 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
     </div>
     </div>
         </div>
-        <div class="gx-hud-datepick" id="gxh-datepick">
-          <input type="date" class="gx-hud-dp" id="gxh-dp-date" data-for="dia,semana,anio" aria-label="Elige una fecha">
-          <span class="gx-hud-dp-range" id="gxh-dp-rangewrap" data-for="rango">
-            <input type="date" class="gx-hud-dp" id="gxh-dp-from" aria-label="Desde">
-            <span>→</span>
-            <input type="date" class="gx-hud-dp" id="gxh-dp-to" aria-label="Hasta">
-          </span>
+        <div class="gx-hud-dpmodal" id="gxh-dpmodal">
+          <div class="gx-hud-dpcard">
+            <div class="gx-hud-dpttl" id="gxh-dpttl">Elige la fecha exacta</div>
+            <div class="gx-hud-dpbody">
+              <label class="gx-hud-dpfield" data-for="dia,semana,anio">
+                <span>Fecha</span>
+                <input type="date" class="gx-hud-dp" id="gxh-dp-date" aria-label="Elige una fecha">
+              </label>
+              <div class="gx-hud-dp-range" data-for="rango">
+                <label class="gx-hud-dpfield"><span>Desde</span><input type="date" class="gx-hud-dp" id="gxh-dp-from" aria-label="Desde"></label>
+                <label class="gx-hud-dpfield"><span>Hasta</span><input type="date" class="gx-hud-dp" id="gxh-dp-to" aria-label="Hasta"></label>
+              </div>
+            </div>
+            <div class="gx-hud-dpactions">
+              <button type="button" class="gx-hud-dpbtn ghost" id="gxh-dpcancel">Cancelar</button>
+              <button type="button" class="gx-hud-dpbtn" id="gxh-dpapply">Aplicar</button>
+            </div>
+          </div>
         </div>
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxh-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxh-kpi1-val">$0,00</div><div class="sub" id="gxh-kpi1-sub">vs. período anterior</div></div>
@@ -4456,13 +4481,24 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <button type="button" data-p="rango">RANGO</button>
     </div>
         </div>
-        <div class="gx-hud-datepick" id="gxph-datepick">
-          <input type="date" class="gx-hud-dp" id="gxph-dp-date" data-for="dia,semana,anio" aria-label="Elige una fecha">
-          <span class="gx-hud-dp-range" id="gxph-dp-rangewrap" data-for="rango">
-            <input type="date" class="gx-hud-dp" id="gxph-dp-from" aria-label="Desde">
-            <span>→</span>
-            <input type="date" class="gx-hud-dp" id="gxph-dp-to" aria-label="Hasta">
-          </span>
+        <div class="gx-hud-dpmodal pu" id="gxph-dpmodal">
+          <div class="gx-hud-dpcard">
+            <div class="gx-hud-dpttl" id="gxph-dpttl">Elige la fecha exacta</div>
+            <div class="gx-hud-dpbody">
+              <label class="gx-hud-dpfield" data-for="dia,semana,anio">
+                <span>Fecha</span>
+                <input type="date" class="gx-hud-dp" id="gxph-dp-date" aria-label="Elige una fecha">
+              </label>
+              <div class="gx-hud-dp-range" data-for="rango">
+                <label class="gx-hud-dpfield"><span>Desde</span><input type="date" class="gx-hud-dp" id="gxph-dp-from" aria-label="Desde"></label>
+                <label class="gx-hud-dpfield"><span>Hasta</span><input type="date" class="gx-hud-dp" id="gxph-dp-to" aria-label="Hasta"></label>
+              </div>
+            </div>
+            <div class="gx-hud-dpactions">
+              <button type="button" class="gx-hud-dpbtn ghost" id="gxph-dpcancel">Cancelar</button>
+              <button type="button" class="gx-hud-dpbtn" id="gxph-dpapply">Aplicar</button>
+            </div>
+          </div>
         </div>
         <div class="gx-hud-kpis">
           <div class="gx-hud-kpi"><span class="badge up" id="gxph-kpi1-badge">+0.0%</span><div class="lbl">Total gastado</div><div class="val" id="gxph-kpi1-val">$0,00</div><div class="sub" id="gxph-kpi1-sub">vs. período anterior</div></div>
@@ -20865,7 +20901,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   // sube desde cero cada vez que se dibujan, ya sea al cargar la página o al cambiar de período.
   function animateKpi(el, target, isMoney) {
     if (!el) return;
-    var t0 = performance.now(), duration = 1300, myTok = {};
+    var t0 = performance.now(), duration = 2400, myTok = {};
     el._bmKpiTok = myTok;   // si llega un nuevo valor antes de terminar, cancela la anterior
     function tick(now) {
       if (el._bmKpiTok !== myTok) return;
@@ -21025,50 +21061,64 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var ps = $('proj');
     if (ps) ps.addEventListener('change', function () { proj = ps.value || '__all__'; draw(true); });
 
-    // Fecha exacta / año exacto / rango de fechas: abre el selector NATIVO del sistema (calendario
-    // de Windows, rueda de fechas de iPhone/iPad, picker de Android) en vez de un cuadro propio.
+    // Fecha exacta / año exacto / rango de fechas: ventana modal centrada (igual en cualquier
+    // dispositivo), con fondo difuminado detrás. Nada se recalcula hasta pulsar "Aplicar".
     function parseDateInput(v) { if (!v) return null; var p = v.split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
-    function getRefDate() {
-      if (current === 'dia' || current === 'semana' || current === 'anio') {
-        var d = parseDateInput(($('dp-date') || {}).value); if (d) return d;
-      }
-      return new Date();
-    }
-    function getRange() {
-      if (current !== 'rango') return { from: null, to: null };
-      return { from: parseDateInput(($('dp-from') || {}).value), to: parseDateInput(($('dp-to') || {}).value) };
-    }
-    var dp = $('datepick');
-    function syncDatepick() {
-      if (!dp) return;
-      dp.querySelectorAll('[data-for]').forEach(function (el) {
-        el.style.display = el.getAttribute('data-for').split(',').indexOf(current) >= 0 ? '' : 'none';
+    var refDate = null, rangeFrom = null, rangeTo = null;
+    function getRefDate() { return refDate || new Date(); }
+    function getRange() { return { from: rangeFrom, to: rangeTo }; }
+
+    var modal = $('dpmodal'), dpTtl = $('dpttl'), dpDate = $('dp-date'), dpFrom = $('dp-from'), dpTo = $('dp-to');
+    if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);   // fuera del panel: evita que un backdrop-filter ancestro lo desubique
+    var TITLES = { dia: 'Elige el día exacto', semana: 'Elige un día de esa semana', anio: 'Elige el año exacto', rango: 'Elige el rango de fechas' };
+    var pendingP = null;
+    function syncModalFields(p) {
+      if (!modal) return;
+      modal.querySelectorAll('[data-for]').forEach(function (el) {
+        el.style.display = el.getAttribute('data-for').split(',').indexOf(p) >= 0 ? '' : 'none';
       });
+      if (dpTtl) dpTtl.textContent = TITLES[p] || 'Elige la fecha';
     }
-    function openDatepick(on) { if (dp) dp.classList.toggle('open', !!on); }   // respaldo si el navegador no soporta showPicker()
-    function nativePicker(input) {
-      if (!input) return false;
-      try { input.showPicker(); return true; } catch (e) { return false; }
+    function openModal(p) {
+      if (!modal) return;
+      pendingP = p; syncModalFields(p);
+      modal.classList.add('open');
+      setTimeout(function () { var f = modal.querySelector('input[type=date]:not([style*="display: none"])'); if (f) f.focus(); }, 60);
     }
-    if (dp) dp.addEventListener('change', function () { draw(true); });
-    if (dp) dp.addEventListener('click', function (e) { e.stopPropagation(); });
-    var dpFrom = $('dp-from'), dpTo = $('dp-to');
-    if (dpFrom) dpFrom.addEventListener('change', function () { if (dpFrom.value && dpTo && !dpTo.value) nativePicker(dpTo); });
-    syncDatepick();
+    function closeModal() { if (modal) modal.classList.remove('open'); }
+    var applyBtn = $('dpapply'), cancelBtn = $('dpcancel');
+    if (applyBtn) applyBtn.addEventListener('click', function () {
+      if (pendingP === 'rango') {
+        rangeFrom = parseDateInput(dpFrom.value); rangeTo = parseDateInput(dpTo.value);
+        if (!rangeFrom || !rangeTo) { toastGx('Elige las dos fechas'); return; }
+        if (rangeFrom > rangeTo) { var tmp = rangeFrom; rangeFrom = rangeTo; rangeTo = tmp; }
+      } else {
+        var d = parseDateInput(dpDate.value);
+        if (!d) { toastGx('Elige una fecha'); return; }
+        refDate = d;
+      }
+      current = pendingP;
+      var tf2 = $('tf');
+      if (tf2) tf2.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-p') === current); });
+      closeModal(); draw(true);
+    });
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeModal(); });
+    function toastGx(msg) {
+      if (!dpTtl) return;
+      var old = dpTtl.textContent;
+      dpTtl.textContent = msg; dpTtl.style.color = '#f87171';
+      setTimeout(function () { dpTtl.textContent = old; dpTtl.style.color = ''; }, 1400);
+    }
 
     var tf = $('tf');
     if (tf) tf.addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button[data-p]') : null; if (!btn) return;
+      var p = btn.getAttribute('data-p');
+      if (p === 'dia' || p === 'semana' || p === 'anio' || p === 'rango') { openModal(p); return; }
       tf.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
-      btn.classList.add('on'); current = btn.getAttribute('data-p'); syncDatepick();
-      var p = current;
-      if (p === 'dia' || p === 'semana' || p === 'anio') { if (!nativePicker($('dp-date'))) openDatepick(true); }
-      else if (p === 'rango') { if (!nativePicker(dpFrom)) openDatepick(true); }
-      else openDatepick(false);
-      draw(true);
-    });
-    document.addEventListener('click', function (e) {
-      if (dp && dp.classList.contains('open') && !dp.contains(e.target) && (!tf || !tf.contains(e.target))) openDatepick(false);
+      btn.classList.add('on'); current = p; draw(true);
     });
 
     window[cfg.globalName] = function () { draw(false); };

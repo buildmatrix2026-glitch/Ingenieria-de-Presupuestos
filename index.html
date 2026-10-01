@@ -11816,10 +11816,21 @@ function logoutUser(){
   if (_logoutToken && _logoutUser) {
     // Cancelar listener de sesión ANTES de quitar el token para evitar falsa alerta de "otro dispositivo"
     if (window._sessionUnsub) { window._sessionUnsub(); window._sessionUnsub = null; }
+    // SEGURIDAD: si no hay red o hay algún problema de permisos, esta
+    // escritura a Firestore puede quedarse "colgada" sin resolver NI
+    // rechazar la promesa (sin persistencia offline, un write sin conexión
+    // simplemente espera indefinidamente a reconectar). Antes eso dejaba el
+    // botón "Salir" sin reaccionar — había que refrescar a mano para que
+    // la sesión realmente se cerrara. _runOnce() + el setTimeout de abajo
+    // garantizan que, pase lo que pase con esa escritura, el cierre de
+    // sesión SIEMPRE ocurre como máximo 2.5s después de pulsar "Sí, salir".
+    var _loggedOutOnce = false;
+    var _runOnce = function(){ if (_loggedOutOnce) return; _loggedOutOnce = true; _doLogout(); };
     // Quitar el token de este dispositivo del array de forma atómica
     firebase.firestore().collection('users').doc(_logoutUser.uid).update({
       activeSessions: firebase.firestore.FieldValue.arrayRemove(_logoutToken)
-    }).then(_doLogout).catch(_doLogout);
+    }).then(_runOnce).catch(_runOnce);
+    setTimeout(_runOnce, 2500);
   } else {
     _doLogout();
   }

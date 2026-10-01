@@ -21908,7 +21908,8 @@ html[data-theme="dark"] #land .bm-ring>.bm-run{position:absolute;left:0;top:0;wi
   background:linear-gradient(90deg,transparent,#67e8f9,transparent) no-repeat,linear-gradient(90deg,transparent,rgba(0,212,255,.45),transparent);
   background-size:18% 100%,100% 100%;background-position:-25% 0,0 0;animation:bmHdrRun 7s linear infinite}
 #land nav::before{content:'';position:absolute;left:0;bottom:-1px;width:26%;height:2px;pointer-events:none;z-index:3;opacity:0;
-  background:linear-gradient(90deg,transparent,#22d3ee,#a78bfa,transparent);box-shadow:0 0 18px 3px rgba(6,182,212,.7);animation:bmHdrBeam 1.5s .25s ease-out 1 both}
+  background:linear-gradient(90deg,transparent,#22d3ee,#a78bfa,transparent);box-shadow:0 0 18px 3px rgba(6,182,212,.7)}
+#land.bm-beam-go nav::before{animation:bmHdrBeam 1.5s ease-out 1 both}
 @media (prefers-reduced-motion:reduce){#land nav::after,#land nav::before{animation:none!important}}
 /* Subtítulo del inicio */
 html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--nz-on-s:0 0 8px rgba(103,232,249,.28),0 0 22px rgba(6,182,212,.18)}
@@ -22096,6 +22097,63 @@ html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--
   watch(document.querySelector('footer'), function (d) {
     footCopies.forEach(function (p, i) { light(p, d + i * 220); });
   });
+})();
+</script>
+
+<script id="bm-nav-beam-js">
+/* El rayo de entrada de la barra de navegación (landing) vive en un elemento
+   `position:fixed`. En Safari de iPad/iPhone, cuando la página está con el
+   zoom alejado (pinch-zoom o "Ajustar página"), el navegador recalcula el
+   layout de los elementos fixed poco después de la carga para acomodarlos
+   al viewport visual. Si eso ocurre mientras la animación del rayo está a
+   mitad de camino, la interrumpe y se queda a medias (o directamente no se
+   ve). Con zoom al 100% ese recálculo no pasa, por eso ahí siempre funciona.
+   Solución: no arrancar el rayo en el instante del parseo del HTML, sino
+   esperar a que el viewport esté "asentado" (tras load + un pequeño margen)
+   y, si el usuario cambia el zoom o rota el dispositivo, volver a lanzarlo
+   desde cero. Así el rayo siempre se ve completo, sin importar el zoom. */
+(function () {
+  'use strict';
+  var land = document.getElementById('land');
+  if (!land) return;
+
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) return;
+
+  var timer = null;
+
+  function playBeam() {
+    // Reinicia la animación quitando y re-añadiendo la clase (forzando reflow)
+    land.classList.remove('bm-beam-go');
+    void land.offsetWidth; // fuerza reflow para poder re-disparar la animación
+    land.classList.add('bm-beam-go');
+  }
+
+  function scheduleBeam(delay) {
+    clearTimeout(timer);
+    timer = setTimeout(playBeam, delay);
+  }
+
+  // Primer disparo: esperamos a que todo (fuentes, layout, zoom inicial de
+  // Safari) esté resuelto. 'load' + un margen extra es más seguro que
+  // DOMContentLoaded para este caso concreto.
+  if (document.readyState === 'complete') {
+    scheduleBeam(450);
+  } else {
+    window.addEventListener('load', function () { scheduleBeam(450); }, { once: true });
+  }
+
+  // Si el usuario cambia el zoom (pinch) o rota el dispositivo, Safari
+  // dispara 'resize' (y, si existe, el visualViewport también). Relanzamos
+  // el rayo una vez que el tamaño deja de cambiar (debounce), para que
+  // siempre termine de verse completo tras el ajuste.
+  var vv = window.visualViewport;
+  var onViewportChange = function () { scheduleBeam(350); };
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('orientationchange', onViewportChange);
+  if (vv) {
+    vv.addEventListener('resize', onViewportChange);
+  }
 })();
 </script>
 

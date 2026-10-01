@@ -14287,9 +14287,16 @@ if ('serviceWorker' in navigator) {
     var sources = [];
     try { sources = (typeof getSavedProjects === 'function' ? getSavedProjects() : []).slice(); } catch (e) {}
     var hadProjects = sources.length > 0;
-    if (typeof S !== 'undefined' && S) {
-      sources.push({ customAPU: S.customAPU, customInsumos: S.customInsumos, customGroups: null });
-    }
+    // SEGURIDAD: NO usar aquí el objeto de sesión en memoria "S" como fuente.
+    // "S" refleja lo que esté cargado en RAM en ESTE momento en la pestaña,
+    // y puede ser el proyecto de OTRO usuario si antes se cerró sesión sin
+    // recargar la página (ver fix en logoutUser()). Esta función escribe de
+    // forma PERMANENTE en users/{uid}/insumos|apus, así que solo debe fiarse
+    // de fuentes ya aisladas por uid de verdad: los proyectos guardados en
+    // localStorage bajo la clave con el uid actual (getSavedProjects()).
+    // Confiar en "S" aquí fue la causa real de que cuentas nuevas terminaran
+    // con los "PERSONALIZADOS" de otra cuenta grabados para siempre en su
+    // propia biblioteca. No reintroducir esa línea sin blindarla primero.
 
     var insMap = {}, apuMap = {}, bs = baseInsSet();
     sources.forEach(function (p) {

@@ -3340,7 +3340,18 @@ let mx = 0, my = 0, rx = 0, ry = 0;
 
 document.addEventListener('mousemove', e => {
   mx = e.clientX; my = e.clientY;
-  if (cur) { cur.style.left = (mx - 6) + 'px'; cur.style.top = (my - 6) + 'px'; }
+  // IMPORTANTE: NO restar ningún offset aquí. La posición real donde se
+  // registran los clics es siempre (e.clientX, e.clientY) sin importar lo
+  // que se vea visualmente. El CSS del cursor (flecha SVG, ver bloque
+  // "@media(hover:hover) and (pointer:fine) html body #cursor") ya aplica
+  // su propio transform:translate(-1.1px,-1.1px) calculado para que la
+  // PUNTA de la flecha caiga exactamente en (mx, my). Antes aquí se restaban
+  // 6px extra (left/top = mx-6/my-6), que sumados a ese transform desplazaban
+  // la punta visible ~7px hacia arriba-izquierda del punto real de clic —
+  // por eso al apuntar con la punta a botones pequeños (como la "×" de
+  // borrar un rubro) el clic caía fuera. Dejar que solo el CSS controle el
+  // ajuste fino de la punta.
+  if (cur) { cur.style.left = mx + 'px'; cur.style.top = my + 'px'; }
 }, { passive: true });
 
 (function loopRing() {
@@ -11772,20 +11783,35 @@ function logoutUser(){
     // Firestore (users/{uid}/insumos|apus) del usuario que realmente inició
     // sesión. No quitar este reload sin sustituirlo por un reseteo total
     // equivalente de BD, S, LIB, IMAP y listeners.
-    try { if (typeof bmLibStop === 'function') bmLibStop(); } catch (e) {}
-    try { if (typeof bmGastosStop === 'function') bmGastosStop(); } catch (e) {}
-    try { if (typeof _stopAdminListeners === 'function') _stopAdminListeners(); } catch (e) {}
-    if (window._statusUnsub) { try { window._statusUnsub(); } catch (e) {} window._statusUnsub = null; }
-    if (window._sessionUnsub) { try { window._sessionUnsub(); } catch (e) {} window._sessionUnsub = null; }
-    if (window._projectsListener) { try { window._projectsListener(); } catch (e) {} window._projectsListener = null; }
-    firebase.auth().signOut().then(function() {
-      sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
-      window.location.reload();
-    }).catch(function(err) {
-      console.warn('Error al cerrar sesión:', err);
-      sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
-      window.location.reload();
-    });
+    //
+    // IMPORTANTE — orden de apagado: Firestore NO tiene persistencia offline
+    // aquí, así que si borras/editas un insumo o APU y cierras sesión de
+    // inmediato, esa petición de red puede no haber salido todavía. Si
+    // cerráramos sesión y recargáramos ya, el borrado se PERDÍA (el doc
+    // seguía intacto en el servidor y "revivía" al volver a entrar). Por
+    // eso esperamos primero a _bmLibFlush() (hasta 3s) para que termine
+    // cualquier guardado/borrado pendiente de la biblioteca personal ANTES
+    // de desconectar listeners, cerrar sesión y recargar.
+    var _afterFlush = function() {
+      try { if (typeof bmLibStop === 'function') bmLibStop(); } catch (e) {}
+      try { if (typeof bmGastosStop === 'function') bmGastosStop(); } catch (e) {}
+      try { if (typeof _stopAdminListeners === 'function') _stopAdminListeners(); } catch (e) {}
+      if (window._statusUnsub) { try { window._statusUnsub(); } catch (e) {} window._statusUnsub = null; }
+      if (window._sessionUnsub) { try { window._sessionUnsub(); } catch (e) {} window._sessionUnsub = null; }
+      if (window._projectsListener) { try { window._projectsListener(); } catch (e) {} window._projectsListener = null; }
+      firebase.auth().signOut().then(function() {
+        sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
+        window.location.reload();
+      }).catch(function(err) {
+        console.warn('Error al cerrar sesión:', err);
+        sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
+        window.location.reload();
+      });
+    };
+    try {
+      if (typeof window._bmLibFlush === 'function') { window._bmLibFlush(3000).then(_afterFlush); return; }
+    } catch (e) {}
+    _afterFlush();
   };
   if (_logoutToken && _logoutUser) {
     // Cancelar listener de sesión ANTES de quitar el token para evitar falsa alerta de "otro dispositivo"
@@ -14076,6 +14102,27 @@ if ('serviceWorker' in navigator) {
     return o;
   }
 
+  /* ─────────────── TRACKING DE ESCRITURAS/BORRADOS PENDIENTES ───────────────
+     Firestore no tiene aquí persistencia offline habilitada: si el usuario
+     borra o edita algo y justo después cierra sesión / recarga la página,
+     la petición de red puede no haber salido todavía y la escritura se
+     PIERDE (el documento queda intacto en el servidor, "revive" al volver
+     a entrar). window._bmLibFlush() permite esperar a que todo lo pendiente
+     termine antes de cerrar sesión o recargar — ver logoutUser(). */
+  var _pendingOps = [];
+  function trackPending(p) {
+    _pendingOps.push(p);
+    var clean = function () { var i = _pendingOps.indexOf(p); if (i >= 0) _pendingOps.splice(i, 1); };
+    p.then(clean, clean);
+    return p;
+  }
+  window._bmLibFlush = function (timeoutMs) {
+    if (!_pendingOps.length) return Promise.resolve();
+    var all = Promise.all(_pendingOps.map(function (p) { return p.catch(function () {}); }));
+    if (!timeoutMs) return all;
+    return Promise.race([all, new Promise(function (res) { setTimeout(res, timeoutMs); })]);
+  };
+
   /* ─────────────── GUARDADO ─────────────── */
   // kind = 'insumo' → payload {ins:[code,desc,unit,price], cat}
   // kind = 'apu'    → payload {code, apu, grp, desc, unit, cd}
@@ -14095,7 +14142,7 @@ if ('serviceWorker' in navigator) {
     cache[code] = plain;                                  // optimista: contadores al instante
     window.actualizarContadoresUI();
 
-    return colRef(kind).doc(docId(code)).set(withTs(plain), { merge: true })
+    return trackPending(colRef(kind).doc(docId(code)).set(withTs(plain), { merge: true })
       .then(function () { return true; })
       .catch(function (err) {
         warn('guardando ' + kind + ' ' + code)(err);
@@ -14103,7 +14150,7 @@ if ('serviceWorker' in navigator) {
         window.actualizarContadoresUI();
         say('⚠ No se pudo guardar en tu biblioteca personal (' + ((err && err.code) || 'error') + ')');
         return false;
-      });
+      }));
   };
 
   // Hooks de edición / borrado (solo actúan sobre elementos propios de la biblioteca)
@@ -14114,7 +14161,7 @@ if ('serviceWorker' in navigator) {
     if (!apu) return;
     if (oldCode !== code && LIB.apu[oldCode]) {
       delete LIB.apu[oldCode];
-      colRef('apu').doc(docId(oldCode)).delete().catch(warn('renombrando APU'));
+      trackPending(colRef('apu').doc(docId(oldCode)).delete().catch(warn('renombrando APU')));
     }
     window._syncUserLibrary('apu', {
       code: code, apu: JSON.parse(JSON.stringify(apu)), grp: grp, desc: desc, unit: unit, cd: cd
@@ -14130,7 +14177,7 @@ if ('serviceWorker' in navigator) {
       if (same) {                                             // volvió al valor original → quitar override
         if (LIB.ins[code]) {
           delete LIB.ins[code];
-          colRef('insumo').doc(docId(code)).delete().catch(warn('quitando override'));
+          trackPending(colRef('insumo').doc(docId(code)).delete().catch(warn('quitando override')));
         }
         return;
       }
@@ -14144,10 +14191,16 @@ if ('serviceWorker' in navigator) {
     if (!LIB.uid) return;
     if (kind === 'insumo' && baseInsSet()[code]) return;      // borrar un insumo base es solo de la sesión
     var cache = (kind === 'insumo') ? LIB.ins : LIB.apu;
-    if (!cache[code]) return;
-    delete cache[code];
-    window.actualizarContadoresUI();
-    colRef(kind).doc(docId(code)).delete().catch(warn('eliminando ' + kind));
+    if (cache[code]) { delete cache[code]; window.actualizarContadoresUI(); }
+    // NOTA: antes esto salía (return) si el código no estaba en el caché
+    // local (LIB.ins/LIB.apu) y NUNCA llegaba a pedir el borrado remoto.
+    // Si por cualquier motivo el caché no reflejaba un doc que sí existe en
+    // users/{uid}/apus|insumos (p.ej. el item se cargó desde el proyecto
+    // abierto y no desde el snapshot de la biblioteca), el documento
+    // quedaba huérfano en Firestore y "revivía" en la siguiente sesión.
+    // Pedir el borrado remoto siempre es seguro: si el doc no existe,
+    // Firestore simplemente no hace nada.
+    trackPending(colRef(kind).doc(docId(code)).delete().catch(warn('eliminando ' + kind)));
   };
 
   /* ─────────────── LISTENERS EN TIEMPO REAL ─────────────── */

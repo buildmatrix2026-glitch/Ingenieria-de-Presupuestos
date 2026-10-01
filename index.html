@@ -11762,25 +11762,29 @@ function logoutUser(){
   var _logoutToken = localStorage.getItem('bm_session_token');
   var _logoutUser = firebase.auth().currentUser;
   var _doLogout = function() {
+    // SEGURIDAD: tras cerrar sesión forzamos recarga completa de la página.
+    // Motivo: BD/BD.G/BD.A/S (insumos, APUs y "PERSONALIZADOS" del proyecto
+    // abierto) viven en memoria JS y NO se reseteaban al cerrar sesión. Si
+    // otro usuario iniciaba sesión en la misma pestaña sin recargar, veía
+    // los insumos/APUs/rubros personalizados del proyecto que había quedado
+    // cargado en memoria del usuario anterior. Recargar garantiza que cada
+    // sesión arranque 100% limpia desde _BD_ORIG y solo cargue la biblioteca
+    // Firestore (users/{uid}/insumos|apus) del usuario que realmente inició
+    // sesión. No quitar este reload sin sustituirlo por un reseteo total
+    // equivalente de BD, S, LIB, IMAP y listeners.
+    try { if (typeof bmLibStop === 'function') bmLibStop(); } catch (e) {}
+    try { if (typeof bmGastosStop === 'function') bmGastosStop(); } catch (e) {}
+    try { if (typeof _stopAdminListeners === 'function') _stopAdminListeners(); } catch (e) {}
+    if (window._statusUnsub) { try { window._statusUnsub(); } catch (e) {} window._statusUnsub = null; }
+    if (window._sessionUnsub) { try { window._sessionUnsub(); } catch (e) {} window._sessionUnsub = null; }
+    if (window._projectsListener) { try { window._projectsListener(); } catch (e) {} window._projectsListener = null; }
     firebase.auth().signOut().then(function() {
       sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
-      if (typeof _stopAdminListeners === 'function') _stopAdminListeners();
-      if (window._statusUnsub) { window._statusUnsub(); window._statusUnsub = null; }
-      if (window._sessionUnsub) { window._sessionUnsub(); window._sessionUnsub = null; }
-      updateUserWidget(null);
-      document.body.classList.remove('ia');
-      var _btnApp = document.getElementById('btn-open-app');
-      if (_btnApp) _btnApp.textContent = 'Iniciar Sesión';
-      var adminNav = document.getElementById('admin-nav-section');
-      if (adminNav) adminNav.style.display = 'none';
-      toast('Sesión cerrada');
-      if (typeof openAuthModal === 'function') openAuthModal('login');
-      if (typeof resetAuthButtons === 'function') resetAuthButtons();
+      window.location.reload();
     }).catch(function(err) {
       console.warn('Error al cerrar sesión:', err);
       sessionStorage.clear(); localStorage.removeItem('bm_auth'); localStorage.removeItem('bm_user_email'); localStorage.removeItem('bm_user_name'); localStorage.removeItem('bm_role'); localStorage.removeItem('bm_session_token');
-      updateUserWidget(null);
-      document.body.classList.remove('ia');
+      window.location.reload();
     });
   };
   if (_logoutToken && _logoutUser) {

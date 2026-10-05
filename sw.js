@@ -3,7 +3,7 @@
 //  Estrategia: Cache-First con actualización en segundo plano
 // ══════════════════════════════════════════════════════
 
-const CACHE_NAME  = 'buildmatrix-v2';   // v2 → limpia buildmatrix-v1 Y pwa-cache-v1
+const CACHE_NAME  = 'buildmatrix-v3';   // v3 → limpia buildmatrix-v2 (y v1, pwa-cache-v1)
 const OFFLINE_URL = './index.html';
 
 // Recursos que se cachean al instalar el SW
@@ -60,6 +60,29 @@ self.addEventListener('fetch', function(event) {
 
   // Ignorar extensiones de Chrome y URLs no-http
   if (!event.request.url.startsWith('http')) return;
+
+  // Para la navegación (el documento HTML principal): red primero, y solo
+  // si no hay internet caemos a la caché. Antes esto usaba cache-first como
+  // todo lo demás, lo que obligaba a recargar DOS veces para ver cualquier
+  // cambio publicado (la primera recarga mostraba lo viejo guardado y recién
+  // en segundo plano pedía lo nuevo). Así, cualquier actualización se ve
+  // en la primera carga.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(function(networkResponse) {
+        var responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, responseClone);
+        });
+        return networkResponse;
+      }).catch(function() {
+        return caches.match(event.request).then(function(cached) {
+          return cached || caches.match(OFFLINE_URL);
+        });
+      })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then(function(cachedResponse) {

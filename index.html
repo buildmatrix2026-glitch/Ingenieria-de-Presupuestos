@@ -2471,6 +2471,14 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 }
 .gx-scope .gx-scan:hover{background:rgba(0,212,255,.14);box-shadow:0 8px 28px rgba(0,212,255,.18)}
 .gx-scope .gx-scan:active{transform:scale(.97)}
+/* En PC, el botón "Escanear Factura con IA" crece (icono más grande, apilado) para que las dos
+   tarjetas de la izquierda (Escáner + Registro del gasto) se acerquen a la altura real de
+   "Resumen de gastos" a la derecha. Solo aplica en escritorio: en móvil queda igual que siempre. */
+@media (min-width:980px){
+  #v-gas .gx-scan{flex-direction:column;gap:16px;min-height:200px;padding:34px 18px}
+  #v-gas .gx-scan .gx-ico{width:56px;height:56px}
+  #v-gas .gx-scan span{font-size:18px}
+}
 .gx-scope .gx-scan.is-disabled,.gx-scope .gx-btn.is-disabled{opacity:.55;pointer-events:none}
 .gx-scope .gx-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .gx-scope .gx-btn{

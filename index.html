@@ -3478,8 +3478,17 @@ document.querySelectorAll('.magnet, button, a, .chapter-card, .feature-card, .ex
       ctx.globalAlpha = p.alpha;
       ctx.fill();
     });
-    particles.forEach((a, i) => {
-      particles.slice(i+1).forEach(b => {
+    // Antes esto hacía particles.slice(i+1) dentro del bucle: eso crea un
+    // array nuevo en cada una de las 80 iteraciones, cada fotograma, para
+    // siempre. Ese "basurero" constante de objetos es lo que obligaba al
+    // navegador a hacer limpieza de memoria sin parar — el motivo real del
+    // calentamiento en iPhone/iPad y el uso alto de GPU en PC. Recorrer por
+    // índice (como ya hace el mismo efecto en otra parte de la app) dibuja
+    // exactamente lo mismo, sin crear ni un solo array de más.
+    for (let i = 0; i < particles.length; i++) {
+      const a = particles[i];
+      for (let j = i + 1; j < particles.length; j++) {
+        const b = particles[j];
         const dx = a.x - b.x, dy = a.y - b.y;
         const d = Math.sqrt(dx*dx+dy*dy);
         if (d < 100) {
@@ -3491,8 +3500,8 @@ document.querySelectorAll('.magnet, button, a, .chapter-card, .feature-card, .ex
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
-      });
-    });
+      }
+    }
     ctx.globalAlpha = 1;
     requestAnimationFrame(tick);
   }

@@ -21222,6 +21222,18 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       btn.classList.add('on'); current = btn.getAttribute('data-p'); draw(true);
     });
 
+    // El tamaño del recuadro que contiene el oscilograma puede cambiar en cualquier momento
+    // (girar el iPad, abrir/cerrar el panel lateral, modo Split View/Stage Manager, cambios de
+    // zoom del sistema, etc.) sin que se dispare un "resize" de la ventana. Con un ResizeObserver
+    // sobre el propio contenedor, el gráfico siempre se reajusta a su caja real, en vez de quedarse
+    // con el tamaño que tenía cuando se dibujó por primera vez.
+    if ('ResizeObserver' in window) {
+      var _hudRO = new ResizeObserver(function () { draw(false); });
+      root.querySelectorAll('.gx-hud-canwrap').forEach(function (w) { _hudRO.observe(w); });
+    } else {
+      window.addEventListener('resize', function () { draw(false); });
+    }
+
     window[cfg.globalName] = function () { draw(false); };
   }
 

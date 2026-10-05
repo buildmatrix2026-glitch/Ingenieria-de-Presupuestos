@@ -1028,6 +1028,41 @@ html[data-theme="dark"] #v-admin #admin-users-list>div{position:relative;border-
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;box-shadow:0 0 0 1px rgba(6,182,212,.06),0 14px 40px -26px rgba(6,182,212,.4)!important;transition:border-color .25s,box-shadow .25s,transform .25s!important}
 html[data-theme="dark"] #v-admin #admin-users-list>div:hover{border-color:rgba(6,182,212,.6)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 22px 56px -22px rgba(6,182,212,.5)!important}
 html[data-theme="dark"] #v-admin .atb-main button{box-shadow:0 0 16px -8px rgba(6,182,212,.6)}
+
+/* ══════════ Rediseño: Usuarios (panel admin) y Mis proyectos — mismo lenguaje visual HUD que el resto de la app ══════════ */
+html[data-theme="dark"] #v-admin .atb-main{background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:16px;padding:5px;gap:5px!important}
+html[data-theme="dark"] #v-admin .atb-main .atab{position:relative;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .25s ease!important;overflow:hidden}
+html[data-theme="dark"] #v-admin .atb-main .atab:not(.on):hover{border-color:rgba(6,182,212,.45)!important;color:#9fd8ff!important;background:rgba(6,182,212,.07)!important}
+html[data-theme="dark"] #v-admin .atb-main .atab.on{background:linear-gradient(135deg,rgba(0,82,255,.92),rgba(8,145,178,.92))!important;border-color:rgba(34,211,238,.65)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(6,182,212,.18),0 12px 32px -12px rgba(6,182,212,.7)!important;text-shadow:0 0 10px rgba(255,255,255,.35)}
+html[data-theme="dark"] #v-admin .atb-main .atab.on svg{filter:drop-shadow(0 0 4px rgba(255,255,255,.55))}
+html[data-theme="dark"] #v-admin .adm-refresh{border-radius:12px;backdrop-filter:blur(8px);transition:all .2s}
+html[data-theme="dark"] #v-admin .adm-refresh:hover{border-color:rgba(6,182,212,.55);color:#9fd8ff;box-shadow:0 8px 24px -10px rgba(6,182,212,.55);transform:translateY(-1px)}
+
+/* Filtros: control segmentado en pastilla */
+html[data-theme="dark"] #v-admin .af-row{background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:14px;padding:5px;gap:5px!important}
+html[data-theme="dark"] #v-admin .ac-filter{border-radius:9px!important;font-weight:650!important;transition:all .2s ease!important;border:1px solid transparent!important;background:transparent!important;color:var(--sl)!important;box-shadow:none!important}
+html[data-theme="dark"] #v-admin .ac-filter:not(.on):hover{color:#9fd8ff!important;background:rgba(6,182,212,.08)!important}
+html[data-theme="dark"] #v-admin .ac-filter.on{background:linear-gradient(135deg,rgba(0,82,255,.88),rgba(8,145,178,.88))!important;border-color:rgba(34,211,238,.55)!important;color:#fff!important;box-shadow:0 6px 18px -8px rgba(6,182,212,.65)!important;text-shadow:0 0 8px rgba(255,255,255,.3)}
+
+/* Botones de acción dentro de cada tarjeta de usuario: pastillas con hover vivo */
+html[data-theme="dark"] #v-admin #admin-users-list button{transition:all .2s ease!important}
+html[data-theme="dark"] #v-admin #admin-users-list button:hover{filter:brightness(1.18);transform:translateY(-1px)}
+
+/* ═══ Mis proyectos: mismas tarjetas de cristal + rejilla + resplandor cian del resto del HUD ═══ */
+html[data-theme="dark"] #v-saved .vh h2::after{background:linear-gradient(90deg,#22d3ee,transparent);box-shadow:0 0 12px #22d3ee}
+html[data-theme="dark"] #v-saved .card{
+  position:relative;border-radius:16px!important;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
+    radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),
+    linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;
+  border-color:rgba(6,182,212,.28)!important;
+  box-shadow:0 0 0 1px rgba(6,182,212,.05),0 14px 40px -26px rgba(6,182,212,.4)!important;
+  transition:border-color .25s,box-shadow .25s,transform .25s!important;
+}
+html[data-theme="dark"] #v-saved .card:hover{border-color:rgba(6,182,212,.55)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 22px 56px -22px rgba(6,182,212,.5)!important}
+html[data-theme="dark"] #saved-view-list button{transition:all .2s ease!important}
+html[data-theme="dark"] #saved-view-list button:hover{filter:brightness(1.18);transform:translateY(-1px)}
 html[data-theme="dark"] #app .kpi:hover{transform:translateY(-2px)}
 html[data-theme="dark"] #app .kpi{transition:border-color .25s,box-shadow .25s,transform .25s}
 
@@ -4826,20 +4861,20 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         <div class="atb-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
           <div class="atb-main" style="display:flex;gap:8px">
             <!-- Tab Usuarios -->
-            <button id="admin-tab-users" onclick="adminSwitchTab('users')" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,82,255,.4);background:rgba(0,82,255,.15);color:var(--cy);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit">
+            <button id="admin-tab-users" class="atab on" onclick="adminSwitchTab('users')" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,82,255,.4);background:rgba(0,82,255,.15);color:var(--cy);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
               Usuarios
               <span id="admin-tab-users-badge" style="display:none;background:#ff4444;color:#fff;font-size:10px;font-weight:800;border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
             </button>
             <!-- Tab Presupuestos (solo superadmin) -->
-            <button id="admin-tab-projects" onclick="adminSwitchTab('projects')" style="display:none;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid var(--br);background:transparent;color:var(--sl);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit">
+            <button id="admin-tab-projects" class="atab" onclick="adminSwitchTab('projects')" style="display:none;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid var(--br);background:transparent;color:var(--sl);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               Presupuestos
               <span id="admin-tab-projects-badge" style="display:none;background:#0052FF;color:#fff;font-size:10px;font-weight:800;border-radius:50%;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
             </button>
           </div>
           <!-- Botón Actualizar dinámico -->
-          <button id="admin-refresh-btn" onclick="adminRefresh()" class="btn ghost" style="padding:9px 16px;font-size:12.5px;display:flex;align-items:center;gap:6px">
+          <button id="admin-refresh-btn" onclick="adminRefresh()" class="btn ghost adm-refresh" style="padding:9px 16px;font-size:12.5px;display:flex;align-items:center;gap:6px">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             Actualizar
           </button>
@@ -4851,11 +4886,11 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           <div class="sub" id="admin-users-sub" style="margin-bottom:14px">Cargando...</div>
           <!-- Filtros -->
           <div class="af-row" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-            <button onclick="filterAdminUsers('all')"     id="af-all"     class="btn ghost ac-filter" style="font-size:12px;padding:6px 14px;border-radius:8px;background:rgba(0,82,255,.15);border-color:rgba(0,82,255,.4);color:var(--cy)">Todos</button>
-            <button onclick="filterAdminUsers('pending')" id="af-pending" class="btn ghost ac-filter" style="font-size:12px;padding:6px 14px;border-radius:8px">Pendientes</button>
-            <button onclick="filterAdminUsers('approved')"id="af-approved"class="btn ghost ac-filter" style="font-size:12px;padding:6px 14px;border-radius:8px">Aprobados</button>
-            <button onclick="filterAdminUsers('rejected')"id="af-rejected"class="btn ghost ac-filter" style="font-size:12px;padding:6px 14px;border-radius:8px">Rechazados</button>
-            <button onclick="filterAdminUsers('admins')"  id="af-admins"  class="btn ghost ac-filter" style="font-size:12px;padding:6px 14px;border-radius:8px">Administradores</button>
+            <button onclick="filterAdminUsers('all')"     id="af-all"     class="btn ghost ac-filter on">Todos</button>
+            <button onclick="filterAdminUsers('pending')" id="af-pending" class="btn ghost ac-filter">Pendientes</button>
+            <button onclick="filterAdminUsers('approved')"id="af-approved"class="btn ghost ac-filter">Aprobados</button>
+            <button onclick="filterAdminUsers('rejected')"id="af-rejected"class="btn ghost ac-filter">Rechazados</button>
+            <button onclick="filterAdminUsers('admins')"  id="af-admins"  class="btn ghost ac-filter">Administradores</button>
             <!-- Botón presupuestos eliminado — ahora es tab principal arriba -->
           </div>
           <div id="admin-users-list" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -12648,8 +12683,8 @@ function adminSwitchTab(tab) {
 
   if (tab === 'users') {
     // Activar tab usuarios
-    if (tabUsers) { tabUsers.style.background='rgba(0,82,255,.15)'; tabUsers.style.borderColor='rgba(0,82,255,.4)'; tabUsers.style.color='var(--cy)'; }
-    if (tabProjects) { tabProjects.style.background='transparent'; tabProjects.style.borderColor='var(--br)'; tabProjects.style.color='var(--sl)'; }
+    if (tabUsers) { tabUsers.classList.add('on'); tabUsers.style.background='rgba(0,82,255,.15)'; tabUsers.style.borderColor='rgba(0,82,255,.4)'; tabUsers.style.color='var(--cy)'; }
+    if (tabProjects) { tabProjects.classList.remove('on'); tabProjects.style.background='transparent'; tabProjects.style.borderColor='var(--br)'; tabProjects.style.color='var(--sl)'; }
     if (panelUsers) panelUsers.style.display = '';
     if (panelProjs) panelProjs.style.display = 'none';
     // También restaurar lista si fue ocultada por showAdminProjects
@@ -12658,8 +12693,8 @@ function adminSwitchTab(tab) {
     renderAdminUsers();
   } else {
     // Activar tab presupuestos
-    if (tabProjects) { tabProjects.style.background='rgba(0,82,255,.15)'; tabProjects.style.borderColor='rgba(0,82,255,.4)'; tabProjects.style.color='var(--cy)'; }
-    if (tabUsers) { tabUsers.style.background='transparent'; tabUsers.style.borderColor='var(--br)'; tabUsers.style.color='var(--sl)'; }
+    if (tabProjects) { tabProjects.classList.add('on'); tabProjects.style.background='rgba(0,82,255,.15)'; tabProjects.style.borderColor='rgba(0,82,255,.4)'; tabProjects.style.color='var(--cy)'; }
+    if (tabUsers) { tabUsers.classList.remove('on'); tabUsers.style.background='transparent'; tabUsers.style.borderColor='var(--br)'; tabUsers.style.color='var(--sl)'; }
     if (panelUsers) panelUsers.style.display = 'none';
     if (panelProjs) panelProjs.style.display = '';
     loadAdminProjects();
@@ -12749,11 +12784,13 @@ function filterAdminUsers(filter) {
   // Actualizar estilos de pestañas
   // Resetear TODOS los botones incluyendo Presupuestos
   document.querySelectorAll('.ac-filter').forEach(function(b){
+    b.classList.remove('on');
     b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
   });
   // Activar solo el seleccionado
   var activeBtn = document.getElementById('af-' + filter);
   if (activeBtn) {
+    activeBtn.classList.add('on');
     activeBtn.style.background  = 'rgba(0,82,255,.15)';
     activeBtn.style.borderColor = 'rgba(0,82,255,.4)';
     activeBtn.style.color       = 'var(--cy)';

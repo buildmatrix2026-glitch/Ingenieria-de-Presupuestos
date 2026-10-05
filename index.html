@@ -1063,6 +1063,17 @@ html[data-theme="dark"] #v-saved .card{
 html[data-theme="dark"] #v-saved .card:hover{border-color:rgba(6,182,212,.55)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 22px 56px -22px rgba(6,182,212,.5)!important}
 html[data-theme="dark"] #saved-view-list button{transition:all .2s ease!important}
 html[data-theme="dark"] #saved-view-list button:hover{filter:brightness(1.18);transform:translateY(-1px)}
+
+/* ═══ Modal "Ver resumen" de un proyecto: botones Abrir en app / Exportar PDF — tonos del sistema, nada de neón ═══ */
+.pv-act{border:1px solid transparent;cursor:pointer;font-family:inherit;font-weight:650;transition:all .2s ease}
+.pv-act-fill{background:linear-gradient(135deg,rgba(0,82,255,.85),rgba(8,145,178,.85));border-color:rgba(34,211,238,.45);color:#fff}
+.pv-act-fill:hover{background:linear-gradient(135deg,rgba(0,71,217,.92),rgba(6,182,212,.92));border-color:rgba(103,232,249,.7);box-shadow:0 10px 28px -12px rgba(6,182,212,.6);transform:translateY(-1px)}
+.pv-act-ghost{background:rgba(6,182,212,.07);border-color:rgba(6,182,212,.3);color:var(--cy)}
+.pv-act-ghost:hover{background:rgba(6,182,212,.14);border-color:rgba(34,211,238,.55);box-shadow:0 10px 28px -12px rgba(6,182,212,.45);transform:translateY(-1px)}
+
+/* Tarjetas de "Mis proyectos": colores más contenidos, acordes al resto del sistema (sin rojo/azul saturados) */
+html[data-theme="dark"] #saved-view-list .card button[style*="0,82,255"]{background:rgba(0,82,255,.09)!important;border-color:rgba(0,82,255,.24)!important}
+html[data-theme="dark"] #saved-view-list .card button[style*="255,107,107"]{background:rgba(148,163,184,.08)!important;border-color:rgba(148,163,184,.22)!important;color:#ff9b9b!important}
 html[data-theme="dark"] #app .kpi:hover{transform:translateY(-2px)}
 html[data-theme="dark"] #app .kpi{transition:border-color .25s,box-shadow .25s,transform .25s}
 
@@ -4988,11 +4999,11 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
       <!-- Botones derecha: centrados verticalmente -->
       <div class="pv-actions" style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;justify-content:center;align-self:stretch">
-        <button onclick="openProjInApp()" class="btn btn-green" style="padding:9px 18px;font-size:12.5px;background:transparent;border:1px solid #00d464;color:#00d464;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;white-space:nowrap">
+        <button onclick="openProjInApp()" class="pv-act pv-act-fill" style="padding:9px 18px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;white-space:nowrap">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Abrir en app
         </button>
-        <button onclick="exportProjViewPDF()" class="btn btn-red" style="padding:9px 18px;font-size:12.5px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.5);color:#f87171;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;white-space:nowrap">
+        <button onclick="exportProjViewPDF()" class="pv-act pv-act-ghost" style="padding:9px 18px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;white-space:nowrap">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           Exportar PDF
         </button>

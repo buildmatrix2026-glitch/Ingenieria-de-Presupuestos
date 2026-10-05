@@ -2490,9 +2490,9 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
    tarjetas de la izquierda (Escáner + Registro del gasto) se acerquen a la altura real de
    "Resumen de gastos" a la derecha. Solo aplica en escritorio: en móvil queda igual que siempre. */
 @media (min-width:980px){
-  #v-gas .gx-scan{flex-direction:column;gap:16px;min-height:200px;padding:34px 18px}
-  #v-gas .gx-scan .gx-ico{width:56px;height:56px}
-  #v-gas .gx-scan span{font-size:18px}
+  #v-gas .gx-scan,#v-gasp .gx-scan{flex-direction:column;gap:16px;min-height:200px;padding:34px 18px}
+  #v-gas .gx-scan .gx-ico,#v-gasp .gx-scan .gx-ico{width:56px;height:56px}
+  #v-gas .gx-scan span,#v-gasp .gx-scan span{font-size:18px}
 }
 .gx-scope .gx-scan.is-disabled,.gx-scope .gx-btn.is-disabled{opacity:.55;pointer-events:none}
 .gx-scope .gx-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}

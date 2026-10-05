@@ -1292,7 +1292,15 @@ html[data-theme="dark"] .ts{background:linear-gradient(90deg,rgba(6,182,212,.16)
 .mn:has(#v-dash.ac)::-webkit-scrollbar,.mn:has(#v-apu.ac)::-webkit-scrollbar,.mn:has(#v-pia.ac)::-webkit-scrollbar,.mn:has(#v-admin.ac)::-webkit-scrollbar,.mn:has(#v-saved.ac)::-webkit-scrollbar{display:none;width:0;height:0}
 
 /* ══════════ Fase 10 HUD: barra superior — logo de neón que se enciende por turnos, puntos que titilan y luz que recorre el borde ══════════ */
-@keyframes bmNeonHum{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
+/* Antes esto animaba "filter: brightness(...)". En Safari de iPhone/iPad,
+   animar "filter" sobre un texto que además tiene un resplandor hecho con
+   varias capas de text-shadow (como el logo "BuildMatrix") hace que Safari
+   calcule mal el área donde debe pintar ese resplandor y lo recorte en un
+   recuadro duro — el "cuadro" que se veía en vez de una luz difuminada.
+   Animar la opacidad en su lugar da el mismo efecto de "respiración" del
+   neón, sin disparar ese bug de recorte, y de paso es más liviano para
+   la GPU (animar filter obliga a repintar la capa; opacity no). */
+@keyframes bmNeonHum{0%,100%{opacity:1}50%{opacity:.82}}
 @keyframes bmDotTw{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.42;transform:scale(.78)}}
 @keyframes bmDotCore{0%,100%{filter:drop-shadow(0 0 2px #00d4ff);transform:scale(1)}50%{filter:drop-shadow(0 0 7px #67e8f9);transform:scale(1.18)}}
 @keyframes bmHdrRun{from{background-position:-25% 0,0 0}to{background-position:125% 0,0 0}}

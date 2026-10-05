@@ -923,11 +923,17 @@ html[data-theme="dark"] #v-gasp .gx-card{
 html[data-theme="dark"] #v-gasp .gx-card:hover{border-color:rgba(139,92,246,.62);box-shadow:0 0 0 1px rgba(139,92,246,.16),0 24px 64px -20px rgba(139,92,246,.42)}
 html[data-theme="dark"] #v-gasp .mo{
   background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(139,92,246,.13),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
   border-color:rgba(139,92,246,.35);
   box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 0 1px rgba(139,92,246,.1),0 0 60px -22px rgba(139,92,246,.34);
 }
+/* El cuadro interno del formulario heredaba el resplandor/box-shadow morado de "#v-gasp .gx-card"
+   (su selector con #id gana por especificidad a la regla genérica que debía apagarlo dentro de las
+   ventanas flotantes), dibujando un recuadro con rejilla alrededor del formulario que no aparece en
+   "Gastos y facturas". Se apaga aquí con un selector igual de específico. */
+html[data-theme="dark"] #v-gasp .mo .gx-card{box-shadow:none}
 html[data-theme="dark"] .gx-scope .gx-title{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#67e8f9;text-shadow:0 0 10px rgba(6,182,212,.55);padding-left:10px;border-left:2px solid #06b6d4;box-shadow:-8px 0 14px -10px #06b6d4}
 html[data-theme="dark"] #v-gasp .gx-title{color:#d8b4fe;text-shadow:0 0 10px rgba(168,85,247,.55);border-left-color:#a855f7;box-shadow:-8px 0 14px -10px #a855f7}
 html[data-theme="dark"] .gx-scope .gx-big{color:#e5faff;text-shadow:0 0 16px rgba(6,182,212,.5)}

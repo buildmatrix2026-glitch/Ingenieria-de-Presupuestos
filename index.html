@@ -13039,7 +13039,9 @@ function renderAdminProjects(projects) {
 
 async function deleteAdminProject(projId, btn) {
   if (!await BM_CONFIRM('¿Eliminar este presupuesto de tu vista? El presupuesto del usuario permanecerá intacto.')) return;
+  if (!_bmLockOp('delproj_' + projId)) { toast('Ya se está procesando esa eliminación…'); return; }
   btn.disabled = true;
+  toast('Eliminando presupuesto…');
   var db = firebase.firestore();
   var docRef = db.collection('projects').doc(projId);
   
@@ -13053,7 +13055,7 @@ async function deleteAdminProject(projId, btn) {
   }).catch(function(e) {
     toast('Error: ' + e.message);
     btn.disabled = false;
-  });
+  }).then(function() { _bmUnlockOp('delproj_' + projId); });
 }
 
 function openProjView(projId) {
@@ -13936,6 +13938,20 @@ function adminRemoveAdmin(uid, btn) {
 // pendiente, el navegador te muestra su aviso nativo de "¿seguro que quieres
 // salir?" antes de recargar o cerrar la pestaña — así ya no se puede cortar
 // el borrado a medias sin que te enteres.
+// ── Candado por id: evita que un reflujo de la lista (el listener en tiempo real la
+// redibuja en cuanto detecta CUALQUIER cambio, incluido tu propio clic) deje botones
+// "nuevos" sin deshabilitar justo mientras la operación anterior para ese mismo usuario
+// o proyecto sigue en curso. Sin esto, un redibujado a mitad de camino podía hacer que el
+// primer clic pareciera no hacer nada y hubiera que repetirlo. Es independiente de cuál
+// botón del DOM se haya pulsado — se guarda por id, no por referencia al botón.
+var _bmOpsInFlight = {};
+function _bmLockOp(id) {
+  if (_bmOpsInFlight[id]) return false;
+  _bmOpsInFlight[id] = true;
+  return true;
+}
+function _bmUnlockOp(id) { delete _bmOpsInFlight[id]; }
+
 var _bmAdminWritesInFlight = 0;
 function _bmTrackAdminWrite(promise) {
   _bmAdminWritesInFlight++;
@@ -13965,7 +13981,9 @@ function adminDeleteUser(uid, btn) {
     toast('Solo el superadmin puede eliminar administradores.');
     return;
   }
+  if (!_bmLockOp('deluser_' + uid)) { toast('Ya se está procesando esa eliminación…'); return; }
   btn.disabled = true;
+  toast('Eliminando usuario…');
   var db = firebase.firestore();
   // ── Por qué ya no se borra el documento ──────────────────────────────────
   // Antes "Eliminar" solo hacía doc.delete(). El problema: ese borrado es
@@ -13995,7 +14013,7 @@ function adminDeleteUser(uid, btn) {
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false;
-  });
+  }).then(function() { _bmUnlockOp('deluser_' + uid); });
 }
 
 // ── Dispositivos permitidos por usuario ──────────────────────────────────────

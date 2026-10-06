@@ -6540,33 +6540,39 @@ function _syncProjectToFirestore(entry) {
     try { groupsJson = JSON.stringify(entry.customGroups); } catch(e) {}
   }
 
-  // Guardar primero detail/data y extra/groups, luego el doc principal
-  // Así cuando el onSnapshot se dispare en otros dispositivos, los datos ya existen
-  var detailRef = docRef.collection('detail').doc('data');
-  var detailPromise = detailRef.set({ detailJson: detailJson });
-  var groupsPromise = groupsJson
-    ? docRef.collection('extra').doc('groups').set({ groupsJson: groupsJson })
-    : Promise.resolve();
-
-  Promise.all([detailPromise, groupsPromise]).then(function() {
-    // Ahora sí guardar el doc principal — el onSnapshot se dispara DESPUÉS de que detail ya existe
-    return docRef.set({
-      uid:          s(user.uid),
-      userEmail:    s(user.email),
-      userName:     s(user.displayName),
-      userPhoto:    s(user.photoURL),
-      projectName:  s(entry.name) || 'Sin nombre',
-      owner:        s(entry.own),
-      date:         s(entry.date),
-      totalRubros:  totalRubros,
-      totalGeneral: n(totals.total),
-      costoDirecto: n(totals.cd),
-      ind:          n(entry.ind),
-      uti:          n(entry.uti),
-      iva:          n(entry.iva),
-      updatedAt:    firebase.firestore.FieldValue.serverTimestamp(),
-      entryJson:    metaJson
-    });
+  // ── Orden de guardado: PRIMERO el documento principal, DESPUÉS detail/extra ──
+  // Antes se guardaba al revés (detail/extra primero, doc principal al final),
+  // pensado para que el onSnapshot de otros dispositivos ya encontrara los
+  // datos listos. Pero el doc principal es el único que pasa por el candado
+  // de la prueba gratuita (trialOk() en las reglas de Firestore): si la
+  // prueba ya estaba agotada, ese guardado del doc principal se rechazaba,
+  // pero detail/extra YA se habían guardado sin ningún candado — dejando un
+  // proyecto "fantasma" (con detail/extra pero sin documento principal, así
+  // que no aparece en ninguna lista ni consulta). Guardando el principal
+  // primero, si la prueba está agotada no se crea nada a medias: todo o nada.
+  docRef.set({
+    uid:          s(user.uid),
+    userEmail:    s(user.email),
+    userName:     s(user.displayName),
+    userPhoto:    s(user.photoURL),
+    projectName:  s(entry.name) || 'Sin nombre',
+    owner:        s(entry.own),
+    date:         s(entry.date),
+    totalRubros:  totalRubros,
+    totalGeneral: n(totals.total),
+    costoDirecto: n(totals.cd),
+    ind:          n(entry.ind),
+    uti:          n(entry.uti),
+    iva:          n(entry.iva),
+    updatedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    entryJson:    metaJson
+  }).then(function() {
+    var detailRef = docRef.collection('detail').doc('data');
+    var detailPromise = detailRef.set({ detailJson: detailJson });
+    var groupsPromise = groupsJson
+      ? docRef.collection('extra').doc('groups').set({ groupsJson: groupsJson })
+      : Promise.resolve();
+    return Promise.all([detailPromise, groupsPromise]);
   }).then(function() {
     // Invalidar caché del admin para este proyecto — próxima apertura carga datos frescos
     if (window._projDetailCache && docRef.id) {

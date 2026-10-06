@@ -3,7 +3,15 @@
 //  Estrategia: Cache-First con actualización en segundo plano
 // ══════════════════════════════════════════════════════
 
-const CACHE_NAME  = 'buildmatrix-v3';   // v3 → limpia buildmatrix-v2 (y v1, pwa-cache-v1)
+const CACHE_NAME  = 'buildmatrix-v4';   // v4 → limpia buildmatrix-v3 (y las anteriores), para que
+                                         // nadie se quede con una copia vieja guardada después de
+                                         // toda la ronda de arreglos de hoy (usuarios, proyectos,
+                                         // login, reglas de Firestore). Cada vez que subas un
+                                         // index.html con cambios importantes, conviene subir el
+                                         // número de esta línea también (v5, v6...) — así, en el
+                                         // navegador de cualquiera que ya haya entrado antes, el
+                                         // propio Service Worker limpia su caché vieja solo, sin
+                                         // que tengan que borrar nada a mano.
 const OFFLINE_URL = './index.html';
 
 // Recursos que se cachean al instalar el SW

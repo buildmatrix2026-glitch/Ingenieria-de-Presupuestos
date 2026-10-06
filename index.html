@@ -799,6 +799,14 @@ footer {
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--ds);color:var(--ow);font-family:var(--f-ui);overflow-x:clip;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+/* Por defecto, el texto de toda la interfaz (títulos, etiquetas, valores, menús) ya no
+   muestra el cursor de "escribir" (el I-beam) al pasar o hacer clic encima — ese cursor
+   es normal del navegador sobre cualquier texto seleccionable, pero en una app hace
+   parecer que se puede editar algo que en realidad no se puede. Los campos que sí son
+   formularios (input, textarea, elementos con contenteditable real) quedan exceptuados
+   explícitamente, así que ahí se sigue viendo y comportando como siempre. */
+body{user-select:none;-webkit-user-select:none}
+input,textarea,[contenteditable="true"],[contenteditable=""]{user-select:text;-webkit-user-select:text;cursor:text}
 ::selection{background:rgba(0,82,255,.4);color:#fff}
 button,input,select{font-family:inherit;color:inherit}
 button{cursor:pointer;border:none;background:none}
@@ -15840,6 +15848,33 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     el.textContent = s.txt; el.className = 'gx-hint gx-sync ' + s.cls;
   }
 
+
+  // ── Seguro contra "Sincronizando..." pegado para siempre ──────────────────
+  // CLOUD.pending sube cuando se empieza a subir algo y baja cuando se confirma.
+  // Si una de esas subidas nunca llega a confirmarse ni a fallar (p. ej. por un
+  // corte de red, o por la cuota de Firestore agotada a medias como nos pasó
+  // hoy), el contador se queda trabado en positivo para siempre — y el aviso de
+  // "Sincronizando..." nunca se quita, aunque todo lo demás esté bien. Este
+  // vigilante revisa cada 5s: si el número de pendientes lleva más de 20s SIN
+  // CAMBIAR (ni subir ni bajar), asume que algo se quedó colgado y lo libera
+  // solo, para que el aviso nunca se quede pegado de forma permanente.
+  var _cloudPendingWatch = { last: 0, stuckSince: 0 };
+  setInterval(function () {
+    if (CLOUD.pending > 0) {
+      if (CLOUD.pending !== _cloudPendingWatch.last) {
+        _cloudPendingWatch.last = CLOUD.pending;
+        _cloudPendingWatch.stuckSince = Date.now();
+      } else if (_cloudPendingWatch.stuckSince && Date.now() - _cloudPendingWatch.stuckSince > 20000) {
+        CLOUD.pending = 0;
+        _cloudPendingWatch.stuckSince = 0;
+        renderSync();
+      }
+    } else {
+      _cloudPendingWatch.last = 0;
+      _cloudPendingWatch.stuckSince = 0;
+    }
+  }, 5000);
+
   function markSynced(id) {
     var list = load(), g = list.filter(function (x) { return x.id === id; })[0];
     if (g && !g._s) { g._s = 1; save(list); }
@@ -18791,6 +18826,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var s = cloudState();
     el.textContent = s.txt; el.className = 'gx-hint gx-sync ' + s.cls;
   }
+
+  // ── Mismo seguro que en Gastos y facturas: ver el comentario completo en ese
+  // módulo. Evita que "Sincronizando..." se quede pegado para siempre si algo
+  // se queda colgado a medias (corte de red, cuota agotada, etc.).
+  var _cloudPendingWatch = { last: 0, stuckSince: 0 };
+  setInterval(function () {
+    if (CLOUD.pending > 0) {
+      if (CLOUD.pending !== _cloudPendingWatch.last) {
+        _cloudPendingWatch.last = CLOUD.pending;
+        _cloudPendingWatch.stuckSince = Date.now();
+      } else if (_cloudPendingWatch.stuckSince && Date.now() - _cloudPendingWatch.stuckSince > 20000) {
+        CLOUD.pending = 0;
+        _cloudPendingWatch.stuckSince = 0;
+        renderSync();
+      }
+    } else {
+      _cloudPendingWatch.last = 0;
+      _cloudPendingWatch.stuckSince = 0;
+    }
+  }, 5000);
 
   function markSynced(id) {
     var list = load(), g = list.filter(function (x) { return x.id === id; })[0];

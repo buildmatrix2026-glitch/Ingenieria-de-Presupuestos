@@ -14121,7 +14121,13 @@ function adminDeleteUser(uid, btn) {
   // vamos a ver, con prueba real, si el servidor de verdad quedó con removed:true o
   // no — en vez de seguir adivinando.
   console.log('[ELIMINAR-USUARIO] inicio', uid, new Date().toISOString());
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+
+  // ── Borrado auto-corregible: escribe, verifica DIRECTO contra el servidor, y si por
+  // lo que sea no quedó bien, lo vuelve a escribir solo — hasta 3 intentos — antes de
+  // avisarte nada. Así, sea cual sea la causa exacta de que a veces no se guarde a la
+  // primera, el propio sistema se corrige antes de que tú llegues a verlo mal.
+  function _intentarBorrado(intento) {
+    console.log('[ELIMINAR-USUARIO] intento ' + intento, uid, new Date().toISOString());
     return db.collection('users').doc(uid).update({
       approved: false,
       status:   'rejected',
@@ -14129,21 +14135,28 @@ function adminDeleteUser(uid, btn) {
       removed:  true,
       deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
       deletedBy: currentUid
+    }).then(function () {
+      console.log('[ELIMINAR-USUARIO] update() resuelta OK, intento ' + intento, uid, new Date().toISOString());
+      return db.collection('users').doc(uid).get({ source: 'server' });
+    }).then(function (doc) {
+      var d = doc.exists ? doc.data() : null;
+      console.log('[ELIMINAR-USUARIO] relectura desde SERVIDOR, intento ' + intento, uid, new Date().toISOString(),
+        'removed=' + (d ? d.removed : 'doc no existe'), 'approved=' + (d ? d.approved : '—'));
+      if (d && d.removed === true) return true; // confirmado de verdad
+      if (intento < 3) {
+        console.warn('[ELIMINAR-USUARIO] no quedó confirmado, reintentando solo…', uid);
+        return new Promise(function (resolve) {
+          setTimeout(function () { resolve(_intentarBorrado(intento + 1)); }, intento * 1500);
+        });
+      }
+      return false; // se agotaron los 3 intentos
     });
-  })).then(function() {
-    console.log('[ELIMINAR-USUARIO] update() resuelta OK', uid, new Date().toISOString());
-    // Verificación real: releer el documento DIRECTO del servidor (no de caché local)
-    // para confirmar, con prueba, que el cambio de verdad llegó — no solo que la
-    // promesa de escritura se resolvió sin error.
-    return db.collection('users').doc(uid).get({ source: 'server' });
-  }).then(function(doc) {
-    var d = doc.exists ? doc.data() : null;
-    console.log('[ELIMINAR-USUARIO] relectura desde SERVIDOR', uid, new Date().toISOString(),
-      'removed=' + (d ? d.removed : 'doc no existe'),
-      'approved=' + (d ? d.approved : '—'));
-    if (!d || d.removed !== true) {
-      console.error('[ELIMINAR-USUARIO] ⚠ EL SERVIDOR NO TIENE removed:true — el borrado NO se guardó de verdad, aunque la app dijo que sí.');
-      toast('⚠ Parece que no se guardó de verdad — vuelve a intentarlo y avísame si se repite');
+  }
+
+  _bmTrackAdminWrite(_intentarBorrado(1)).then(function (confirmado) {
+    if (!confirmado) {
+      console.error('[ELIMINAR-USUARIO] ⚠ Tras 3 intentos, el servidor SIGUE sin confirmar removed:true.');
+      toast('⚠ No se pudo confirmar el borrado tras varios intentos — avísame con la consola abierta');
       btn.disabled = false;
       return;
     }

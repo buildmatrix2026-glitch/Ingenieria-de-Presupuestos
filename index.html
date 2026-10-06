@@ -10898,24 +10898,11 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
             _showAccessPending(identifier, displayName, data.status || 'pending');
           }
         } else {
-          // 🆕 Doc no existe por UID — pero antes de tratarlo como "usuario nuevo", hay que
-          // descartar que sea alguien que un admin eliminó a propósito (ver adminDeleteUser:
-          // dejó una marca en /blockedUsers/{uid} precisamente para este caso). Si está en la
-          // lista negra, se le niega el acceso en vez de volver a admitirlo con una prueba nueva.
-          db.collection('blockedUsers').doc(user.uid).get().then(function(blockedDoc) {
-            if (blockedDoc.exists) {
-              firebase.auth().signOut();
-              _showAccessPending(identifier, displayName, 'rejected');
-              return;
-            }
-            _createAndAdmitNewUser(user, identifier, displayName, db);
-          }).catch(function(err) {
-            console.error('Error verificando lista negra:', err.code, err.message);
-            // Si ni siquiera se pudo consultar la lista negra, no se arriesga el acceso:
-            // se trata como pendiente en vez de admitir de inmediato.
-            firebase.auth().signOut();
-            _showAccessPending(identifier, displayName, 'pending');
-          });
+          // 🆕 Doc no existe por UID → usuario realmente nuevo (nunca tuvo cuenta antes).
+          // Un usuario que un admin "eliminó" YA NO cae aquí: adminDeleteUser ya no borra
+          // el documento, lo deja marcado como rechazado permanentemente (approved:false),
+          // así que entra por la rama de arriba (doc.exists) y se le niega el acceso ahí.
+          _createAndAdmitNewUser(user, identifier, displayName, db);
         }
 
       }).catch(function(err) {
@@ -12662,7 +12649,10 @@ function _startAdminListeners() {
   if (_adminUsersListener) _adminUsersListener(); // cancelar anterior
   _adminUsersListener = db.collection('users').onSnapshot(function(snap) {
     _allAdminUsers = [];
-    snap.forEach(function(doc) { _allAdminUsers.push(Object.assign({_id: doc.id}, doc.data())); });
+    // Los marcados "removed" (ver adminDeleteUser) siguen en la base para que el login los
+    // bloquee para siempre, pero nunca deben verse en el panel: ni en listas, ni en filtros,
+    // ni en los contadores. Se descartan aquí, en el único lugar donde se arma la lista.
+    snap.forEach(function(doc) { var d = doc.data(); if (!d.removed) _allAdminUsers.push(Object.assign({_id: doc.id}, d)); });
 
     // Actualizar badge menú izquierdo (combinado: usuarios + presupuestos)
     var pendingCount = _allAdminUsers.filter(function(u){ return u.status === 'pending'; }).length;
@@ -12850,7 +12840,8 @@ function loadAdminUsers() {
   listEl.innerHTML = '<div style="color:var(--sl);font-size:13px;padding:20px 0">Cargando usuarios...</div>';
   firebase.firestore().collection('users').get().then(function(snap) {
     _allAdminUsers = [];
-    snap.forEach(function(doc) { _allAdminUsers.push(Object.assign({ _id: doc.id }, doc.data())); });
+    // Mismo criterio que el listener en tiempo real: los "removed" quedan fuera de la vista.
+    snap.forEach(function(doc) { var d = doc.data(); if (!d.removed) _allAdminUsers.push(Object.assign({ _id: doc.id }, d)); });
     var pendingCount = _allAdminUsers.filter(function(u){ return u.status === 'pending'; }).length;
     _sbUsersPending = pendingCount;
     _updateSidebarAdminBadge();
@@ -13924,28 +13915,30 @@ function adminDeleteUser(uid, btn) {
   }
   btn.disabled = true;
   var db = firebase.firestore();
-  // ── Lista negra permanente ──────────────────────────────────────────────
-  // Antes, al "Eliminar" solo se borraba el documento de /users/{uid}. El
-  // problema: el documento borrado es justo la señal que el login usa para
-  // decidir "es un usuario nuevo, lo admito automáticamente con una prueba
-  // gratis" (ver onAuthStateChanged). Resultado: la misma persona volvía a
-  // entrar (incluso con la misma cuenta de Google) y quedaba con acceso
-  // completo otra vez, como si nunca la hubieran eliminado ni se le hubiera
-  // acabado la prueba. Ahora, además de borrar el documento (para que
-  // desaparezca de la lista de Usuarios), se deja una marca permanente en
-  // /blockedUsers/{uid}. El login revisa esa lista ANTES de crear un
-  // usuario nuevo, y si la encuentra, niega el acceso en vez de volver a
-  // admitirlo. Solo revirtiendo esto manualmente en Firestore se podría
-  // deshacer — "Eliminar" vuelve a significar eliminar de verdad.
-  db.collection('blockedUsers').doc(uid).set({
-    uid:        uid,
-    email:      user ? (user.email || user.identifier || null) : null,
-    blockedAt:  firebase.firestore.FieldValue.serverTimestamp(),
-    blockedBy:  currentUid
+  // ── Por qué ya no se borra el documento ──────────────────────────────────
+  // Antes "Eliminar" solo hacía doc.delete(). El problema: ese borrado es
+  // justo la señal que el login usa para decidir "es un usuario nuevo, lo
+  // admito con una prueba gratis" (ver onAuthStateChanged) — así que la
+  // misma persona volvía a entrar con acceso completo, como si nunca la
+  // hubieran eliminado. El primer intento de arreglo usaba una colección
+  // nueva (/blockedUsers), pero las reglas de seguridad de Firestore no la
+  // permiten (no hay match para esa colección, y la regla por defecto niega
+  // todo lo que no está explícitamente permitido) — por eso "Eliminar" daba
+  // "Missing or insufficient permissions". La solución correcta: reutilizar
+  // el mismo permiso que ya usa "Rechazar" (una actualización dentro de
+  // /users/{uid}, que sí está autorizada) en vez de borrar el documento o
+  // crear una colección nueva. Queda marcado como rechazado de forma
+  // permanente — approved nunca vuelve a ponerse en true solo porque el
+  // documento ya no existía.
+  db.collection('users').doc(uid).update({
+    approved: false,
+    status:   'rejected',
+    role:     firebase.firestore.FieldValue.delete(),
+    removed:  true,
+    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    deletedBy: currentUid
   }).then(function() {
-    return db.collection('users').doc(uid).delete();
-  }).then(function() {
-    toast('Registro eliminado y bloqueado permanentemente');
+    toast('Usuario eliminado por completo');
     loadAdminUsers();
   }).catch(function(err) {
     toast('Error: ' + err.message);

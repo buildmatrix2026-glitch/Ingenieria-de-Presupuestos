@@ -14088,6 +14088,14 @@ function adminDeleteUser(uid, btn) {
   // crear una colección nueva. Queda marcado como rechazado de forma
   // permanente — approved nunca vuelve a ponerse en true solo porque el
   // documento ya no existía.
+  // ── Instrumentación temporal: este borrado ha reaparecido varias veces pese a que
+  // la pantalla muestra "eliminado" — así que, en vez de confiar en que la promesa de
+  // .update() resolvió, se vuelve a leer el documento DIRECTO DEL SERVIDOR (saltando
+  // cualquier caché local) justo después, y se deja constancia en la consola con hora
+  // exacta de cada paso. La próxima vez que esto pase, con la consola abierta (F12)
+  // vamos a ver, con prueba real, si el servidor de verdad quedó con removed:true o
+  // no — en vez de seguir adivinando.
+  console.log('[ELIMINAR-USUARIO] inicio', uid, new Date().toISOString());
   _bmTrackAdminWrite(db.collection('users').doc(uid).update({
     approved: false,
     status:   'rejected',
@@ -14096,6 +14104,22 @@ function adminDeleteUser(uid, btn) {
     deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
     deletedBy: currentUid
   })).then(function() {
+    console.log('[ELIMINAR-USUARIO] update() resuelta OK', uid, new Date().toISOString());
+    // Verificación real: releer el documento DIRECTO del servidor (no de caché local)
+    // para confirmar, con prueba, que el cambio de verdad llegó — no solo que la
+    // promesa de escritura se resolvió sin error.
+    return db.collection('users').doc(uid).get({ source: 'server' });
+  }).then(function(doc) {
+    var d = doc.exists ? doc.data() : null;
+    console.log('[ELIMINAR-USUARIO] relectura desde SERVIDOR', uid, new Date().toISOString(),
+      'removed=' + (d ? d.removed : 'doc no existe'),
+      'approved=' + (d ? d.approved : '—'));
+    if (!d || d.removed !== true) {
+      console.error('[ELIMINAR-USUARIO] ⚠ EL SERVIDOR NO TIENE removed:true — el borrado NO se guardó de verdad, aunque la app dijo que sí.');
+      toast('⚠ Parece que no se guardó de verdad — vuelve a intentarlo y avísame si se repite');
+      btn.disabled = false;
+      return;
+    }
     toast('Usuario eliminado por completo');
     // Quitarlo de la lista YA, en este mismo instante, en vez de esperar a que el
     // listener en tiempo real "se entere" solo — eso es lo que causaba el retraso
@@ -14106,6 +14130,7 @@ function adminDeleteUser(uid, btn) {
     _updateSidebarAdminBadge();
     _updateAdminBadges();
   }).catch(function(err) {
+    console.error('[ELIMINAR-USUARIO] ERROR', uid, new Date().toISOString(), err.code, err.message);
     toast('Error: ' + err.message);
     btn.disabled = false;
   }).then(function() { _bmUnlockOp('deluser_' + uid); });

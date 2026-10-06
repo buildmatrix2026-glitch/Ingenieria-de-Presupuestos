@@ -11001,6 +11001,12 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
     var _btnApp = document.getElementById('btn-open-app');
     if (_btnApp) _btnApp.textContent = 'Continuar';
     var overlay = document.getElementById('auth-modal-overlay');
+    // Señal independiente, de respaldo: si el modal de login/registro estaba visible
+    // justo antes de admitir al usuario, eso por sí solo ya demuestra que fue un login
+    // activo ahora mismo (nadie ve ese modal abierto sin haber hecho clic en algo para
+    // entrar) — no depende de que la bandera _bmExplicitLoginInProgress se haya puesto
+    // a tiempo en cada posible botón o camino de login que exista o se agregue después.
+    var modalWasOpen = !!(overlay && overlay.style.display !== 'none');
     if (overlay && overlay.style.display !== 'none') {
       overlay.style.display = 'none'; document.body.style.overflow = '';
     }
@@ -11017,7 +11023,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
       // marca justo cuando la persona hace clic en "Entrar con Google" — si está presente,
       // significa que SÍ quiere entrar a la app ahora mismo, así que forzamos la entrada en
       // vez de dejarla esperando un segundo clic que no sabía que tenía que dar.
-      if (sessionStorage.getItem('bm_tab') || window._bmExplicitLoginInProgress) {
+      if (sessionStorage.getItem('bm_tab') || window._bmExplicitLoginInProgress || modalWasOpen) {
         window._bmExplicitLoginInProgress = false;
         if (!sessionStorage.getItem('bm_tab')) sessionStorage.setItem('bm_tab', 'dash');
         enterAppTo(sessionStorage.getItem('bm_tab'));
@@ -13898,58 +13904,81 @@ function renderAdminUsers() {
   });
 }
 
+// ── Actualiza un usuario YA en memoria y vuelve a dibujar la lista al instante ──
+// Mismo principio que usamos para "Eliminar": en vez de esperar a que un refetch o
+// el listener en tiempo real "se enteren" solos del cambio (lo que causaba el
+// retraso de "hace falta un segundo clic"), se aplica el cambio directo sobre
+// _allAdminUsers y se vuelve a pintar la lista ahí mismo, sin esperar a nadie más.
+function _bmUpdateUserInMemory(uid, patch) {
+  var u = _allAdminUsers.find(function (x) { return x._id === uid; });
+  if (u) Object.keys(patch).forEach(function (k) {
+    if (patch[k] === undefined) delete u[k]; else u[k] = patch[k];
+  });
+  renderAdminUsers();
+  if (typeof _updateSidebarAdminBadge === 'function') _updateSidebarAdminBadge();
+  if (typeof _updateAdminBadges === 'function') _updateAdminBadges();
+}
+
 function adminApproveUser(uid, btn) {
+  if (!_bmLockOp('approve_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
-  firebase.firestore().collection('users').doc(uid).update({
+  toast('Aprobando usuario…');
+  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
     approved: true,
     status:   'approved'
-  }).then(function() {
+  })).then(function() {
     toast('✅ Usuario aprobado');
-    loadAdminUsers();
+    _bmUpdateUserInMemory(uid, { approved: true, status: 'approved' });
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false; btn.textContent = 'Aprobar';
-  });
+  }).then(function() { _bmUnlockOp('approve_' + uid); });
 }
 
 function adminRejectUser(uid, btn) {
+  if (!_bmLockOp('reject_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
-  firebase.firestore().collection('users').doc(uid).update({
+  toast('Rechazando usuario…');
+  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
     approved: false,
     status:   'rejected'
-  }).then(function() {
+  })).then(function() {
     toast('Usuario rechazado');
-    loadAdminUsers();
+    _bmUpdateUserInMemory(uid, { approved: false, status: 'rejected' });
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false; btn.textContent = 'Rechazar';
-  });
+  }).then(function() { _bmUnlockOp('reject_' + uid); });
 }
 
 function adminMakeAdmin(uid, btn) {
+  if (!_bmLockOp('mkadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
-  firebase.firestore().collection('users').doc(uid).update({
+  toast('Promoviendo a administrador…');
+  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
     role: 'admin'
-  }).then(function() {
+  })).then(function() {
     toast('✅ Usuario promovido a administrador');
-    loadAdminUsers();
+    _bmUpdateUserInMemory(uid, { role: 'admin' });
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false; btn.textContent = 'Hacer Admin';
-  });
+  }).then(function() { _bmUnlockOp('mkadmin_' + uid); });
 }
 
 function adminRemoveAdmin(uid, btn) {
+  if (!_bmLockOp('rmadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
-  firebase.firestore().collection('users').doc(uid).update({
+  toast('Quitando rol de administrador…');
+  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
     role: firebase.firestore.FieldValue.delete()
-  }).then(function() {
+  })).then(function() {
     toast('Rol de administrador removido');
-    loadAdminUsers();
+    _bmUpdateUserInMemory(uid, { role: undefined });
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false; btn.textContent = 'Quitar Admin';
-  });
+  }).then(function() { _bmUnlockOp('rmadmin_' + uid); });
 }
 
 // ── Blindaje contra recargar/salir mientras una eliminación sigue en curso ──
@@ -14130,7 +14159,9 @@ function saveDevicesLimit() {
   var uidToSave = _currentDevicesModalUid;
   var finished  = false;
 
+  if (!_bmLockOp('devices_' + uidToSave)) { toast('Ya se está procesando…'); return; }
   _setDevicesSaveBtnState(true);
+  toast('Guardando límite de dispositivos…');
 
   // Timeout de seguridad: si en 8s no hubo respuesta del servidor (conexión caída/inestable),
   // avisamos claramente y reactivamos el botón para poder reintentar, en vez de quedar "colgado"
@@ -14141,24 +14172,24 @@ function saveDevicesLimit() {
     _setDevicesSaveBtnState(false);
   }, 8000);
 
-  firebase.firestore().collection('users').doc(uidToSave).update({
+  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uidToSave).update({
     maxConcurrentSessions: inputVal,
     activeSessions: activeSessions
-  }).then(function() {
+  })).then(function() {
     if (finished) return;
     finished = true;
     clearTimeout(timeoutId);
     _setDevicesSaveBtnState(false);
     toast('Límite de dispositivos actualizado a ' + inputVal);
     closeDevicesModal();
-    loadAdminUsers();
+    _bmUpdateUserInMemory(uidToSave, { maxConcurrentSessions: inputVal, activeSessions: activeSessions });
   }).catch(function(err) {
     if (finished) return;
     finished = true;
     clearTimeout(timeoutId);
     _setDevicesSaveBtnState(false);
     toast('Error: ' + err.message);
-  });
+  }).then(function() { _bmUnlockOp('devices_' + uidToSave); });
 }
 
 // Cerrar modal al hacer click fuera

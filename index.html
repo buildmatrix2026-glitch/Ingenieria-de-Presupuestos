@@ -12135,9 +12135,21 @@ document.addEventListener('mousemove', function(e){
 });
 
 // ── Auth Modal ────────────────────────────────────────────────────────────
+var _bmGisInitTimer = null;
 function openAuthModal(panel){
   _forceCleanGIS();
-  setTimeout(_initGoogleButton, 150);
+  // Cambiar entre "Iniciar sesión" / "Registrarse" dentro del mismo modal llama a
+  // openAuthModal() de nuevo sin cerrar nada. Si se hacía rápido (dos clics seguidos
+  // en "Registrate aquí" / "Inicia sesión aquí"), se programaban dos inicializaciones
+  // de Google Identity Services casi al mismo tiempo (de ahí el aviso en consola:
+  // "google.accounts.id.initialize() is called multiple times"). Esa doble
+  // inicialización es justo lo que deja a veces un recuadro invisible de Google
+  // flotando sobre TODA la página, tapando los clics en los campos del formulario —
+  // y solo una recarga completa lo quitaba. Cancelar el timer anterior antes de
+  // programar uno nuevo garantiza que _initGoogleButton nunca se dispare dos veces
+  // seguidas para la misma apertura del modal.
+  if (_bmGisInitTimer) clearTimeout(_bmGisInitTimer);
+  _bmGisInitTimer = setTimeout(_initGoogleButton, 150);
   var overlay=document.getElementById('auth-modal-overlay');
   overlay.style.display='flex';
   requestAnimationFrame(function(){
@@ -13051,7 +13063,20 @@ async function deleteAdminProject(projId, btn) {
     deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
   })).then(function() {
     toast('Presupuesto eliminado de tu vista');
-    loadAdminProjects();
+    // Igual que con usuarios: en vez de esperar a que un refetch o el listener en
+    // tiempo real "se enteren" solos (lo que causaba el retraso), se marca y se
+    // vuelve a dibujar la lista con los datos que ya tenemos en memoria, al instante.
+    if (window._adminProjectsData) {
+      var p = window._adminProjectsData.find(function(x) { return x._id === projId; });
+      if (p) p.deletedByAdmin = true;
+      renderAdminProjects(window._adminProjectsData);
+      var visibleCount = window._adminProjectsData.filter(function(x) { return x.deletedByAdmin !== true; }).length;
+      var subEl = document.getElementById('admin-projects-sub');
+      if (subEl) subEl.textContent = visibleCount + ' presupuesto' + (visibleCount !== 1 ? 's' : '');
+      if (typeof _updateProjectsBadge === 'function') _updateProjectsBadge(visibleCount);
+    } else {
+      loadAdminProjects();
+    }
   }).catch(function(e) {
     toast('Error: ' + e.message);
     btn.disabled = false;
@@ -13955,8 +13980,15 @@ function _bmUnlockOp(id) { delete _bmOpsInFlight[id]; }
 var _bmAdminWritesInFlight = 0;
 function _bmTrackAdminWrite(promise) {
   _bmAdminWritesInFlight++;
-  var done = function () { _bmAdminWritesInFlight = Math.max(0, _bmAdminWritesInFlight - 1); };
+  var settled = false;
+  var done = function () { if (settled) return; settled = true; _bmAdminWritesInFlight = Math.max(0, _bmAdminWritesInFlight - 1); };
   promise.then(done, done);
+  // Seguro de respaldo: si por lo que sea la escritura nunca llega a resolverse ni a
+  // fallar (ej. un corte de red, o lo de hoy con la cuota de Firestore agotada a medias),
+  // el contador se quedaba atascado en positivo para siempre — y entonces el navegador
+  // te preguntaba "¿seguro que quieres salir?" aunque ya no hubiera nada pendiente de
+  // verdad. Pasados 15s se libera solo, para que el aviso nunca se quede pegado.
+  setTimeout(done, 15000);
   return promise;
 }
 window.addEventListener('beforeunload', function (e) {
@@ -14009,7 +14041,14 @@ function adminDeleteUser(uid, btn) {
     deletedBy: currentUid
   })).then(function() {
     toast('Usuario eliminado por completo');
-    loadAdminUsers();
+    // Quitarlo de la lista YA, en este mismo instante, en vez de esperar a que el
+    // listener en tiempo real "se entere" solo — eso es lo que causaba el retraso
+    // (a veces hacía falta un segundo clic o recargar para verlo desaparecer).
+    // Aquí se actualiza la lista en memoria directamente, de una vez, siempre.
+    _allAdminUsers = _allAdminUsers.filter(function(u) { return u._id !== uid; });
+    renderAdminUsers();
+    _updateSidebarAdminBadge();
+    _updateAdminBadges();
   }).catch(function(err) {
     toast('Error: ' + err.message);
     btn.disabled = false;

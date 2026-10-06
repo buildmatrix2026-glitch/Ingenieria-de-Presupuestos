@@ -10912,11 +10912,32 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
             _showAccessPending(identifier, displayName, data.status || 'pending');
           }
         } else {
-          // 🆕 Doc no existe por UID → usuario realmente nuevo (nunca tuvo cuenta antes).
-          // Un usuario que un admin "eliminó" YA NO cae aquí: adminDeleteUser ya no borra
-          // el documento, lo deja marcado como rechazado permanentemente (approved:false),
-          // así que entra por la rama de arriba (doc.exists) y se le niega el acceso ahí.
-          _createAndAdmitNewUser(user, identifier, displayName, db);
+          // 🆕 Doc no existe por UID → puede ser un usuario realmente nuevo, O una
+          // cuenta que un admin eliminó y luego alguien borró TAMBIÉN de Firebase
+          // Authentication directamente (en vez de usar solo el botón "Eliminar" del
+          // panel) — eso le da un uid totalmente nuevo la próxima vez que inicia
+          // sesión, y el bloqueo por uid no sirve contra un uid que nunca existió.
+          // Antes de admitirlo como nuevo, se revisa si YA EXISTE algún documento con
+          // ese mismo correo marcado como eliminado — sin importar su uid — y si lo
+          // hay, se le niega el acceso igual, en vez de volver a admitirlo de cero.
+          if (user.email) {
+            db.collection('users').where('email', '==', user.email).where('removed', '==', true).limit(1).get()
+              .then(function (snap) {
+                if (!snap.empty) {
+                  console.warn('[BLOQUEO-POR-CORREO] Esta cuenta fue eliminada antes (otro uid) — se niega el acceso:', user.email);
+                  firebase.auth().signOut();
+                  _showAccessPending(identifier, displayName, 'rejected');
+                  return;
+                }
+                _createAndAdmitNewUser(user, identifier, displayName, db);
+              })
+              .catch(function (err) {
+                console.warn('[BLOQUEO-POR-CORREO] no se pudo verificar, se admite por defecto:', err.code, err.message);
+                _createAndAdmitNewUser(user, identifier, displayName, db);
+              });
+          } else {
+            _createAndAdmitNewUser(user, identifier, displayName, db);
+          }
         }
 
       }).catch(function(err) {
@@ -14049,27 +14070,15 @@ function _bmWriteWithRetry(writeFn) {
   });
 }
 
-var _bmAdminWritesInFlight = 0;
-function _bmTrackAdminWrite(promise) {
-  _bmAdminWritesInFlight++;
-  var settled = false;
-  var done = function () { if (settled) return; settled = true; _bmAdminWritesInFlight = Math.max(0, _bmAdminWritesInFlight - 1); };
-  promise.then(done, done);
-  // Seguro de respaldo: si por lo que sea la escritura nunca llega a resolverse ni a
-  // fallar (ej. un corte de red, o lo de hoy con la cuota de Firestore agotada a medias),
-  // el contador se quedaba atascado en positivo para siempre — y entonces el navegador
-  // te preguntaba "¿seguro que quieres salir?" aunque ya no hubiera nada pendiente de
-  // verdad. Pasados 15s se libera solo, para que el aviso nunca se quede pegado.
-  setTimeout(done, 15000);
-  return promise;
-}
-window.addEventListener('beforeunload', function (e) {
-  if (_bmAdminWritesInFlight > 0) {
-    e.preventDefault();
-    e.returnValue = '';
-    return '';
-  }
-});
+// NOTA: hubo un aviso nativo del navegador ("¿seguro que quieres salir?") que se
+// disparaba mientras una escritura de admin seguía en curso, para evitar cortarla a
+// medias. Se quitó por completo: entre la actualización instantánea en pantalla, la
+// relectura de confirmación contra el servidor y el reintento automático del primer
+// intento, ese aviso dejó de aportar nada y solo molestaba — como se ve en que el
+// borrado ya funciona bien a la primera (lista actualizada al instante) aun cuando el
+// aviso seguía saliendo. _bmTrackAdminWrite ahora solo pasa la promesa tal cual, sin
+// contador ni aviso de por medio.
+function _bmTrackAdminWrite(promise) { return promise; }
 
 function adminDeleteUser(uid, btn) {
   var currentUid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;

@@ -12692,11 +12692,30 @@ function _startAdminListeners() {
   // ── Listener usuarios en tiempo real ──
   if (_adminUsersListener) _adminUsersListener(); // cancelar anterior
   _adminUsersListener = db.collection('users').onSnapshot(function(snap) {
-    _allAdminUsers = [];
-    // Los marcados "removed" (ver adminDeleteUser) siguen en la base para que el login los
-    // bloquee para siempre, pero nunca deben verse en el panel: ni en listas, ni en filtros,
-    // ni en los contadores. Se descartan aquí, en el único lugar donde se arma la lista.
-    snap.forEach(function(doc) { var d = doc.data(); if (!d.removed) _allAdminUsers.push(Object.assign({_id: doc.id}, d)); });
+    // Antes esto reconstruía _allAdminUsers ENTERO desde cero en cada disparo del
+    // listener — y como el listener se dispara también por tus propias acciones
+    // (Aprobar/Rechazar/Eliminar/etc.), esa reconstrucción completa podía pisar,
+    // por un instante, la actualización inmediata que ya habíamos hecho a mano
+    // (_bmUpdateUserInMemory) con una versión del snapshot que aún no había
+    // terminado de propagarse — dando la sensación de que el primer clic "no hizo
+    // nada" hasta un segundo disparo del listener (o un segundo clic). Ahora se
+    // aplican solo los cambios reales, documento por documento, igual que ya
+    // hacía el listener de presupuestos — sin reconstrucciones completas de por
+    // medio, no hay ventana en la que se pueda pisar una actualización reciente.
+    snap.docChanges().forEach(function(change) {
+      var id = change.doc.id;
+      var idx = _allAdminUsers.findIndex(function(u) { return u._id === id; });
+      if (change.type === 'removed') {
+        if (idx !== -1) _allAdminUsers.splice(idx, 1);
+        return;
+      }
+      var d = change.doc.data();
+      // Los marcados "removed" (ver adminDeleteUser) siguen en la base para que el
+      // login los bloquee para siempre, pero nunca deben verse en el panel.
+      if (d.removed) { if (idx !== -1) _allAdminUsers.splice(idx, 1); return; }
+      var entry = Object.assign({ _id: id }, d);
+      if (idx !== -1) _allAdminUsers[idx] = entry; else _allAdminUsers.push(entry);
+    });
 
     // Actualizar badge menú izquierdo (combinado: usuarios + presupuestos)
     var pendingCount = _allAdminUsers.filter(function(u){ return u.status === 'pending'; }).length;

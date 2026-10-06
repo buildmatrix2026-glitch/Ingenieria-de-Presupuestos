@@ -11247,7 +11247,12 @@ function bmCheckAccess(uid, userData) {
     var trialStartMs = data.trialStart && data.trialStart.toMillis ? data.trialStart.toMillis() : Date.now();
     var trialEndMs = trialStartMs + BM_TRIAL_DAYS * 86400000;
     var elapsedDays = (Date.now() - trialStartMs) / 86400000;
-    var daysLeft = Math.max(0, Math.ceil(BM_TRIAL_DAYS - elapsedDays));
+    // Math.ceil sin techo podía mostrar más días de los que la prueba realmente dura: si el
+    // reloj del dispositivo está apenas un poco atrasado respecto al reloj del servidor (donde
+    // se guardó trialStart), "días transcurridos" da un número negativo minúsculo, y al
+    // redondear hacia arriba se pasaba de 7 a 8. Math.min aquí pone un techo firme: nunca se
+    // muestran más días de los que la prueba otorga, sin importar el reloj del dispositivo.
+    var daysLeft = Math.max(0, Math.min(BM_TRIAL_DAYS, Math.ceil(BM_TRIAL_DAYS - elapsedDays)));
     var expiredByTime = elapsedDays >= BM_TRIAL_DAYS;
     var expiredByCount = count >= BM_TRIAL_MAX_PRESUPUESTOS;
     var blocked = !isPro && (expiredByTime || expiredByCount);
@@ -13039,10 +13044,10 @@ async function deleteAdminProject(projId, btn) {
   var docRef = db.collection('projects').doc(projId);
   
   // Marcar como deletedByAdmin (no borrar completamente)
-  docRef.update({
+  _bmTrackAdminWrite(docRef.update({
     deletedByAdmin: true,
     deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(function() {
+  })).then(function() {
     toast('Presupuesto eliminado de tu vista');
     loadAdminProjects();
   }).catch(function(e) {
@@ -13920,6 +13925,32 @@ function adminRemoveAdmin(uid, btn) {
   });
 }
 
+// ── Blindaje contra recargar/salir mientras una eliminación sigue en curso ──
+// El síntoma era: eliminas un usuario o un proyecto, recargas la página, y a
+// veces (no siempre) vuelve a aparecer — a veces hace falta eliminarlo 2 o 3
+// veces. Eso es la huella clásica de una condición de carrera: si recargas
+// justo después de hacer clic, el navegador puede cortar esa escritura a
+// Firestore a medias, antes de que el servidor la confirme — el cambio nunca
+// llega a completarse, aunque tú ya hayas "seguido adelante". Esta bandera
+// cuenta las escrituras de borrado en curso, y mientras haya al menos una
+// pendiente, el navegador te muestra su aviso nativo de "¿seguro que quieres
+// salir?" antes de recargar o cerrar la pestaña — así ya no se puede cortar
+// el borrado a medias sin que te enteres.
+var _bmAdminWritesInFlight = 0;
+function _bmTrackAdminWrite(promise) {
+  _bmAdminWritesInFlight++;
+  var done = function () { _bmAdminWritesInFlight = Math.max(0, _bmAdminWritesInFlight - 1); };
+  promise.then(done, done);
+  return promise;
+}
+window.addEventListener('beforeunload', function (e) {
+  if (_bmAdminWritesInFlight > 0) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
+
 function adminDeleteUser(uid, btn) {
   var currentUid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
   if (uid === currentUid) {
@@ -13951,14 +13982,14 @@ function adminDeleteUser(uid, btn) {
   // crear una colección nueva. Queda marcado como rechazado de forma
   // permanente — approved nunca vuelve a ponerse en true solo porque el
   // documento ya no existía.
-  db.collection('users').doc(uid).update({
+  _bmTrackAdminWrite(db.collection('users').doc(uid).update({
     approved: false,
     status:   'rejected',
     role:     firebase.firestore.FieldValue.delete(),
     removed:  true,
     deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
     deletedBy: currentUid
-  }).then(function() {
+  })).then(function() {
     toast('Usuario eliminado por completo');
     loadAdminUsers();
   }).catch(function(err) {

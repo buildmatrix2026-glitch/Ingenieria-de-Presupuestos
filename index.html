@@ -13091,9 +13091,11 @@ async function deleteAdminProject(projId, btn) {
   var docRef = db.collection('projects').doc(projId);
   
   // Marcar como deletedByAdmin (no borrar completamente)
-  _bmTrackAdminWrite(docRef.update({
-    deletedByAdmin: true,
-    deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return docRef.update({
+      deletedByAdmin: true,
+      deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
   })).then(function() {
     toast('Presupuesto eliminado de tu vista');
     // Igual que con usuarios: en vez de esperar a que un refetch o el listener en
@@ -13950,9 +13952,8 @@ function adminApproveUser(uid, btn) {
   if (!_bmLockOp('approve_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Aprobando usuario…');
-  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
-    approved: true,
-    status:   'approved'
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return firebase.firestore().collection('users').doc(uid).update({ approved: true, status: 'approved' });
   })).then(function() {
     toast('✅ Usuario aprobado');
     _bmUpdateUserInMemory(uid, { approved: true, status: 'approved' });
@@ -13966,9 +13967,8 @@ function adminRejectUser(uid, btn) {
   if (!_bmLockOp('reject_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Rechazando usuario…');
-  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
-    approved: false,
-    status:   'rejected'
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return firebase.firestore().collection('users').doc(uid).update({ approved: false, status: 'rejected' });
   })).then(function() {
     toast('Usuario rechazado');
     _bmUpdateUserInMemory(uid, { approved: false, status: 'rejected' });
@@ -13982,8 +13982,8 @@ function adminMakeAdmin(uid, btn) {
   if (!_bmLockOp('mkadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Promoviendo a administrador…');
-  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
-    role: 'admin'
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return firebase.firestore().collection('users').doc(uid).update({ role: 'admin' });
   })).then(function() {
     toast('✅ Usuario promovido a administrador');
     _bmUpdateUserInMemory(uid, { role: 'admin' });
@@ -13997,8 +13997,8 @@ function adminRemoveAdmin(uid, btn) {
   if (!_bmLockOp('rmadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Quitando rol de administrador…');
-  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uid).update({
-    role: firebase.firestore.FieldValue.delete()
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return firebase.firestore().collection('users').doc(uid).update({ role: firebase.firestore.FieldValue.delete() });
   })).then(function() {
     toast('Rol de administrador removido');
     _bmUpdateUserInMemory(uid, { role: undefined });
@@ -14032,6 +14032,22 @@ function _bmLockOp(id) {
   return true;
 }
 function _bmUnlockOp(id) { delete _bmOpsInFlight[id]; }
+
+// ── Reintento automático para la PRIMERA escritura de una sesión recién abierta ──
+// Firestore a veces tarda en terminar de establecer su conexión justo después de
+// iniciar sesión / recargar la página — y la primerísima escritura de esa sesión
+// puede fallar por eso, aunque la conexión ya esté lista un instante después. Eso
+// coincide exacto con "falla la primera vez que entro, pero la segunda ya funciona".
+// Esta función reintenta UNA vez, sola, 1.2s después, sin que el usuario tenga que
+// volver a hacer clic — así el "primer intento" nunca se siente como que falló.
+function _bmWriteWithRetry(writeFn) {
+  return writeFn().catch(function (err) {
+    console.warn('[reintento] primer intento falló, reintentando en 1.2s:', err.code, err.message);
+    return new Promise(function (resolve) {
+      setTimeout(function () { resolve(writeFn()); }, 1200);
+    });
+  });
+}
 
 var _bmAdminWritesInFlight = 0;
 function _bmTrackAdminWrite(promise) {
@@ -14096,13 +14112,15 @@ function adminDeleteUser(uid, btn) {
   // vamos a ver, con prueba real, si el servidor de verdad quedó con removed:true o
   // no — en vez de seguir adivinando.
   console.log('[ELIMINAR-USUARIO] inicio', uid, new Date().toISOString());
-  _bmTrackAdminWrite(db.collection('users').doc(uid).update({
-    approved: false,
-    status:   'rejected',
-    role:     firebase.firestore.FieldValue.delete(),
-    removed:  true,
-    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    deletedBy: currentUid
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return db.collection('users').doc(uid).update({
+      approved: false,
+      status:   'rejected',
+      role:     firebase.firestore.FieldValue.delete(),
+      removed:  true,
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      deletedBy: currentUid
+    });
   })).then(function() {
     console.log('[ELIMINAR-USUARIO] update() resuelta OK', uid, new Date().toISOString());
     // Verificación real: releer el documento DIRECTO del servidor (no de caché local)
@@ -14224,9 +14242,11 @@ function saveDevicesLimit() {
     _setDevicesSaveBtnState(false);
   }, 8000);
 
-  _bmTrackAdminWrite(firebase.firestore().collection('users').doc(uidToSave).update({
-    maxConcurrentSessions: inputVal,
-    activeSessions: activeSessions
+  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
+    return firebase.firestore().collection('users').doc(uidToSave).update({
+      maxConcurrentSessions: inputVal,
+      activeSessions: activeSessions
+    });
   })).then(function() {
     if (finished) return;
     finished = true;

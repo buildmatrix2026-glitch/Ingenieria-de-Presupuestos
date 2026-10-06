@@ -11008,12 +11008,21 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
     if (pending) pending.remove();
     if (typeof updateUserWidget === 'function') updateUserWidget(identifier, displayName);
     if (typeof enterAppTo === 'function' && !document.body.classList.contains('ia')) {
-      // Solo entrar a la app automáticamente si es un REFRESH (sessionStorage tiene bm_tab)
-      // Si es apertura nueva de la app, sessionStorage está vacío → mostrar landing
-      if (sessionStorage.getItem('bm_tab')) {
+      // BUG real que arreglamos aquí: antes, si sessionStorage no tenía "bm_tab" (es decir,
+      // un login nuevo de verdad, no un refresh de una sesión que ya estaba dentro), este
+      // código NO entraba a la app — solo cambiaba el texto del botón a "Continuar" y dejaba
+      // a la persona parada en la pantalla de aterrizaje. Parecía que el login se quedaba
+      // "trabado", y solo avanzaba si recargabas la página (porque al recargar, otro camino
+      // del código sí detecta la sesión y entra). La bandera _bmExplicitLoginInProgress se
+      // marca justo cuando la persona hace clic en "Entrar con Google" — si está presente,
+      // significa que SÍ quiere entrar a la app ahora mismo, así que forzamos la entrada en
+      // vez de dejarla esperando un segundo clic que no sabía que tenía que dar.
+      if (sessionStorage.getItem('bm_tab') || window._bmExplicitLoginInProgress) {
+        window._bmExplicitLoginInProgress = false;
+        if (!sessionStorage.getItem('bm_tab')) sessionStorage.setItem('bm_tab', 'dash');
         enterAppTo(sessionStorage.getItem('bm_tab'));
       }
-      // Si no hay bm_tab → se queda en landing, botón ya dice "Continuar"
+      // Si no hay bm_tab ni fue un login explícito → se queda en landing, botón ya dice "Continuar"
     } else if (!document.body.classList.contains('ia')) {
       // Fallback: si enterAppTo no está disponible aún, simular click en btn-open-app
       var _btnFallback = document.getElementById('btn-open-app');
@@ -12383,6 +12392,7 @@ function _initGoogleButton() {
       e.preventDefault();
       // Usar Firebase signInWithPopup directamente para evitar el cooldown
       // de GIS/FedCM que bloquea el botón cuando el usuario cancela el prompt
+      window._bmExplicitLoginInProgress = true; // ver uso en _admitUser
       var provider = new firebase.auth.GoogleAuthProvider();
       provider.addScope('profile');
       provider.addScope('email');
@@ -12417,6 +12427,11 @@ function _initGoogleButton() {
 }
 
 function handleSocialAuth(providerName) {
+  // Esta bandera le dice a _admitUser "esto es un clic de login explícito, en curso
+  // ahora mismo" — para que entre a la app directo apenas se confirme el acceso, en
+  // vez de quedarse esperando en la pantalla de aterrizaje (ver el bug explicado junto
+  // a donde se usa esta bandera, dentro de _admitUser).
+  window._bmExplicitLoginInProgress = true;
 
   // ── Construir el proveedor correcto según SDK v8 compat ──
   var provider;

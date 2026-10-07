@@ -8404,6 +8404,26 @@ function saveRubroEdit(gIdx, rIdx, a){
   var price=parseFloat(($id('gred-price')||{}).value)||0;
   if(!code||!desc){toast('Código y descripción son requeridos');return;}
   var oldCode=g.r[rIdx][0];
+  // ── Bloquear código duplicado al renombrar ──────────────────────────────
+  // Antes, cambiar el código aquí no comprobaba si ese código YA pertenecía
+  // a otro APU/rubro — "BD.A[code]=apu; delete BD.A[oldCode];" sobrescribía
+  // en silencio el APU que ya existiera con ese código, sin aviso ni forma
+  // de deshacerlo (y "delete BD.A[oldCode]" además borraba el que se estaba
+  // editando). El editor de Insumos sí tenía esta validación; aquí faltaba.
+  // Se revisa en TODOS los grupos (BD.G), no solo en el actual, porque un
+  // código puede repetirse entre grupos distintos.
+  if(code!==oldCode){
+    var dup=false;
+    BD.G.forEach(function(g2,gi2){
+      g2.r.forEach(function(r2,ri2){
+        if((gi2!==gIdx||ri2!==rIdx) && r2[0]===code) dup=true;
+      });
+    });
+    if(dup || (BD.A[code] && oldCode!==code)){
+      toast('Ya existe un rubro/APU con el código '+code);
+      return;
+    }
+  }
   // Save group rubro
   g.r[rIdx]=[code,desc,unit,price];
   // Save APU data if exists

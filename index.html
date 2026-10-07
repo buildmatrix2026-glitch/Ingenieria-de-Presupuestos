@@ -21721,18 +21721,26 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     requestAnimationFrame(tick);
   }
-  // Mismo efecto de conteo para los 4 cuadros de KPIs (Total, Promedio, Pico, Comprobantes):
-  // sube desde cero cada vez que se dibujan, ya sea al cargar la página o al cambiar de período.
+  // Mismo efecto de conteo para los 4 cuadros de KPIs (Total, Promedio, Pico, Comprobantes).
+  // Por qué ahora cuenta DESDE el valor que ya estaba en pantalla (y no siempre desde cero, con
+  // 2.4s de duración fija): si tocabas Día/Mes/Año/Histórico rápido, cada toque reiniciaba el
+  // conteo desde 0 antes de que el anterior terminara — el número nunca llegaba a "asentarse" y se
+  // sentía descoordinado con el gráfico (que ya estaba fijo). Ahora anima desde el número actual
+  // hasta el nuevo en 550ms (parecido a la transición del gráfico), así que aunque toques varias
+  // veces seguidas, el conteo siempre continúa suave desde donde iba, en vez de saltar a 0 y volver
+  // a subir.
   function animateKpi(el, target, isMoney) {
     if (!el) return;
-    var t0 = performance.now(), duration = 2400, myTok = {};
+    var start = (typeof el._bmKpiVal === 'number') ? el._bmKpiVal : 0;
+    var t0 = performance.now(), duration = 550, myTok = {};
     el._bmKpiTok = myTok;   // si llega un nuevo valor antes de terminar, cancela la anterior
     function tick(now) {
       if (el._bmKpiTok !== myTok) return;
       var p = Math.min(1, (now - t0) / duration);
       var eased = 1 - Math.pow(1 - p, 3);
-      var val = target * eased;
+      var val = start + (target - start) * eased;
       el.textContent = isMoney ? fmtUSD(val) : String(Math.round(val));
+      el._bmKpiVal = val;
       if (p < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -21772,6 +21780,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var root = document.getElementById(cfg.prefix + '-hud');
     if (!root) return;
     var lineChart = null, donutChart = null, current = 'mes', lastSig = '', proj = '__all__';
+    // El tooltip del oscilograma se arma UNA sola vez (ver más abajo, ya no se recrea en cada cambio
+    // de período) y sus callbacks necesitan el análisis más reciente — por eso leen de esta variable
+    // en vez de quedarse "congelados" con los datos del primer dibujo.
+    var curAn = null;
     addRunHud(root);
     root.querySelectorAll('.gx-hud-panel').forEach(function (p) { addRunHud(p); });
 
@@ -21825,6 +21837,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     function draw(force) {
       if (root.offsetParent === null) return;          // pestaña oculta: se dibuja al entrar
       var an = analyze(current, syncProj(getData()), new Date());
+      curAn = an;
       var catKeys = cfg.cats.slice();
       Object.keys(an.cats).forEach(function (k) { if (catKeys.indexOf(k) < 0) catKeys.push(k); });
       var catVals = catKeys.map(function (k) { return Math.max(0, Math.round((an.cats[k] || 0) * 100) / 100); });   // una nota de crédito puede dejar una categoría en negativo: no se dibuja
@@ -21860,37 +21873,57 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       lastSig = sig;
 
       // ── Oscilograma ──
+      // Por qué ya NO se destruye y recrea el gráfico en cada cambio de período: antes, cada toque en
+      // Día/Mes/Año/Histórico hacía lineChart.destroy() + new Chart(...), es decir, tirar TODO (ejes,
+      // degradado, plugins, tooltip) y reconstruirlo de cero. Visualmente eso se ve como un salto seco
+      // — un gráfico desaparece y el otro aparece ya completo, sin ninguna transición — y de paso es
+      // mucho más pesado para el navegador (justo lo que se sentía "lento"/"con tirones" al cambiar
+      // rápido entre pestañas). Ahora el MISMO gráfico se actualiza en su sitio con chart.update():
+      // Chart.js anima cada punto moviéndose suavemente de su valor/posición anterior al nuevo, incluso
+      // cuando cambia la cantidad de puntos (p.ej. de 12 meses a 5 años), y es mucho más liviano.
       var lc = $('chart-line');
       var ctx = lc.getContext('2d');
-      var grad = ctx.createLinearGradient(0, 0, 0, 230);
-      grad.addColorStop(0, cfg.lineColor + '55'); grad.addColorStop(1, cfg.lineColor + '00');
-      if (lineChart) lineChart.destroy();
-      lineChart = new Chart(ctx, {
-        type: 'line',
-        // Por qué "monotone" y no el bezier por defecto: con tension fija (0.35) Chart.js calcula los
-        // puntos de control de la curva usando también los valores vecinos aunque sean "null" (los días/
-        // meses futuros que "mes"/"año"/"semana" dejan en null para no dibujar el futuro) o aunque haya
-        // un salto brusco entre dos comprobantes. Eso produce un "overshoot": justo antes del hueco, o en
-        // un pico, la curva se infla/hunde más allá de lo que los datos realmente dicen — es el efecto
-        // "la curva se ve rara, como que crece raro" al cambiar de Día/Mes/Año/Histórico. La interpolación
-        // "monotone" nunca excede el valor real de los puntos vecinos (sin overshoot/undershoot), así que
-        // la curva sigue siendo suave pero deja de "inventar" picos o hundimientos que no están en los datos.
-        data: { labels: an.labels, datasets: [{ data: an.values, borderColor: cfg.lineColor, backgroundColor: grad, borderWidth: 2.5, pointRadius: an.values.length > 20 ? 2 : 3.5,
-          pointBackgroundColor: cfg.lineColor, pointBorderColor: '#0b0f19', pointBorderWidth: 1.5, cubicInterpolationMode: 'monotone', tension: 0.35, fill: true, spanGaps: false }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: cfg.lineColor, borderColor: cfg.lineColor, borderWidth: 1, padding: 10,
-              titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
-              callbacks: { title: function (it) { return an.tips[it[0].dataIndex] || it[0].label; }, label: function (c) { return fmtUSD(c.parsed.y); } } }
-          },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8a94a6', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 0, autoSkip: true } },
-            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8a94a6', font: { family: 'JetBrains Mono', size: 10 }, callback: function (v) { return '$' + v; } } }
+      var ptR = an.values.length > 20 ? 2 : 3.5;
+      if (!lineChart) {
+        var grad = ctx.createLinearGradient(0, 0, 0, 230);
+        grad.addColorStop(0, cfg.lineColor + '55'); grad.addColorStop(1, cfg.lineColor + '00');
+        lineChart = new Chart(ctx, {
+          type: 'line',
+          // Por qué "monotone" y no el bezier por defecto: con tension fija (0.35) Chart.js calcula los
+          // puntos de control de la curva usando también los valores vecinos aunque sean "null" (los días/
+          // meses futuros que "mes"/"año"/"semana" dejan en null para no dibujar el futuro) o aunque haya
+          // un salto brusco entre dos comprobantes, o incluso dos ceros seguidos entre dos picos. Eso
+          // produce un "overshoot": la curva se infla/hunde más allá de lo que los datos realmente dicen
+          // (hasta meterse por debajo del eje con dos ceros seguidos) — es el efecto "la curva se ve rara,
+          // como que crece raro". La interpolación "monotone" nunca excede el valor real de los puntos
+          // vecinos (sin overshoot/undershoot), así que la curva sigue siendo suave pero deja de "inventar"
+          // picos o hundimientos que no están en los datos.
+          data: { labels: an.labels, datasets: [{ data: an.values, borderColor: cfg.lineColor, backgroundColor: grad, borderWidth: 2.5, pointRadius: ptR,
+            pointBackgroundColor: cfg.lineColor, pointBorderColor: '#0b0f19', pointBorderWidth: 1.5, cubicInterpolationMode: 'monotone', tension: 0.35, fill: true, spanGaps: false }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            animation: { duration: 420, easing: 'easeOutQuart' },
+            plugins: {
+              legend: { display: false },
+              tooltip: { backgroundColor: '#0b0f19', titleColor: '#fff', bodyColor: cfg.lineColor, borderColor: cfg.lineColor, borderWidth: 1, padding: 10,
+                titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' },
+                // Lee de curAn (no de "an", que quedaría fijo al valor del primer dibujo) porque este
+                // objeto de opciones ahora solo se crea UNA vez; en los cambios de período siguientes
+                // solo se actualiza el gráfico, no sus opciones/callbacks.
+                callbacks: { title: function (it) { return (curAn && curAn.tips[it[0].dataIndex]) || it[0].label; }, label: function (c) { return fmtUSD(c.parsed.y); } } }
+            },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8a94a6', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 0, autoSkip: true } },
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8a94a6', font: { family: 'JetBrains Mono', size: 10 }, callback: function (v) { return '$' + v; } } }
+            }
           }
-        }
-      });
+        });
+      } else {
+        lineChart.data.labels = an.labels;
+        lineChart.data.datasets[0].data = an.values;
+        lineChart.data.datasets[0].pointRadius = ptR;
+        lineChart.update();
+      }
 
       // ── Medidores individuales por categoría (en vez de una sola dona) ──
       var colors = catKeys.map(function (k) { return cfg.catColors[k] || '#64748b'; });

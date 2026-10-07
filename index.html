@@ -14117,6 +14117,39 @@ function _bmWriteWithRetry(writeFn) {
   });
 }
 
+// ── Límite de tiempo para una promesa de Firestore ──────────────────────────
+// Por qué existe: sin persistencia offline, una escritura u lectura de
+// Firestore que no tiene por dónde salir (el canal de red todavía no quedó
+// "enganchado" al usuario que acaba de iniciar sesión, justo tras cambiar de
+// cuenta sin recargar la página) se queda PENDIENTE PARA SIEMPRE — nunca se
+// resuelve ni se rechaza. Eso es justo lo que se vio en pantalla: el toast
+// "Eliminando…" se queda solo, sin segundo toast de éxito ni de error, hasta
+// que se recarga la página a mano. Sin un límite de tiempo, el reintento
+// automático de abajo nunca llega a dispararse porque nunca ve un error al
+// cual reaccionar. _bmConTiempoLimite fuerza esa promesa a fallar sola a los
+// pocos segundos si no responde, para que el reintento SÍ se dispare.
+function _bmConTiempoLimite(promise, ms, etiqueta) {
+  return new Promise(function (resolve, reject) {
+    var listo = false;
+    var timer = setTimeout(function () {
+      if (listo) return;
+      listo = true;
+      reject(new Error('Tiempo de espera agotado (' + etiqueta + ')'));
+    }, ms);
+    promise.then(function (v) {
+      if (listo) return;
+      listo = true;
+      clearTimeout(timer);
+      resolve(v);
+    }, function (err) {
+      if (listo) return;
+      listo = true;
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
 // ── Escritura confirmada contra el servidor (misma lógica que ya usa
 // adminDeleteUser en _intentarBorrado) ──────────────────────────────────────
 // Por qué existe: _bmWriteWithRetry (arriba) solo reintenta si la escritura
@@ -14130,13 +14163,16 @@ function _bmWriteWithRetry(writeFn) {
 // servidor) el dato viejo reaparece. Esta función escribe, relee el
 // documento con { source: 'server' } (saltando cualquier caché), y solo da
 // por bueno el cambio si el servidor de verdad lo confirma — reintentando
-// hasta 3 veces antes de rendirse.
+// hasta 3 veces antes de rendirse. Cada paso tiene además un límite de 7s:
+// si la escritura o la relectura se quedan colgadas sin red lista, a los 7s
+// se dan por fallidas y se reintenta, en vez de quedarse esperando para
+// siempre (ver _bmConTiempoLimite arriba).
 function _bmWriteConfirmado(opLabel, docRef, patch, verifyFn, maxIntentos) {
   maxIntentos = maxIntentos || 3;
   function intentar(n) {
     console.log('[' + opLabel + '] intento ' + n, docRef.id, new Date().toISOString());
-    return docRef.update(patch).then(function () {
-      return docRef.get({ source: 'server' });
+    return _bmConTiempoLimite(docRef.update(patch), 7000, opLabel + ':escritura').then(function () {
+      return _bmConTiempoLimite(docRef.get({ source: 'server' }), 7000, opLabel + ':relectura');
     }).then(function (doc) {
       var d = doc.exists ? doc.data() : null;
       if (verifyFn(d)) {
@@ -14221,16 +14257,20 @@ function adminDeleteUser(uid, btn) {
   // primera, el propio sistema se corrige antes de que tú llegues a verlo mal.
   function _intentarBorrado(intento) {
     console.log('[ELIMINAR-USUARIO] intento ' + intento, uid, new Date().toISOString());
-    return db.collection('users').doc(uid).update({
+    // _bmConTiempoLimite: si la escritura o la relectura se quedan colgadas (sin
+    // red lista justo tras cambiar de cuenta sin recargar), a los 7s se dan por
+    // fallidas en vez de quedar pendientes para siempre — así SÍ se dispara el
+    // reintento de abajo en vez de dejar el toast "Eliminando…" congelado.
+    return _bmConTiempoLimite(db.collection('users').doc(uid).update({
       approved: false,
       status:   'rejected',
       role:     firebase.firestore.FieldValue.delete(),
       removed:  true,
       deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
       deletedBy: currentUid
-    }).then(function () {
+    }), 7000, 'ELIMINAR-USUARIO:escritura').then(function () {
       console.log('[ELIMINAR-USUARIO] update() resuelta OK, intento ' + intento, uid, new Date().toISOString());
-      return db.collection('users').doc(uid).get({ source: 'server' });
+      return _bmConTiempoLimite(db.collection('users').doc(uid).get({ source: 'server' }), 7000, 'ELIMINAR-USUARIO:relectura');
     }).then(function (doc) {
       var d = doc.exists ? doc.data() : null;
       console.log('[ELIMINAR-USUARIO] relectura desde SERVIDOR, intento ' + intento, uid, new Date().toISOString(),
@@ -14243,6 +14283,14 @@ function adminDeleteUser(uid, btn) {
         });
       }
       return false; // se agotaron los 3 intentos
+    }).catch(function (err) {
+      console.error('[ELIMINAR-USUARIO] error intento ' + intento, uid, err.code, err.message);
+      if (intento < 3) {
+        return new Promise(function (resolve) {
+          setTimeout(function () { resolve(_intentarBorrado(intento + 1)); }, intento * 1500);
+        });
+      }
+      throw err;
     });
   }
 

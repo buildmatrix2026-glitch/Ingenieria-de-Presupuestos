@@ -11074,6 +11074,23 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
       if (doc.exists && doc.data().role === 'admin') {
         if (adminNav) adminNav.style.display = '';
         localStorage.setItem('bm_role', 'admin');
+        // ── Por qué este getIdToken(true) va aquí ──────────────────────────
+        // Síntoma reportado: entras como usuario normal, guardas cosas, cierras
+        // esa sesión y entras como admin (todo SIN recargar la página) — y la
+        // PRIMERA vez que intentas borrar algo o cambiar un estado, no hace
+        // nada (o parece hacerlo y al refrescar reaparece); recién al refrescar
+        // la página y repetir la acción sí funciona. Causa: Firebase reutiliza
+        // el mismo canal de conexión de Firestore entre un login y el
+        // siguiente dentro de la misma pestaña, y ese canal tarda un instante
+        // en terminar de "reconocer" que ahora hay un usuario distinto (con
+        // permisos distintos) autenticado — justo la ventana en la que caen
+        // las escrituras de admin hechas de inmediato tras entrar. Al
+        // refrescar la página se abre un canal nuevo desde cero con el
+        // usuario correcto ya puesto, por eso ahí sí funciona a la primera.
+        // Forzar la renovación del token ANTES de arrancar los listeners/UI de
+        // admin hace que ese reconocimiento pase ahora, de una vez, en vez de
+        // quedar pendiente para cuando llegue la primera escritura.
+        user.getIdToken(true).catch(function(e){ console.warn('getIdToken(true) falló, continuando igual:', e && e.message); }).then(function() {
         if (typeof loadAdminUsers === 'function') loadAdminUsers();
         // Mostrar tab Presupuestos solo para superadmin
         if (doc.data().superadmin === true) {
@@ -11086,6 +11103,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
         if (typeof _startAdminListeners === 'function') _startAdminListeners();
         // Admin: sincronizar proyectos propios en la nube igual que los clientes
         if (typeof _startProjectsSync === 'function') _startProjectsSync();
+        });
         // Admin: no aplicar restricción de sesión única
         return;
       }
@@ -13111,13 +13129,18 @@ async function deleteAdminProject(projId, btn) {
   var db = firebase.firestore();
   var docRef = db.collection('projects').doc(projId);
   
-  // Marcar como deletedByAdmin (no borrar completamente)
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
-    return docRef.update({
-      deletedByAdmin: true,
-      deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  })).then(function() {
+  // Marcar como deletedByAdmin (no borrar completamente) — confirmado contra
+  // el servidor, igual que adminDeleteUser, para que nunca reaparezca al
+  // recargar si la escritura no llegó a completarse de verdad.
+  _bmWriteConfirmado('ELIMINAR-PROYECTO', docRef,
+    { deletedByAdmin: true, deletedByAdminAt: firebase.firestore.FieldValue.serverTimestamp() },
+    function (d) { return d && d.deletedByAdmin === true; }
+  ).then(function(confirmado) {
+    if (!confirmado) {
+      toast('⚠ No se pudo confirmar la eliminación tras varios intentos — intenta de nuevo');
+      btn.disabled = false;
+      return;
+    }
     toast('Presupuesto eliminado de tu vista');
     // Igual que con usuarios: en vez de esperar a que un refetch o el listener en
     // tiempo real "se enteren" solos (lo que causaba el retraso), se marca y se
@@ -13973,9 +13996,15 @@ function adminApproveUser(uid, btn) {
   if (!_bmLockOp('approve_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Aprobando usuario…');
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
-    return firebase.firestore().collection('users').doc(uid).update({ approved: true, status: 'approved' });
-  })).then(function() {
+  var docRef = firebase.firestore().collection('users').doc(uid);
+  _bmWriteConfirmado('APROBAR-USUARIO', docRef, { approved: true, status: 'approved' },
+    function (d) { return d && d.approved === true && d.status === 'approved'; }
+  ).then(function(confirmado) {
+    if (!confirmado) {
+      toast('⚠ No se pudo confirmar la aprobación tras varios intentos — intenta de nuevo');
+      btn.disabled = false; btn.textContent = 'Aprobar';
+      return;
+    }
     toast('✅ Usuario aprobado');
     _bmUpdateUserInMemory(uid, { approved: true, status: 'approved' });
   }).catch(function(err) {
@@ -13988,9 +14017,15 @@ function adminRejectUser(uid, btn) {
   if (!_bmLockOp('reject_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Rechazando usuario…');
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
-    return firebase.firestore().collection('users').doc(uid).update({ approved: false, status: 'rejected' });
-  })).then(function() {
+  var docRef = firebase.firestore().collection('users').doc(uid);
+  _bmWriteConfirmado('RECHAZAR-USUARIO', docRef, { approved: false, status: 'rejected' },
+    function (d) { return d && d.approved === false && d.status === 'rejected'; }
+  ).then(function(confirmado) {
+    if (!confirmado) {
+      toast('⚠ No se pudo confirmar el rechazo tras varios intentos — intenta de nuevo');
+      btn.disabled = false; btn.textContent = 'Rechazar';
+      return;
+    }
     toast('Usuario rechazado');
     _bmUpdateUserInMemory(uid, { approved: false, status: 'rejected' });
   }).catch(function(err) {
@@ -14003,9 +14038,15 @@ function adminMakeAdmin(uid, btn) {
   if (!_bmLockOp('mkadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Promoviendo a administrador…');
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
-    return firebase.firestore().collection('users').doc(uid).update({ role: 'admin' });
-  })).then(function() {
+  var docRef = firebase.firestore().collection('users').doc(uid);
+  _bmWriteConfirmado('HACER-ADMIN', docRef, { role: 'admin' },
+    function (d) { return d && d.role === 'admin'; }
+  ).then(function(confirmado) {
+    if (!confirmado) {
+      toast('⚠ No se pudo confirmar el ascenso a administrador tras varios intentos — intenta de nuevo');
+      btn.disabled = false; btn.textContent = 'Hacer Admin';
+      return;
+    }
     toast('✅ Usuario promovido a administrador');
     _bmUpdateUserInMemory(uid, { role: 'admin' });
   }).catch(function(err) {
@@ -14018,9 +14059,15 @@ function adminRemoveAdmin(uid, btn) {
   if (!_bmLockOp('rmadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Quitando rol de administrador…');
-  _bmTrackAdminWrite(_bmWriteWithRetry(function () {
-    return firebase.firestore().collection('users').doc(uid).update({ role: firebase.firestore.FieldValue.delete() });
-  })).then(function() {
+  var docRef = firebase.firestore().collection('users').doc(uid);
+  _bmWriteConfirmado('QUITAR-ADMIN', docRef, { role: firebase.firestore.FieldValue.delete() },
+    function (d) { return d && d.role === undefined; }
+  ).then(function(confirmado) {
+    if (!confirmado) {
+      toast('⚠ No se pudo confirmar el cambio tras varios intentos — intenta de nuevo');
+      btn.disabled = false; btn.textContent = 'Quitar Admin';
+      return;
+    }
     toast('Rol de administrador removido');
     _bmUpdateUserInMemory(uid, { role: undefined });
   }).catch(function(err) {
@@ -14068,6 +14115,52 @@ function _bmWriteWithRetry(writeFn) {
       setTimeout(function () { resolve(writeFn()); }, 1200);
     });
   });
+}
+
+// ── Escritura confirmada contra el servidor (misma lógica que ya usa
+// adminDeleteUser en _intentarBorrado) ──────────────────────────────────────
+// Por qué existe: _bmWriteWithRetry (arriba) solo reintenta si la escritura
+// LANZA un error — pero no comprueba que el dato realmente haya quedado en el
+// servidor. Aprobar/Rechazar usuario, Hacer/Quitar Admin y Eliminar
+// presupuesto usaban esa versión débil: la pantalla mostraba "listo" en
+// cuanto la promesa de .update() resolvía, aunque esa resolución puede venir
+// del caché local de Firestore antes de que el cambio de verdad llegue al
+// servidor. Si la conexión se corta justo ahí, el cambio se queda solo en
+// este navegador — y al hacer Ctrl+Shift+R (que vuelve a pedir todo al
+// servidor) el dato viejo reaparece. Esta función escribe, relee el
+// documento con { source: 'server' } (saltando cualquier caché), y solo da
+// por bueno el cambio si el servidor de verdad lo confirma — reintentando
+// hasta 3 veces antes de rendirse.
+function _bmWriteConfirmado(opLabel, docRef, patch, verifyFn, maxIntentos) {
+  maxIntentos = maxIntentos || 3;
+  function intentar(n) {
+    console.log('[' + opLabel + '] intento ' + n, docRef.id, new Date().toISOString());
+    return docRef.update(patch).then(function () {
+      return docRef.get({ source: 'server' });
+    }).then(function (doc) {
+      var d = doc.exists ? doc.data() : null;
+      if (verifyFn(d)) {
+        console.log('[' + opLabel + '] confirmado por el servidor, intento ' + n, docRef.id);
+        return true;
+      }
+      if (n < maxIntentos) {
+        console.warn('[' + opLabel + '] no quedó confirmado, reintentando…', docRef.id);
+        return new Promise(function (resolve) {
+          setTimeout(function () { resolve(intentar(n + 1)); }, n * 1200);
+        });
+      }
+      return false;
+    }).catch(function (err) {
+      console.error('[' + opLabel + '] error intento ' + n, docRef.id, err.code, err.message);
+      if (n < maxIntentos) {
+        return new Promise(function (resolve) {
+          setTimeout(function () { resolve(intentar(n + 1)); }, n * 1200);
+        });
+      }
+      throw err;
+    });
+  }
+  return intentar(1);
 }
 
 // NOTA: hubo un aviso nativo del navegador ("¿seguro que quieres salir?") que se

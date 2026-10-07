@@ -10898,8 +10898,15 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
       var identifier  = user.email || user.displayName || ('uid:' + user.uid.slice(0, 8));
 
       // ── Verificar aprobación en Firestore ──
+      // _bmConTiempoLimite: esta es con frecuencia la PRIMERA lectura de Firestore
+      // de una sesión recién abierta (login justo tras cargar la página o cambiar
+      // de cuenta) — sin ese límite, si el canal de red no está listo todavía, esta
+      // promesa puede quedarse colgada sin resolver NI rechazar, y el modal de login
+      // se queda "congelado" para siempre en vez de caer al bloque .catch de abajo
+      // (que sí reintenta). Con el límite, a los 8s se trata como error y el
+      // reintento de abajo sí se dispara.
       var db = firebase.firestore();
-      db.collection('users').doc(user.uid).get().then(function(doc) {
+      _bmConTiempoLimite(db.collection('users').doc(user.uid).get(), 8000, 'LOGIN:verificacion-inicial').then(function(doc) {
 
         if (doc.exists) {
           var data = doc.data();
@@ -10921,7 +10928,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
           // ese mismo correo marcado como eliminado — sin importar su uid — y si lo
           // hay, se le niega el acceso igual, en vez de volver a admitirlo de cero.
           if (user.email) {
-            db.collection('users').where('email', '==', user.email).where('removed', '==', true).limit(1).get()
+            _bmConTiempoLimite(db.collection('users').where('email', '==', user.email).where('removed', '==', true).limit(1).get(), 8000, 'LOGIN:verificacion-correo-bloqueado')
               .then(function (snap) {
                 if (!snap.empty) {
                   console.warn('[BLOQUEO-POR-CORREO] Esta cuenta fue eliminada antes (otro uid) — se niega el acceso:', user.email);
@@ -10947,7 +10954,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
         setTimeout(function() {
           var retryUser = firebase.auth().currentUser;
           if (!retryUser) return;
-          firebase.firestore().collection('users').doc(retryUser.uid).get().then(function(doc) {
+          _bmConTiempoLimite(firebase.firestore().collection('users').doc(retryUser.uid).get(), 8000, 'LOGIN:verificacion-reintento').then(function(doc) {
             if (doc.exists && doc.data().approved === true) {
               var dn = retryUser.displayName || (retryUser.email ? retryUser.email.split('@')[0] : 'Usuario');
               var id = retryUser.email || dn;
@@ -10975,41 +10982,63 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
   });
 
   // ── Crear el documento de un usuario realmente nuevo (no bloqueado) y admitirlo ──
+  // Con límite de tiempo + reintento: igual que las escrituras del panel admin, esta
+  // es con frecuencia la PRIMERA escritura a Firestore de una sesión recién abierta
+  // (alguien se registra con Google por primera vez justo después de cargar la
+  // página) — y esa primera escritura puede quedarse colgada sin red lista, sin
+  // lanzar error. Antes, sin límite de tiempo, eso dejaba a la persona viendo el
+  // modal de login para siempre, con el botón de Google deshabilitado, hasta que
+  // refrescaba a mano. Ahora, si no responde en 8s, se reintenta solo una vez más
+  // antes de admitir que algo falló y avisar en vez de quedarse así.
   function _createAndAdmitNewUser(user, identifier, displayName, db) {
-          // Se admite de inmediato en modo prueba — sin aprobación manual del admin.
-          // role/superadmin/isPro quedan fuera a propósito: el propio registro no puede
-          // auto-otorgarse ninguno de esos privilegios (ver noAdminFieldsOnCreate en
-          // firestore.rules); solo un admin puede darlos después.
-          db.collection('users').doc(user.uid).set({
-            uid:         user.uid,
-            email:       user.email || null,
-            displayName: displayName,
-            identifier:  identifier,
-            status:      'approved',
-            approved:    true,
-            provider:    (user.providerData[0] && user.providerData[0].providerId) || 'unknown',
-            photoURL:    user.photoURL || null,
-            requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            // ── Prueba gratuita / plan de pago (BuildMatrix) ──
-            trialStart:  firebase.firestore.FieldValue.serverTimestamp(),
-            presupuestosCount: 0,
-            isPro:       false
-          }).then(function() {
-            _admitUser(user, identifier, displayName);
-          }).catch(function(err) {
-            console.error('Error creando doc usuario:', err.code, err.message);
-            // Si el doc ya existe, intentar leerlo
-            db.collection('users').doc(user.uid).get().then(function(retryDoc) {
-              if (retryDoc.exists && retryDoc.data().approved === true) {
-                _admitUser(user, identifier, displayName);
-              } else {
-                firebase.auth().signOut();
-                _showAccessPending(identifier, displayName, retryDoc.exists ? (retryDoc.data().status || 'pending') : 'pending');
-              }
-            }).catch(function() {
-              firebase.auth().signOut();
-            });
+    function _intentar(intento) {
+      console.log('[CREAR-USUARIO] intento ' + intento, user.uid, new Date().toISOString());
+      // Se admite de inmediato en modo prueba — sin aprobación manual del admin.
+      // role/superadmin/isPro quedan fuera a propósito: el propio registro no puede
+      // auto-otorgarse ninguno de esos privilegios (ver noAdminFieldsOnCreate en
+      // firestore.rules); solo un admin puede darlos después.
+      return _bmConTiempoLimite(db.collection('users').doc(user.uid).set({
+        uid:         user.uid,
+        email:       user.email || null,
+        displayName: displayName,
+        identifier:  identifier,
+        status:      'approved',
+        approved:    true,
+        provider:    (user.providerData[0] && user.providerData[0].providerId) || 'unknown',
+        photoURL:    user.photoURL || null,
+        requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        // ── Prueba gratuita / plan de pago (BuildMatrix) ──
+        trialStart:  firebase.firestore.FieldValue.serverTimestamp(),
+        presupuestosCount: 0,
+        isPro:       false
+      }), 8000, 'CREAR-USUARIO:escritura').then(function() {
+        _admitUser(user, identifier, displayName);
+      }).catch(function(err) {
+        console.error('[CREAR-USUARIO] error intento ' + intento, user.uid, err && err.code, err && err.message);
+        if (intento < 2) {
+          return new Promise(function(resolve) {
+            setTimeout(function() { resolve(_intentar(intento + 1)); }, 1200);
           });
+        }
+        // Tras 2 intentos: puede que el doc sí se haya creado pese al error/timeout
+        // (p.ej. la escritura llegó al servidor pero la confirmación no volvió a
+        // tiempo) — se relee antes de rendirse, para no duplicar ni perder el acceso.
+        return _bmConTiempoLimite(db.collection('users').doc(user.uid).get({ source: 'server' }), 8000, 'CREAR-USUARIO:relectura')
+          .then(function(retryDoc) {
+            if (retryDoc.exists && retryDoc.data().approved === true) {
+              _admitUser(user, identifier, displayName);
+            } else {
+              if (typeof toast === 'function') toast('No se pudo completar el registro. Intenta de nuevo.');
+              firebase.auth().signOut();
+              _showAccessPending(identifier, displayName, retryDoc.exists ? (retryDoc.data().status || 'pending') : 'pending');
+            }
+          }).catch(function() {
+            if (typeof toast === 'function') toast('No se pudo completar el registro. Verifica tu conexión e intenta de nuevo.');
+            firebase.auth().signOut();
+          });
+      });
+    }
+    return _intentar(1);
   }
 
   // ── Admitir usuario aprobado en la app ──────────────────────────────────
@@ -11074,23 +11103,25 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
       if (doc.exists && doc.data().role === 'admin') {
         if (adminNav) adminNav.style.display = '';
         localStorage.setItem('bm_role', 'admin');
-        // ── Por qué este getIdToken(true) va aquí ──────────────────────────
+        // ── Por qué esto va aquí ─────────────────────────────────────────
         // Síntoma reportado: entras como usuario normal, guardas cosas, cierras
         // esa sesión y entras como admin (todo SIN recargar la página) — y la
-        // PRIMERA vez que intentas borrar algo o cambiar un estado, no hace
-        // nada (o parece hacerlo y al refrescar reaparece); recién al refrescar
-        // la página y repetir la acción sí funciona. Causa: Firebase reutiliza
-        // el mismo canal de conexión de Firestore entre un login y el
-        // siguiente dentro de la misma pestaña, y ese canal tarda un instante
+        // PRIMERA vez que intentas borrar algo o cambiar un estado tarda
+        // demasiado (ya no se queda colgada para siempre gracias al límite de
+        // tiempo, pero sigue agotándolo) y hay que repetir la acción. Causa:
+        // Firebase reutiliza el mismo canal de conexión de Firestore entre un
+        // login y el siguiente dentro de la misma pestaña, y ese canal tarda
         // en terminar de "reconocer" que ahora hay un usuario distinto (con
         // permisos distintos) autenticado — justo la ventana en la que caen
-        // las escrituras de admin hechas de inmediato tras entrar. Al
-        // refrescar la página se abre un canal nuevo desde cero con el
-        // usuario correcto ya puesto, por eso ahí sí funciona a la primera.
-        // Forzar la renovación del token ANTES de arrancar los listeners/UI de
-        // admin hace que ese reconocimiento pase ahora, de una vez, en vez de
-        // quedar pendiente para cuando llegue la primera escritura.
-        user.getIdToken(true).catch(function(e){ console.warn('getIdToken(true) falló, continuando igual:', e && e.message); }).then(function() {
+        // las escrituras de admin hechas de inmediato tras entrar. Antes solo
+        // se renovaba el token (getIdToken(true)), lo cual no fuerza al canal
+        // de red en sí a reabrirse — solo refresca las credenciales que ya
+        // tenía cargadas. Ahora, además, se apaga y se vuelve a prender la red
+        // de Firestore (disableNetwork + enableNetwork): eso SÍ obliga al SDK
+        // a cerrar el canal viejo y abrir uno nuevo, ya con el usuario admin
+        // correcto desde el primer byte — igual que pasa al refrescar la
+        // página, pero sin tener que refrescarla.
+        _bmReconectarFirestore(user).then(function() {
         if (typeof loadAdminUsers === 'function') loadAdminUsers();
         // Mostrar tab Presupuestos solo para superadmin
         if (doc.data().superadmin === true) {
@@ -12478,7 +12509,18 @@ function _initGoogleButton() {
       var safeTimer = setTimeout(reactivar, 10000);
       firebase.auth().signInWithPopup(provider)
         .then(function(result) {
+          // NO se cancela el candado aquí sin más: elegir la cuenta en el popup es
+          // solo el primer paso — después onAuthStateChanged todavía tiene que leer
+          // y a veces ESCRIBIR en Firestore (ver _createAndAdmitNewUser, un registro
+          // nuevo) antes de entrar a la app. Si esa parte se cuelga (sin red lista
+          // justo tras recargar/cambiar de cuenta), el botón se quedaba deshabilitado
+          // para siempre y la persona veía el modal "congelado" sin ningún aviso,
+          // obligada a refrescar. Se reemplaza el candado de 10s por uno más largo
+          // (25s, más que el peor caso de los reintentos internos) que sigue en pie
+          // como red de seguridad por si la cadena completa de arriba no llega a
+          // tiempo — en vez de desarmarse apenas el popup resuelve.
           clearTimeout(safeTimer);
+          safeTimer = setTimeout(reactivar, 25000);
           // Firebase Auth maneja la sesión automáticamente con onAuthStateChanged
           if (typeof toast === 'function') toast('Verificando acceso...');
         })
@@ -14115,6 +14157,29 @@ function _bmWriteWithRetry(writeFn) {
       setTimeout(function () { resolve(writeFn()); }, 1200);
     });
   });
+}
+
+// ── Forzar reconexión real de Firestore (no solo renovar el token) ─────────
+// disableNetwork() + enableNetwork() obliga al SDK a cerrar el canal de red
+// que tenía abierto y abrir uno nuevo — el mismo efecto que lograría un
+// refresco de página sobre esa conexión, pero sin recargar nada. Se usa justo
+// al detectar que el usuario recién autenticado es admin, ANTES de arrancar
+// listeners o permitir acciones, para que el canal ya esté "al día" cuando
+// llegue el primer clic en Aprobar/Rechazar/Eliminar, en vez de que ese
+// primer clic sea el que tenga que esperar a que el canal se ponga al día.
+function _bmReconectarFirestore(user) {
+  var fs = firebase.firestore();
+  return user.getIdToken(true)
+    .catch(function (e) { console.warn('[RECONEXION] getIdToken(true) falló, continuando igual:', e && e.message); })
+    .then(function () {
+      return fs.disableNetwork();
+    })
+    .then(function () {
+      return fs.enableNetwork();
+    })
+    .catch(function (e) {
+      console.warn('[RECONEXION] disableNetwork/enableNetwork falló, continuando igual:', e && e.message);
+    });
 }
 
 // ── Límite de tiempo para una promesa de Firestore ──────────────────────────

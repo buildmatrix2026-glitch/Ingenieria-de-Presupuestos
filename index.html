@@ -10819,6 +10819,31 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
     console.log('✅ Firebase inicializado correctamente.');
+
+    // ── Por qué este settings() va aquí ─────────────────────────────────────
+    // Patrón observado: escrituras de admin (aprobar, rechazar, eliminar) que se
+    // quedan colgadas y agotan el tiempo de espera una y otra vez — visto en
+    // Brave CON Shields desactivado y en Chrome normal, sin ninguna extensión de
+    // por medio. Eso descarta un bloqueador de anuncios como única causa: apunta
+    // a que el canal de conexión en tiempo real que usa Firestore por defecto
+    // (WebChannel con streams) está siendo interferido por algo en la red del
+    // propio equipo/ISP — un antivirus, firewall o proxy que inspecciona o corta
+    // conexiones "raras" de larga duración, muy común y ya documentado como causa
+    // de este mismo síntoma en otras apps con Firestore. experimentalAutoDetectLongPolling
+    // le pide al SDK que detecte automáticamente si ese transporte normal no
+    // funciona bien en la red actual, y si no, cambie solo a long-polling (peticiones
+    // HTTP normales y cortas en vez de un canal abierto) — mucho más compatible con
+    // firewalls, antivirus y proxies corporativos. Debe ir ANTES de cualquier otro
+    // uso de firebase.firestore(), por eso está pegado al initializeApp().
+    try {
+      firebase.firestore().settings({
+        experimentalAutoDetectLongPolling: true,
+        merge: true
+      });
+      console.log('✅ Firestore: auto-detección de long-polling activada.');
+    } catch (e) {
+      console.warn('No se pudo aplicar settings() de Firestore:', e && e.message);
+    }
   }
 
   // ── Aislar los datos locales por cuenta: nunca deben mezclarse entre usuarios del
@@ -14077,6 +14102,18 @@ function adminRejectUser(uid, btn) {
 }
 
 function adminMakeAdmin(uid, btn) {
+  // ── Solo el superadmin puede dar el rol de administrador ────────────────
+  // Antes, cualquier admin (no solo el superadmin) podía ascender a otro
+  // usuario a administrador — ni el cliente ni la regla de Firestore lo
+  // impedían, a diferencia de "Eliminar administrador" que sí exigía
+  // superadmin. Este candado es la misma verificación que ya hace
+  // adminDeleteUser para el caso de borrar admins, aplicada aquí también.
+  // La regla de Firestore quedó corregida para rechazar esto igual del lado
+  // del servidor, aun si alguien se salta este botón.
+  if (!_isSuperAdminUser) {
+    toast('Solo el superadmin puede ascender a administradores.');
+    return;
+  }
   if (!_bmLockOp('mkadmin_' + uid)) { toast('Ya se está procesando…'); return; }
   btn.disabled = true; btn.textContent = '...';
   toast('Promoviendo a administrador…');

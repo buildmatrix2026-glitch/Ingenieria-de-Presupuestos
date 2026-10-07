@@ -18029,13 +18029,27 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var bproy = val('gx-batch-proyecto') || val('gx-proyecto');
     if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
   }
-  var _gxRenderBatchQueued = false;
+  var _gxRenderBatchQueued = false, _gxLastBatchRender = 0, _gxRenderBatchTimer = null;
   function renderBatch() {
     // Agrupa ráfagas de llamadas (varias facturas cambiando de estado casi a la vez) en un solo
     // repintado por frame, en vez de reconstruir la lista completa cientos de veces seguidas.
+    // Por qué además un límite de tiempo: con un PDF de 300-400 facturas, agrupar "a lo sumo 1 vez
+    // por frame" todavía significa reconstruir las 400 filas (ordenar + volver a armar el HTML +
+    // reemplazar el innerHTML completo) hasta 60 veces por segundo mientras hay 2-3 lecturas en
+    // paralelo terminando casi seguidas — eso es lo que se siente como "se traba el cursor / baja
+    // el FPS" hasta que termina de guardar. Con lotes grandes se limita a ~3 repintados por segundo
+    // (320ms); con lotes chicos (la inmensa mayoría de los casos) sigue siendo 1 por frame, instantáneo.
     if (_gxRenderBatchQueued) return;
+    var big = st.drafts.length > 60;
+    if (big && st.batchBusy) {
+      var falta = 320 - (Date.now() - _gxLastBatchRender);
+      if (falta > 0) {
+        if (!_gxRenderBatchTimer) _gxRenderBatchTimer = setTimeout(function () { _gxRenderBatchTimer = null; renderBatch(); }, falta);
+        return;
+      }
+    }
     _gxRenderBatchQueued = true;
-    requestAnimationFrame(function () { _gxRenderBatchQueued = false; renderBatchNow(); });
+    requestAnimationFrame(function () { _gxRenderBatchQueued = false; _gxLastBatchRender = Date.now(); renderBatchNow(); });
   }
 
   function setBatchMsg(type, msg) {
@@ -20963,11 +20977,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var bproy = PERSONAL_PROJECT;
     if (note) note.textContent = 'Se guardan en "' + (bproy && bproy !== OTHER && bproy !== '' ? bproy : '—') + '"' + (warn ? ' · ' + warn + ' con avisos de revisión' : '') + '.' + (skipN ? ' ' + skipN + ' no corresponde' + (skipN === 1 ? '' : 'n') + ' (' + money(round2(skipSum)) + ') y se descartar' + (skipN === 1 ? 'á' : 'án') + ' al guardar; no suma' + (skipN === 1 ? '' : 'n') + ' al total.' : '') + ' Las duplicadas, incompletas o con error no se guardan.';
   }
-  var _gxpRenderBatchQueued = false;
+  var _gxpRenderBatchQueued = false, _gxpLastBatchRender = 0, _gxpRenderBatchTimer = null;
   function renderBatch() {
+    // Mismo motivo que en Gastos y Facturas: con lotes grandes (cientos de facturas), agrupar solo
+    // "1 vez por frame" aún reconstruye la lista completa hasta 60 veces/seg mientras hay varias
+    // lecturas en paralelo terminando casi seguidas — eso traba el cursor hasta que termina. Con
+    // lotes grandes se limita a ~3 repintados por segundo; con lotes chicos sigue siendo 1 por frame.
     if (_gxpRenderBatchQueued) return;
+    var big = st.drafts.length > 60;
+    if (big && st.batchBusy) {
+      var falta = 320 - (Date.now() - _gxpLastBatchRender);
+      if (falta > 0) {
+        if (!_gxpRenderBatchTimer) _gxpRenderBatchTimer = setTimeout(function () { _gxpRenderBatchTimer = null; renderBatch(); }, falta);
+        return;
+      }
+    }
     _gxpRenderBatchQueued = true;
-    requestAnimationFrame(function () { _gxpRenderBatchQueued = false; renderBatchNow(); });
+    requestAnimationFrame(function () { _gxpRenderBatchQueued = false; _gxpLastBatchRender = Date.now(); renderBatchNow(); });
   }
 
   function setBatchMsg(type, msg) {
@@ -21841,8 +21867,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       if (lineChart) lineChart.destroy();
       lineChart = new Chart(ctx, {
         type: 'line',
+        // Por qué "monotone" y no el bezier por defecto: con tension fija (0.35) Chart.js calcula los
+        // puntos de control de la curva usando también los valores vecinos aunque sean "null" (los días/
+        // meses futuros que "mes"/"año"/"semana" dejan en null para no dibujar el futuro) o aunque haya
+        // un salto brusco entre dos comprobantes. Eso produce un "overshoot": justo antes del hueco, o en
+        // un pico, la curva se infla/hunde más allá de lo que los datos realmente dicen — es el efecto
+        // "la curva se ve rara, como que crece raro" al cambiar de Día/Mes/Año/Histórico. La interpolación
+        // "monotone" nunca excede el valor real de los puntos vecinos (sin overshoot/undershoot), así que
+        // la curva sigue siendo suave pero deja de "inventar" picos o hundimientos que no están en los datos.
         data: { labels: an.labels, datasets: [{ data: an.values, borderColor: cfg.lineColor, backgroundColor: grad, borderWidth: 2.5, pointRadius: an.values.length > 20 ? 2 : 3.5,
-          pointBackgroundColor: cfg.lineColor, pointBorderColor: '#0b0f19', pointBorderWidth: 1.5, tension: 0.35, fill: true, spanGaps: false }] },
+          pointBackgroundColor: cfg.lineColor, pointBorderColor: '#0b0f19', pointBorderWidth: 1.5, cubicInterpolationMode: 'monotone', tension: 0.35, fill: true, spanGaps: false }] },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: {

@@ -11398,6 +11398,26 @@ function bmCheckAccess(uid, userData) {
   });
 }
 
+// ── Re-chequeo periódico del bloqueo por tiempo ─────────────────────────────
+// bmCheckAccess() antes solo se llamaba UNA vez, al iniciar sesión. El cálculo
+// de "¿ya pasaron los 7 días?" en sí es correcto (se basa en trialStart, el
+// timestamp del SERVIDOR — no se puede burlar cambiando la hora del equipo).
+// Pero si alguien dejaba la pestaña abierta y el día 7 se cumplía CON la app
+// ya abierta (sin cerrar sesión ni recargar), el bloqueo nunca se activaba
+// solo — se quedaba con acceso completo hasta el próximo login o F5. Este
+// vigilante repite la misma verificación cada 5 minutos mientras haya una
+// sesión de usuario normal (no admin) activa, para que el bloqueo por tiempo
+// se aplique también dentro de una sesión larga, no solo al entrar.
+setInterval(function () {
+  try {
+    if (localStorage.getItem('bm_role') === 'admin') return;   // los admins no tienen prueba
+    var u = (typeof firebase !== 'undefined' && firebase.auth().currentUser) || null;
+    if (!u || !window._bmAccess || !window._bmAccess.checked) return;  // sin sesión aún comprobada
+    if (window._bmAccess.isPro) return;                          // Pro no vence
+    bmCheckAccess(u.uid);
+  } catch (e) {}
+}, 5 * 60 * 1000);
+
 // ── Congela (o descongela) las vistas de Capítulos, Insumos y Grupos y Rubros ──
 function bmApplyFreeze(blocked) {
   bmInjectFreezeStyles();

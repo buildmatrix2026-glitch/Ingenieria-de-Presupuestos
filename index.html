@@ -6594,8 +6594,11 @@ function _syncProjectToFirestore(entry) {
     console.warn('Sync error:', e.code, e.message);
     _projSync.pending = Math.max(0, _projSync.pending - 1);
     _projSyncError(e);
-    // reintento automático si fue un problema transitorio (no de permisos)
-    if (e && e.code !== 'permission-denied') { setTimeout(function () { _markProjPending(entry.name, true); _retryPendingProjectSyncs(); }, 8000); }
+    // reintento automático si fue un problema transitorio (no de permisos, ni de tamaño — un
+    // documento demasiado grande va a fallar exactamente igual la próxima vez: reintentarlo sin
+    // parar no arregla nada y solo esconde el aviso real detrás de reintentos infinitos)
+    var esTamano = e && e.code === 'invalid-argument' && /exceed|too large|maximum size|1,?048,?576|1 ?mi?b/i.test(e.message || '');
+    if (e && e.code !== 'permission-denied' && !esTamano) { setTimeout(function () { _markProjPending(entry.name, true); _retryPendingProjectSyncs(); }, 8000); }
   });
 }
 
@@ -7078,16 +7081,29 @@ function _renderProjSync() {
 }
 function _projSyncError(err) {
   var code = err && err.code;
+  var msg = (err && err.message) || '';
+  // Por qué este caso aparte: Firestore rechaza cualquier documento de más de ~1 MB. "detail/data"
+  // trae TODOS los rubros + APUs personalizados de un presupuesto — uno con muchos capítulos y
+  // rubros (justo el tipo de presupuesto grande de un ingeniero de costos) puede llegar a pasarse.
+  // Sin este aviso, ese error caía al genérico de abajo: la nube se quedaba sin la copia de ESE
+  // presupuesto (aunque sí se guarda bien en ESTE dispositivo) y el usuario no se enteraba por qué
+  // en otro dispositivo aparecía vacío — parecía el mismo bug de "se guarda pero vuelve en ceros",
+  // pero por una causa distinta y permanente (no una carrera pasajera).
+  var esTamano = code === 'invalid-argument' && /exceed|too large|maximum size|1,?048,?576|1 ?mi?b/i.test(msg);
   if (code === 'permission-denied') {
     _projSync.state = 'err';
     _projSync.err = 'sin permisos en la nube (despliega firestore.rules en Firebase)';
     if (!_projSync.warned) { _projSync.warned = true; if (typeof toast === 'function') toast('⚠ Tus proyectos no se están sincronizando: despliega firestore.rules en Firebase Console'); }
+  } else if (esTamano) {
+    _projSync.state = 'err';
+    _projSync.err = 'este presupuesto es demasiado grande para la nube (límite de Firestore)';
+    if (typeof toast === 'function') toast('⚠ Este presupuesto es demasiado grande y NO se está guardando en la nube: solo queda en este dispositivo. No lo vas a ver en otros dispositivos.');
   } else if (code === 'unavailable' || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
     _projSync.state = 'err';
     _projSync.err = 'sin conexión; se sincronizará al reconectar';
   } else {
     _projSync.state = 'err';
-    _projSync.err = (code || (err && err.message) || 'error desconocido');
+    _projSync.err = (code || msg || 'error desconocido');
   }
   _renderProjSync();
 }
@@ -7187,9 +7203,14 @@ function _startProjectsSync() {
           var entry = data.entryJson ? JSON.parse(data.entryJson) : {};
           if (!entry.name) entry.name = data.projectName || '';
           if (!entry || !entry.name) { finish(); return; }
-          var localTs = localMap[entry.name] ? (localMap[entry.name].ts || 0) : 0;
+          var prevEntry = localMap[entry.name];   // copia local ANTES de tocar nada — es la red de seguridad
+          var localTs = prevEntry ? (prevEntry.ts || 0) : 0;
           var cloudTs = data.updatedAt ? data.updatedAt.toMillis() : (entry.ts || 0);
-          if (!localMap[entry.name] || cloudTs >= localTs) {
+          // Por qué "tiene rubros": entry.caps es un array de arrays (uno por capítulo); que exista el
+          // array no basta — puede venir [[],[],[]...] (todos los capítulos vacíos) si el documento
+          // "detail/data" aún no existía o la lectura no trajo nada útil.
+          function tieneRubros(caps) { return !!caps && caps.some(function (c) { return c && c.length; }); }
+          if (!prevEntry || cloudTs >= localTs) {
             entry.ts = cloudTs || entry.ts || Date.now();
             // Leer caps + customAPU desde detail/data, luego customGroups desde extra/groups
             doc.ref.collection('detail').doc('data').get()
@@ -7214,10 +7235,35 @@ function _startProjectsSync() {
                 if (gDoc.exists && gDoc.data().groupsJson) {
                   try { entry.customGroups = JSON.parse(gDoc.data().groupsJson); } catch(e) {}
                 }
+                // ── Red de seguridad contra el bug "se guarda pero vuelve en ceros" ──
+                // El documento principal (metadatos, sin rubros) casi siempre se ve "más nuevo" que la
+                // copia local en cada recarga de la app, así que este bloque se ejecuta prácticamente
+                // SIEMPRE, no solo cuando algo cambió de verdad. Si justo en ese momento el documento
+                // "detail/data" (el que de verdad trae los rubros) todavía no terminaba de escribirse
+                // en la nube — por ejemplo, guardaste y cerraste la app muy rápido — "entry" se queda
+                // sin rubros. Sin este resguardo, esa versión vacía SOBREESCRIBÍA la copia local buena
+                // en localStorage sin avisar nada: el presupuesto "se guardaba" pero al reabrirlo
+                // aparecía en ceros, sin rubros. Ahora, si la nube no trae rubros pero la copia local sí
+                // los tenía, se conservan los locales (y se reintenta más tarde) en vez de perderlos.
+                if (!tieneRubros(entry.caps) && prevEntry && tieneRubros(prevEntry.caps)) {
+                  console.warn('[BuildMatrix] "' + entry.name + '": la nube todavía no trae rubros (posible carrera al guardar) — se conservan los locales.');
+                  entry.caps = prevEntry.caps;
+                  if (!entry.customAPU || !Object.keys(entry.customAPU).length) entry.customAPU = prevEntry.customAPU;
+                  if (!entry.customGroups || !entry.customGroups.length) entry.customGroups = prevEntry.customGroups;
+                  _markProjPending(entry.name, true);   // para que se reintente guardar esta copia buena hacia la nube
+                  setTimeout(_retryPendingProjectSyncs, 5000);   // no esperar a la próxima reconexión/recarga: reintenta pronto
+                }
                 localMap[entry.name] = entry;
                 finish();
               })
-              .catch(function() { localMap[entry.name] = entry; finish(); });
+              .catch(function() {
+                // Mismo resguardo si la lectura falla directamente (sin conexión, permisos, etc.)
+                if (prevEntry && tieneRubros(prevEntry.caps)) {
+                  entry.caps = prevEntry.caps; entry.customAPU = entry.customAPU || prevEntry.customAPU; entry.customGroups = entry.customGroups || prevEntry.customGroups;
+                }
+                localMap[entry.name] = entry;
+                finish();
+              });
           } else {
             finish();
           }
@@ -18012,12 +18058,35 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var pa = prioridad(a.d, a.s), pb = prioridad(b.d, b.s);
       return pa !== pb ? pa - pb : a.idx - b.idx;
     });
-    var html = ordenados.map(function (it) {
+    // Los totales/contadores (Total a guardar, % de la barra, "Revisar"/"Duplicada", etc.) se calculan
+    // sobre TODOS los borradores, aunque no se dibujen todos en pantalla — ver nota de "limitar" abajo.
+    ordenados.forEach(function (it) {
       var d = it.d, s = it.s, o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
+    });
+    // Por qué se limita cuántas FILAS se dibujan de verdad mientras el lote está en proceso: cada fila
+    // trae su propio <select> de categoría (7-8 <option>), botones, etc. — con 400+ facturas eso son
+    // miles de nodos del DOM. Reconstruir TODOS esos nodos en cada repintado (aunque ya esté agrupado a
+    // ~3 veces por segundo) sigue siendo un trabajo pesado y sostenido para el navegador — esto es lo
+    // que seguía poniendo lento el cursor/el equipo incluso después de agrupar los repintados y de
+    // arreglar la detección de duplicados. Mientras el lote está activo y es grande, solo se dibujan
+    // en pantalla las que se están procesando AHORA MISMO (para ver el avance en vivo) + hasta
+    // CAP_VISIBLE ya decididas (para poder revisarlas sin esperar); el resto solo se cuenta, no se
+    // dibuja — apenas termina el lote (o lo detienes), se dibujan TODAS para revisarlas con calma.
+    var CAP_VISIBLE = 50;
+    var limitar = st.batchBusy && ordenados.length > 60;
+    var visibles = ordenados, ocultas = 0;
+    if (limitar) {
+      var activos = ordenados.filter(function (it) { return it.d.status === 'processing'; });
+      var resto = ordenados.filter(function (it) { return it.d.status !== 'processing'; }).slice(0, Math.max(0, CAP_VISIBLE - activos.length));
+      visibles = activos.concat(resto);
+      ocultas = ordenados.length - visibles.length;
+    }
+    var html = visibles.map(function (it) {
+      var d = it.d, s = it.s, o = d.data || {};
       var title = o.proveedor || d.name;
       var note = draftNote(d, s);
       var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
@@ -18036,7 +18105,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
           (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
           '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
-    }).join('');
+    }).join('') + (ocultas > 0 ? '<div style="padding:14px;text-align:center;color:#8a94a6;font-size:12px;border:1px dashed rgba(255,255,255,.1);border-radius:10px;margin-top:4px">+ ' + ocultas + ' más en cola — se mostrarán todas en cuanto termine de procesar el lote</div>' : '');
     $('gx-batch-list').innerHTML = html;
     $('gx-batch-count').textContent = '(' + ds.length + ')';
     var pct = ds.length ? Math.round(done / ds.length * 100) : 0;
@@ -20984,12 +21053,35 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var pa = prioridad(a.d, a.s), pb = prioridad(b.d, b.s);
       return pa !== pb ? pa - pb : a.idx - b.idx;
     });
-    var html = ordenados.map(function (it) {
+    // Los totales/contadores (Total a guardar, % de la barra, "Revisar"/"Duplicada", etc.) se calculan
+    // sobre TODOS los borradores, aunque no se dibujen todos en pantalla — ver nota de "limitar" abajo.
+    ordenados.forEach(function (it) {
       var d = it.d, s = it.s, o = d.data || {};
       if (s === 'ok' || s === 'warn') { ready++; sum += o.total; if (s === 'warn') warn++; }
       else if (s === 'skip') { skipN++; skipSum += (o.total || 0); }   // no suman al total a guardar
       if (d.status === 'ok' || d.status === 'warn' || d.status === 'error') done++;
       if (d.status === 'pending') pending++;
+    });
+    // Por qué se limita cuántas FILAS se dibujan de verdad mientras el lote está en proceso: cada fila
+    // trae su propio <select> de categoría (7-8 <option>), botones, etc. — con 400+ facturas eso son
+    // miles de nodos del DOM. Reconstruir TODOS esos nodos en cada repintado (aunque ya esté agrupado a
+    // ~3 veces por segundo) sigue siendo un trabajo pesado y sostenido para el navegador — esto es lo
+    // que seguía poniendo lento el cursor/el equipo incluso después de agrupar los repintados y de
+    // arreglar la detección de duplicados. Mientras el lote está activo y es grande, solo se dibujan
+    // en pantalla las que se están procesando AHORA MISMO (para ver el avance en vivo) + hasta
+    // CAP_VISIBLE ya decididas (para poder revisarlas sin esperar); el resto solo se cuenta, no se
+    // dibuja — apenas termina el lote (o lo detienes), se dibujan TODAS para revisarlas con calma.
+    var CAP_VISIBLE = 50;
+    var limitar = st.batchBusy && ordenados.length > 60;
+    var visibles = ordenados, ocultas = 0;
+    if (limitar) {
+      var activos = ordenados.filter(function (it) { return it.d.status === 'processing'; });
+      var resto = ordenados.filter(function (it) { return it.d.status !== 'processing'; }).slice(0, Math.max(0, CAP_VISIBLE - activos.length));
+      visibles = activos.concat(resto);
+      ocultas = ordenados.length - visibles.length;
+    }
+    var html = visibles.map(function (it) {
+      var d = it.d, s = it.s, o = d.data || {};
       var title = o.proveedor || d.name;
       var note = draftNote(d, s);
       var meta = (s === 'pending' || s === 'processing' || s === 'error') ? '' :
@@ -21008,7 +21100,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
             '<button type="button" class="gx-btn" data-drev="' + esc(d.id) + '">Revisar</button>' : '') +
           (d.status === 'error' ? '<button type="button" class="gx-btn" data-dretry="' + esc(d.id) + '">Reintentar</button>' : '') +
           '<button type="button" class="gx-del" data-drm="' + esc(d.id) + '" title="Quitar de la lista" aria-label="Quitar de la lista" style="width:36px;height:36px">×</button></div></div>';
-    }).join('');
+    }).join('') + (ocultas > 0 ? '<div style="padding:14px;text-align:center;color:#8a94a6;font-size:12px;border:1px dashed rgba(255,255,255,.1);border-radius:10px;margin-top:4px">+ ' + ocultas + ' más en cola — se mostrarán todas en cuanto termine de procesar el lote</div>' : '');
     $('gxp-batch-list').innerHTML = html;
     $('gxp-batch-count').textContent = '(' + ds.length + ')';
     var pct = ds.length ? Math.round(done / ds.length * 100) : 0;

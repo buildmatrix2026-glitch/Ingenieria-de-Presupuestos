@@ -6498,6 +6498,15 @@ function _silentSaveProject(){
       capNames:S.capNames||[],capNums:S.capNums||[],
       ind:S.ind,uti:S.uti,iva:S.iva,
       customAPU:S.customAPU,customInsumos:S.customInsumos||[],customGroups:cg};
+    // ── Totales "congelados" en el propio entry, calculados AHORA de S.caps real ──
+    // "Mis Proyectos" (renderSavedProjectsView → _calcProjTotals) ya no tiene que
+    // esperar a que la nube confirme nada para mostrar números correctos: estos
+    // quedan guardados de una vez, aquí mismo, mientras S.caps todavía es el real.
+    var _tPreview = _calcProjTotals(entry);
+    entry.totalRubros = _tPreview.rubros;
+    entry.totalCapitulos = _tPreview.capCount;
+    entry.totalGeneral = _tPreview.total;
+    entry.costoDirecto = _tPreview.cd;
     if(idx>=0) projects[idx]=entry; else projects.push(entry);
     localStorage.setItem(PROJ_KEY(),JSON.stringify(projects));
     localStorage.setItem(ACTIVE_PROJ_KEY(),S.proj);
@@ -6560,16 +6569,24 @@ function _bmReallySyncProjectToFirestore(entry) {
   var user = firebase.auth().currentUser;
   if (!user) return;
   var db = firebase.firestore();
-  var totals = calcTotals();
+  // ── CORREGIDO: los totales ya NO salen de calcTotals() (el presupuesto que esté
+  // cargado en memoria AHORA MISMO en S/BD) sino de "entry" mismo. Antes, si este
+  // guardado se mandaba con algo de retraso (el debounce de arriba, o un reintento
+  // automático más tarde vía _retryPendingProjectSyncs), calcTotals() podía estar
+  // calculando sobre OTRO proyecto (o nada) si mientras tanto se navegó a otro lado o
+  // se cambió de cuenta — guardando un totalGeneral/costoDirecto que no correspondía a
+  // "entry" en absoluto. Calcularlo directo de entry.caps es siempre correcto pase lo
+  // que pase en la sesión mientras el guardado estaba en cola.
+  var totals = _calcProjTotals(entry);
   var docId = user.uid + '_' + (entry.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
   var docRef = db.collection('projects').doc(docId);
 
   var n = function(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; };
   var s = function(v) { return (v != null) ? ('' + v) : ''; };
 
-  var totalRubros = 0;
+  var totalRubros = 0, totalCapitulos = 0;
   if (Array.isArray(entry.caps)) {
-    entry.caps.forEach(function(c){ if (Array.isArray(c)) totalRubros += c.length; });
+    entry.caps.forEach(function(c){ if (Array.isArray(c)) { totalRubros += c.length; if (c.length) totalCapitulos++; } });
   }
 
   // Doc principal: solo metadatos ligeros (sin caps, customAPU, customGroups)
@@ -6629,6 +6646,7 @@ function _bmReallySyncProjectToFirestore(entry) {
     owner:        s(entry.own),
     date:         s(entry.date),
     totalRubros:  totalRubros,
+    totalCapitulos: totalCapitulos,
     totalGeneral: n(totals.total),
     costoDirecto: n(totals.cd),
     ind:          n(entry.ind),
@@ -6736,6 +6754,12 @@ function saveProject(){
     return {n:g.n, p:g.p||'', r:g.r.map(function(r){ return r.slice(); })};
   });
   const entry = {name, ts, own: S.own||'', date: S.date||'', caps: S.caps, capNames: S.capNames||[], capNums: S.capNums||[], ind: S.ind, uti: S.uti, iva: S.iva, customAPU: S.customAPU||{}, customInsumos: S.customInsumos||[], customGroups: customGroups};
+  // Totales "congelados" ya mismo, igual que en _silentSaveProject — ver ese comentario.
+  var _tPreview2 = _calcProjTotals(entry);
+  entry.totalRubros = _tPreview2.rubros;
+  entry.totalCapitulos = _tPreview2.capCount;
+  entry.totalGeneral = _tPreview2.total;
+  entry.costoDirecto = _tPreview2.cd;
   if(idx>=0) projects[idx]=entry; else projects.push(entry);
   try{localStorage.setItem(PROJ_KEY(), JSON.stringify(projects));}catch(e){toast('Sin espacio en almacenamiento');return;}
   renderSavedProjects();
@@ -6860,6 +6884,22 @@ function renderSavedProjects(){
 // ── Calcular totales de un proyecto guardado sin cargarlo en S ──
 function _calcProjTotals(p){
   var caps=p.caps||[];
+  var _capsTieneRubros = caps.some(function(c){ return c && c.length; });
+  // Si los rubros detallados (caps) todavía no llegaron a este caché local — por la
+  // carrera entre el documento principal y detail/data al sincronizar — pero el
+  // documento SÍ trae los totales guardados de forma atómica (totalRubros, etc.), se
+  // usan esos en vez de calcular desde un caps vacío: evita mostrar ceros mientras el
+  // detalle línea por línea termina de llegar en segundo plano.
+  if (!_capsTieneRubros && typeof p.totalRubros === 'number' && p.totalRubros > 0) {
+    var _cd = typeof p.costoDirecto === 'number' ? p.costoDirecto : 0;
+    var _ind = _cd*((p.ind||0)/100);
+    var _uti = _cd*((p.uti||0)/100);
+    var _sub = _cd+_ind+_uti;
+    var _iva = _sub*((p.iva||0)/100);
+    var _total = typeof p.totalGeneral === 'number' ? p.totalGeneral : (_sub+_iva);
+    var _capCount = typeof p.totalCapitulos === 'number' ? p.totalCapitulos : 0;
+    return {cd:_cd,ind:_ind,uti:_uti,sub:_sub,iva:_iva,total:_total,rubros:p.totalRubros,capCount:_capCount};
+  }
   var cd=caps.reduce(function(tot,rows){ return tot+(rows||[]).reduce(function(a,r){return a+(r.qty||0)*(r.pu||0);},0); },0);
   var ind=cd*((p.ind||0)/100);
   var uti=cd*((p.uti||0)/100);
@@ -7320,6 +7360,15 @@ function _startProjectsSync() {
           var entry = data.entryJson ? JSON.parse(data.entryJson) : {};
           if (!entry.name) entry.name = data.projectName || '';
           if (!entry || !entry.name) { finish(); return; }
+          // ── Totales confiables directo del documento principal, SIN esperar detail/data ──
+          // totalRubros/totalCapitulos/totalGeneral/costoDirecto se escriben atómicos junto con
+          // ind/uti/iva en el mismo set() del doc principal — no dependen en nada de la lectura
+          // (más lenta, y la que puede llegar tarde) de detail/data. "Mis Proyectos" los usa para
+          // mostrar números correctos de inmediato aunque los rubros detallados tarden en llegar.
+          if (typeof data.totalRubros === 'number') entry.totalRubros = data.totalRubros;
+          if (typeof data.totalCapitulos === 'number') entry.totalCapitulos = data.totalCapitulos;
+          if (typeof data.totalGeneral === 'number') entry.totalGeneral = data.totalGeneral;
+          if (typeof data.costoDirecto === 'number') entry.costoDirecto = data.costoDirecto;
           var prevEntry = localMap[entry.name];   // copia local ANTES de tocar nada — es la red de seguridad
           var localTs = prevEntry ? (prevEntry.ts || 0) : 0;
           var cloudTs = data.updatedAt ? data.updatedAt.toMillis() : (entry.ts || 0);
@@ -7380,12 +7429,15 @@ function _startProjectsSync() {
                     setTimeout(_retryPendingProjectSyncs, 5000);
                   } else {
                     // Caso de un presupuesto RECIÉN CREADO: no hay ninguna copia local previa de la
-                    // que "restaurar" nada — simplemente detail/data no ha llegado todavía. En vez de
-                    // guardar una versión vacía (que es justo el bug: "se guarda pero sale en ceros"),
-                    // no se toca localMap con esto todavía — se deja lo que hubiera (o nada) — y se
-                    // reintenta la LECTURA sola varias veces hasta que el detail/data real aparezca.
-                    console.warn('[BuildMatrix] "' + entry.name + '": presupuesto nuevo — el documento principal indica ' + _dataTotalRubros + ' rubro(s) pero detail/data aún no llega; reintentando lectura.');
-                    if (prevEntry) { localMap[entry.name] = prevEntry; } else { delete localMap[entry.name]; }
+                    // que "restaurar" los rubros detallados — detail/data simplemente no ha llegado
+                    // todavía. Pero "entry" YA trae totalRubros/totalCapitulos/totalGeneral/costoDirecto
+                    // (los campos confiables leídos arriba, directo del documento principal) — así que
+                    // SÍ se guarda en localMap, para que "Mis Proyectos" muestre los números correctos
+                    // de inmediato en vez de ceros. Lo único que falta y se reintenta en segundo plano
+                    // es el detalle línea-por-línea de los rubros (caps), que hace falta recién al
+                    // abrir el proyecto para editarlo, no para ver la tarjeta de resumen.
+                    console.warn('[BuildMatrix] "' + entry.name + '": presupuesto nuevo — el documento principal indica ' + _dataTotalRubros + ' rubro(s); los totales ya se muestran bien, reintentando el detalle línea por línea en segundo plano.');
+                    localMap[entry.name] = entry;
                     _bmRetryProjectDetailRead(doc.ref, entry, 1);
                   }
                   finish();

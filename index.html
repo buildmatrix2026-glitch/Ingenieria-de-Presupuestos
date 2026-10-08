@@ -18106,7 +18106,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         }
           } finally { running--; }
         d.tok = null; renderBatch();
-        if (!st.batchCancel && !d.local) await sleep(CFG.gap);
+        // Por qué SIEMPRE hay una pequeña pausa, incluso en lectura LOCAL (sin IA): antes, cuando el
+        // comprobante se leía localmente (PDF con texto, sin pasar por Gemini) no se esperaba NADA entre
+        // uno y el siguiente — con un lote de 400+ facturas eso satura el hilo principal sin dar ni un
+        // respiro al navegador (ni para pintar, ni para el cursor del sistema, ni para nada), y en una PC
+        // con pocos núcleos eso se siente como que TODO el equipo se pone lento, no solo la pestaña. Una
+        // pausa de 20ms es imperceptible en el tiempo total (hasta 400 facturas = ~8s de 400) pero le
+        // devuelve el control al navegador cientos de veces por lote, así nunca se acumula tanto trabajo
+        // seguido como para que el sistema se sienta trabado.
+        if (!st.batchCancel) await sleep(d.local ? 20 : CFG.gap);
       }
     }
     try {
@@ -21050,7 +21058,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
         }
           } finally { running--; }
         d.tok = null; renderBatch();
-        if (!st.batchCancel && !d.local) await sleep(CFG.gap);
+        // Por qué SIEMPRE hay una pequeña pausa, incluso en lectura LOCAL (sin IA): antes, cuando el
+        // comprobante se leía localmente (PDF con texto, sin pasar por Gemini) no se esperaba NADA entre
+        // uno y el siguiente — con un lote de 400+ facturas eso satura el hilo principal sin dar ni un
+        // respiro al navegador (ni para pintar, ni para el cursor del sistema, ni para nada), y en una PC
+        // con pocos núcleos eso se siente como que TODO el equipo se pone lento, no solo la pestaña. Una
+        // pausa de 20ms es imperceptible en el tiempo total (hasta 400 facturas = ~8s de 400) pero le
+        // devuelve el control al navegador cientos de veces por lote, así nunca se acumula tanto trabajo
+        // seguido como para que el sistema se sienta trabado.
+        if (!st.batchCancel) await sleep(d.local ? 20 : CFG.gap);
       }
     }
     try {

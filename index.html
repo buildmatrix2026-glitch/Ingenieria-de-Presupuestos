@@ -6510,11 +6510,55 @@ function _markProjPending(name, add) {
   if (add) pend.push(name);
   try { localStorage.setItem(PEND_PROJ_KEY(), JSON.stringify(pend)); } catch (e) {}
 }
+// ── CAUSA RAÍZ ENCONTRADA: carrera entre guardados consecutivos del MISMO proyecto ──
+// Cada edición (mover un rubro, cambiar Ind/Util/IVA, renombrar un capítulo, etc.)
+// llama a _silentSaveProject(), que llamaba DIRECTO a _syncProjectToFirestore(entry) —
+// una petición de red nueva e independiente cada vez, sin esperar a que la anterior
+// termine. Si armas un presupuesto rápido (varios rubros seguidos), es normal que
+// terminen varias peticiones "en vuelo" al mismo tiempo hacia el MISMO documento. Nada
+// garantiza que terminen en el mismo orden en que se dispararon: por variación normal
+// de la red, una petición VIEJA (con menos rubros, o ninguno aún) puede completarse
+// DESPUÉS que una petición más NUEVA (con los rubros completos) — y como ambas hacen
+// docRef.set(...) sobre el mismo documento, la vieja GANA y sobrescribe la nueva con
+// datos incompletos. Así se explica que "se guarda bien" en el momento pero al
+// reabrirlo (en cualquier dispositivo, no solo tras cambiar de cuenta) aparezca en
+// ceros: lo último que de verdad llegó al servidor fue, por mala suerte de timing, una
+// versión vieja y vacía. Esto es independiente del bloqueo de red (ERR_BLOCKED_BY_CLIENT)
+// y de las reglas de Firestore — es un bug de orden, y puede pasar en CUALQUIER cuenta,
+// con cualquier extensión activa o no.
+//
+// Arreglo: en vez de mandar cada edición directo a la red, se agrupan ("debounce") — si
+// llegan varias ediciones seguidas en menos de ~700ms, solo se manda la ÚLTIMA versión,
+// y si una versión más nueva se pide mientras una más vieja seguía esperando su turno,
+// la vieja se descarta sin llegar siquiera a salir a la red. Esto no puede cancelar una
+// petición que YA salió a la red, pero sí evita que se sigan disparando peticiones
+// nuevas por cada tecla/click — que es, en la práctica, de donde salía la carrera.
+var _bmProjSyncTimer = {};          // nombre de proyecto -> timer de debounce pendiente
+var _bmProjSyncSeq = {};            // nombre de proyecto -> número de secuencia más reciente pedido
+var _bmProjSyncPendingEntry = {};   // nombre de proyecto -> último "entry" pedido (el que de verdad se manda)
+
 function _syncProjectToFirestore(entry) {
+  if (!entry || !entry.name) return;
   var user = firebase.auth().currentUser;
   if (!user) return;
-  _markProjPending(entry.name, true);        // hasta que confirme Firestore, queda marcado como pendiente
+  var _name = entry.name;
+  _bmProjSyncPendingEntry[_name] = entry;
+  var _mySeq = (_bmProjSyncSeq[_name] = (_bmProjSyncSeq[_name] || 0) + 1);
+  _markProjPending(_name, true);              // hasta que confirme Firestore, queda marcado como pendiente
   _projSync.state = 'syncing'; _projSync.pending++; _renderProjSync();
+  if (_bmProjSyncTimer[_name]) { clearTimeout(_bmProjSyncTimer[_name]); }
+  _bmProjSyncTimer[_name] = setTimeout(function () {
+    _bmProjSyncTimer[_name] = null;
+    // Si mientras esperábamos llegó una versión MÁS NUEVA de este mismo proyecto, que
+    // esa se encargue de mandarse — esta ya quedó obsoleta, descartarla evita la carrera.
+    if (_bmProjSyncSeq[_name] !== _mySeq) { return; }
+    _bmReallySyncProjectToFirestore(_bmProjSyncPendingEntry[_name]);
+  }, 700);
+}
+
+function _bmReallySyncProjectToFirestore(entry) {
+  var user = firebase.auth().currentUser;
+  if (!user) return;
   var db = firebase.firestore();
   var totals = calcTotals();
   var docId = user.uid + '_' + (entry.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
@@ -6607,7 +6651,47 @@ function _syncProjectToFirestore(entry) {
     _markProjPending(entry.name, false);
     _projSync.pending = Math.max(0, _projSync.pending - 1);
     if (_projSync.pending === 0) { _projSync.state = 'ok'; _projSync.err = ''; _projSync.warned = false; }
+    // Una escritura que sí llegó a la nube confirma que no hay nada bloqueando la conexión ahora mismo
+    _projSync.blockedStrikes = 0;
     _renderProjSync();
+
+    // ── Verificación real contra el servidor (no contra la caché local del SDK) ──
+    // Hasta ahora, si docRef.set()/detailRef.set() "resolvían" la promesa, se daba por
+    // hecho que el dato quedó bien guardado en la nube. Pero el SDK de Firestore puede
+    // resolver un write localmente (optimistic update) antes de que el servidor lo
+    // confirme de verdad — y si justo ahí algo corta la conexión (p.ej. se cierra la
+    // pestaña, se cambia de cuenta, o una extensión bloquea la petición real), esa
+    // escritura puede quedarse solo en la caché del propio SDK sin llegar jamás al
+    // servidor, sin que ningún .catch() se entere. Por eso se relee DIRECTO del
+    // servidor (source:'server', salta cualquier caché) para confirmar que lo que
+    // tiene que estar — rubros si los hay, ind/uti/iva — de verdad llegó. Si no
+    // coincide, se avisa de forma visible (no solo en consola) y se reintenta.
+    if (entry.name) {
+      var _expectRubros = totalRubros > 0;
+      setTimeout(function () {
+        docRef.get({ source: 'server' }).then(function (verifyDoc) {
+          if (!verifyDoc.exists) {
+            console.warn('[BuildMatrix] Verificación falló: "' + entry.name + '" no existe en el servidor tras guardar.');
+            if (typeof toast === 'function') toast('⚠ "' + entry.name + '" no se confirmó en el servidor — vuelve a intentar guardarlo.');
+            _markProjPending(entry.name, true);
+            return;
+          }
+          var vData = verifyDoc.data();
+          var vInd = vData.ind, vUti = vData.uti, vIva = vData.iva, vRub = vData.totalRubros;
+          var metaMismatch = (n(vInd) !== n(entry.ind)) || (n(vUti) !== n(entry.uti)) || (n(vIva) !== n(entry.iva));
+          var rubrosMismatch = _expectRubros && (!vRub || vRub === 0);
+          if (metaMismatch || rubrosMismatch) {
+            console.warn('[BuildMatrix] Verificación: "' + entry.name + '" en el servidor NO coincide con lo guardado.', { esperado: { ind: entry.ind, uti: entry.uti, iva: entry.iva, totalRubros: totalRubros }, servidor: { ind: vInd, uti: vUti, iva: vIva, totalRubros: vRub } });
+            if (typeof toast === 'function') toast('⚠ "' + entry.name + '" se guardó distinto a lo esperado en el servidor — revisa tu conexión y vuelve a guardarlo. No confíes en este dispositivo hasta confirmarlo.');
+            _markProjPending(entry.name, true);
+            setTimeout(_retryPendingProjectSyncs, 3000);
+          }
+        }).catch(function (vErr) {
+          // Falla la propia verificación (sin red, bloqueada, etc.) — no se puede confirmar nada
+          console.warn('[BuildMatrix] No se pudo verificar "' + entry.name + '" contra el servidor:', vErr && vErr.code, vErr && vErr.message);
+        });
+      }, 1500);
+    }
   }).catch(function(e) {
     console.warn('Sync error:', e.code, e.message);
     _projSync.pending = Math.max(0, _projSync.pending - 1);
@@ -7119,6 +7203,21 @@ function _projSyncError(err) {
   } else if (code === 'unavailable' || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
     _projSync.state = 'err';
     _projSync.err = 'sin conexión; se sincronizará al reconectar';
+    // Si el navegador SÍ reporta estar online pero Firestore sigue fallando con "unavailable"
+    // varias veces seguidas, lo más probable NO es un corte de internet real, sino algo en el
+    // propio navegador (bloqueador de anuncios, extensión de privacidad, antivirus con "web
+    // shield") bloqueando las peticiones a firestore.googleapis.com — en DevTools se ve como
+    // "net::ERR_BLOCKED_BY_CLIENT". Sin este aviso, el presupuesto se guarda solo en
+    // localStorage de ESTE dispositivo (eso nunca falla) pero jamás llega a la nube — y al
+    // abrirlo en otro dispositivo aparece vacío, igual que el bug de la carrera, pero por una
+    // causa totalmente distinta y que el usuario sí puede arreglar desde su navegador.
+    if (typeof navigator !== 'undefined' && navigator.onLine !== false) {
+      _projSync.blockedStrikes = (_projSync.blockedStrikes || 0) + 1;
+      if (_projSync.blockedStrikes >= 2 && !_projSync.warnedBlocked) {
+        _projSync.warnedBlocked = true;
+        if (typeof toast === 'function') toast('⚠ Este presupuesto NO se está guardando en la nube — algo en tu navegador (bloqueador de anuncios, extensión o antivirus) está bloqueando la conexión a Firestore. Desactívalo o prueba en una ventana de incógnito sin extensiones; mientras tanto solo queda guardado en este dispositivo.');
+      }
+    }
   } else {
     _projSync.state = 'err';
     _projSync.err = (code || msg || 'error desconocido');

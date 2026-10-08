@@ -17919,15 +17919,37 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
+  // Índice de duplicados de "saved" (proyecto|número|proveedor → true), calculado UNA sola vez por
+  // array de guardadas y reutilizado mientras no cambie. Por qué: draftState() se llama una vez por
+  // cada borrador del lote (hasta 400+) en CADA repintado de la lista (varias veces por segundo
+  // mientras procesa) — antes, cada llamada hacía saved.some(...) recorriendo TODO el historial de
+  // facturas ya guardadas del proyecto (que en un proyecto viejo puede tener miles). Eso es
+  // drafts × guardadas comparaciones, con concatenación de strings en cada una, repetido varias
+  // veces por segundo: con 400 borradores y, digamos, 3000 facturas ya guardadas, son más de un
+  // millón de comparaciones por repintado — eso es lo que saturaba el hilo principal y se sentía
+  // como el cursor/el equipo entero yéndose lento mientras subías facturas en lote. Con el índice
+  // precalculado, cada borrador solo hace una búsqueda O(1) en vez de recorrer todo el historial.
+  var _gxDupIdx = null, _gxDupIdxFor = null;
+  function savedDupIndex(saved) {
+    if (_gxDupIdx && _gxDupIdxFor === saved) return _gxDupIdx;
+    var idx = Object.create(null);
+    saved.forEach(function (g) {
+      if (!g.numero) return;
+      idx[(g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase()] = true;
+    });
+    _gxDupIdx = idx; _gxDupIdxFor = saved;
+    return idx;
+  }
+
   // Estado efectivo de un borrador (duplicada / incompleta / lista…), según el proyecto elegido
-  function draftState(d, saved, proyecto, seen) {
+  function draftState(d, saved, proyecto, seen, dupIdx) {
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
     if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
     if (!o.proveedor || !(Math.abs(o.total) > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
-      var dup = saved.some(function (g) { return g.numero && (g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase() === key; }) || seen[key];
+      var dup = !!(dupIdx || savedDupIndex(saved))[key] || seen[key];
       seen[key] = true;
       if (dup) return 'dup';
     }
@@ -17953,7 +17975,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   var _gxSavedCache = null;
   function loadSavedCached() { if (!_gxSavedCache) _gxSavedCache = load(); return _gxSavedCache; }
-  function invalidateSavedCache() { _gxSavedCache = null; }
+  function invalidateSavedCache() { _gxSavedCache = null; _gxDupIdx = null; _gxDupIdxFor = null; }
 
   // renderBatch real: reconstruye la lista. Durante el procesamiento de un lote grande (cientos de
   // facturas) el estado de cada una cambia muy seguido; redibujar el HTML completo de la lista en
@@ -17966,12 +17988,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!ds.length) { box.style.display = 'none'; if (grid) grid.classList.remove('gx-batch-open'); return; }
     box.style.display = '';
     if (grid) grid.classList.add('gx-batch-open');
-    var saved = loadSavedCached(), proyecto = val('gx-proyecto'), seen = {};
+    var saved = loadSavedCached(), dupIdx = savedDupIndex(saved), proyecto = val('gx-proyecto'), seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     // 1) calcula el estado de cada una en el orden original (el detector de duplicados depende de
     //    ese orden: la primera que aparece no es duplicada, las siguientes con la misma clave sí).
     var items = ds.map(function (d, idx) {
-      var s = draftState(d, saved, proyecto, seen);
+      var s = draftState(d, saved, proyecto, seen, dupIdx);
       return { d: d, s: s, idx: idx };
     });
     // 2) para mostrarlas, las reordena: primero "No corresponde", luego las que hay que "Revisar"
@@ -18219,9 +18241,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (st.batchBusy) return;
     var proyecto = val('gx-batch-proyecto') || val('gx-proyecto');
     if (!proyecto || proyecto === OTHER || proyecto === '') { say('Selecciona un proyecto antes de guardar'); return; }
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
+    var saved = load(), dupIdx = savedDupIndex(saved), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
     st.drafts.forEach(function (d) {
-      var s = draftState(d, saved, proyecto, seen);
+      var s = draftState(d, saved, proyecto, seen, dupIdx);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
       else if (s === 'skip') { skipped.push(d); cnt.skip++; }
       else if (cnt[s] != null) cnt[s]++;
@@ -20886,15 +20908,31 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
   }
 
+  // Índice de duplicados de "saved" (proyecto|número|proveedor → true), calculado UNA sola vez por
+  // array de guardadas en vez de recorrerlo entero en cada borrador — ver la nota larga en el mismo
+  // punto del módulo de Gastos y Facturas: esto es lo que saturaba el hilo principal (cursor lento)
+  // al subir lotes grandes.
+  var _gxpDupIdx = null, _gxpDupIdxFor = null;
+  function savedDupIndex(saved) {
+    if (_gxpDupIdx && _gxpDupIdxFor === saved) return _gxpDupIdx;
+    var idx = Object.create(null);
+    saved.forEach(function (g) {
+      if (!g.numero) return;
+      idx[(g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase()] = true;
+    });
+    _gxpDupIdx = idx; _gxpDupIdxFor = saved;
+    return idx;
+  }
+
   // Estado efectivo de un borrador (duplicada / incompleta / lista…), según el proyecto elegido
-  function draftState(d, saved, proyecto, seen) {
+  function draftState(d, saved, proyecto, seen, dupIdx) {
     if (d.status === 'pending' || d.status === 'processing' || d.status === 'error') return d.status;
     var o = d.data || {};
     if (o.aplica === false) return 'skip';   // la IA detectó que no corresponde a este módulo
     if (!o.proveedor || !(Math.abs(o.total) > 0) || !o.fecha) return 'incomplete';
     if (o.numero) {
       var key = (proyecto + '|' + o.numero + '|' + o.proveedor).toLowerCase();
-      var dup = saved.some(function (g) { return g.numero && (g.proyecto + '|' + g.numero + '|' + g.proveedor).toLowerCase() === key; }) || seen[key];
+      var dup = !!(dupIdx || savedDupIndex(saved))[key] || seen[key];
       seen[key] = true;
       if (dup) return 'dup';
     }
@@ -20920,7 +20958,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
   var _gxpSavedCache = null;
   function loadSavedCached() { if (!_gxpSavedCache) _gxpSavedCache = load(); return _gxpSavedCache; }
-  function invalidateSavedCache() { _gxpSavedCache = null; }
+  function invalidateSavedCache() { _gxpSavedCache = null; _gxpDupIdx = null; _gxpDupIdxFor = null; }
 
   function renderBatchNow() {
     var box = $('gxp-batch'); if (!box) return;
@@ -20929,10 +20967,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!ds.length) { box.style.display = 'none'; if (grid) grid.classList.remove('gx-batch-open'); return; }
     box.style.display = '';
     if (grid) grid.classList.add('gx-batch-open');
-    var saved = loadSavedCached(), proyecto = PERSONAL_PROJECT, seen = {};
+    var saved = loadSavedCached(), dupIdx = savedDupIndex(saved), proyecto = PERSONAL_PROJECT, seen = {};
     var ready = 0, warn = 0, sum = 0, done = 0, pending = 0, skipN = 0, skipSum = 0;
     var items = ds.map(function (d, idx) {
-      var s = draftState(d, saved, proyecto, seen);
+      var s = draftState(d, saved, proyecto, seen, dupIdx);
       return { d: d, s: s, idx: idx };
     });
     function prioridad(d, s) {
@@ -21170,9 +21208,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   async function saveAllDrafts() {
     if (st.batchBusy) return;
     var proyecto = PERSONAL_PROJECT;
-    var saved = load(), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
+    var saved = load(), dupIdx = savedDupIndex(saved), seen = {}, ok = [], cnt = { warn: 0, dup: 0, incomplete: 0, error: 0, pending: 0, skip: 0 }, skipped = [];
     st.drafts.forEach(function (d) {
-      var s = draftState(d, saved, proyecto, seen);
+      var s = draftState(d, saved, proyecto, seen, dupIdx);
       if (s === 'ok' || s === 'warn') { ok.push(d); if (s === 'warn') cnt.warn++; }
       else if (s === 'skip') { skipped.push(d); cnt.skip++; }
       else if (cnt[s] != null) cnt[s]++;

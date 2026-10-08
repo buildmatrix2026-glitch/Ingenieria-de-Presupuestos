@@ -7238,14 +7238,29 @@ function _applyProjectToBD(p){
     // ("PERSONALIZADOS") para que sí sea visible y reutilizable.
     var _yaEnGrupo = {};
     BD.G.forEach(function(g){ (g.r||[]).forEach(function(r){ if(r && r[0]) _yaEnGrupo[r[0]]=true; }); });
+    // El objeto "apu" guardado (r/e/m/t) no trae su propia descripción/unidad — esas viven
+    // en la fila del PRESUPUESTO que lo usa (S.caps/p.caps: {code,desc,unit,...}), que es
+    // justo de donde salió el rubro originalmente. Se arma un índice código→{desc,unit}
+    // recorriendo los capítulos, para no mostrar el código repetido como si fuera el nombre.
+    var _descPorCodigo = {};
+    if(Array.isArray(p.caps)){
+      p.caps.forEach(function(rows){
+        (rows||[]).forEach(function(r){
+          if(r && r.code && !_descPorCodigo[r.code]){ _descPorCodigo[r.code] = {desc:r.desc||'', unit:r.unit||''}; }
+        });
+      });
+    }
     Object.keys(p.customAPU).forEach(function(code){
       if(_yaEnGrupo[code]) return;
       var apu = p.customAPU[code];
       var cd = 0;
       try { cd = (typeof calcAPU==='function') ? calcAPU(apu).cd : 0; } catch(e) {}
+      var _info = _descPorCodigo[code];
+      var _desc = (_info && _info.desc) || apu._desc || code;
+      var _unit = (_info && _info.unit) || apu._unit || 'u';
       var grp = BD.G.find(function(g){ return g.n==='PERSONALIZADOS'; });
       if(!grp){ grp={n:'PERSONALIZADOS', p:'CUS', r:[]}; BD.G.push(grp); }
-      grp.r.push([code, apu._desc||code, apu._unit||'u', cd]);
+      grp.r.push([code, _desc, _unit, cd]);
     });
   }
   if(p.customInsumos && p.customInsumos.length){

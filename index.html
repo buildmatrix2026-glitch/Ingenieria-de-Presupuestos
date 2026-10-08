@@ -6815,10 +6815,7 @@ async function newProject(){
   toast('Nuevo presupuesto listo');
 }
 
-function loadProject(name){
-  const projects = getSavedProjects();
-  const p = projects.find(x=>x.name===name);
-  if(!p){toast('Proyecto no encontrado');return;}
+function _bmApplyLoadedProject(p){
   S.own=p.own||''; S.proj=p.name; S.date=p.date||'';
   S.ind=p.ind??null; S.uti=p.uti??null; S.iva=p.iva??null;
   S.caps=p.caps||CAPS_DEFAULT.map(()=>[]);
@@ -6841,7 +6838,69 @@ function loadProject(name){
   document.getElementById('tp-header').style.display = p.name ? '' : 'none';
   renderBudget();
   go('pre');
-  toast('Proyecto "'+name+'" cargado');
+}
+
+function loadProject(name){
+  const projects = getSavedProjects();
+  const p = projects.find(x=>x.name===name);
+  if(!p){toast('Proyecto no encontrado');return;}
+
+  // ── CORREGIDO: "Abrir" ya no confía ciegamente en el caché local para los rubros ──
+  // El panel de administrador SIEMPRE lee detail/data fresco de la nube justo al abrir
+  // un presupuesto (ver openProjInApp) — nunca depende del caché que arma _startProjectsSync,
+  // que es justo la parte que se puede quedar atrás por la carrera al guardar. "Abrir" desde
+  // Mis Proyectos hacía lo contrario: confiaba en ese caché a ciegas, así que si los rubros
+  // todavía no habían llegado ahí, abrías un presupuesto vacío aunque la nube sí los tuviera.
+  // Ahora: si el caché local ya tiene rubros reales, se abre directo (rápido, funciona offline).
+  // Si no — pero el propio documento dice que SÍ debería haberlos (totalRubros>0) — se va a
+  // buscar la versión fresca a la nube ANTES de abrir, igual que hace el panel de admin.
+  var tieneRubrosLocal = Array.isArray(p.caps) && p.caps.some(function(c){ return c && c.length; });
+  var declaredRubros = typeof p.totalRubros === 'number' ? p.totalRubros : null;
+  var pareceIncompleto = (declaredRubros != null && declaredRubros > 0 && !tieneRubrosLocal);
+
+  if (!pareceIncompleto) {
+    _bmApplyLoadedProject(p);
+    toast('Proyecto "'+name+'" cargado');
+    return;
+  }
+
+  var user = firebase.auth().currentUser;
+  if (!user) { _bmApplyLoadedProject(p); toast('Proyecto "'+name+'" cargado (sin conexión)'); return; }
+  toast('Cargando rubros desde la nube…');
+  var docId = user.uid + '_' + (name || '').replace(/[^a-zA-Z0-9]/g, '_');
+  var docRef = firebase.firestore().collection('projects').doc(docId);
+  docRef.collection('detail').doc('data').get().then(function (dDoc) {
+    var caps = null, customAPU = null;
+    if (dDoc.exists) {
+      var dData = dDoc.data();
+      if (dData.detailJson) {
+        try { var d = JSON.parse(dData.detailJson); caps = d.caps; customAPU = d.customAPU; } catch (e) {}
+      } else { caps = dData.caps; customAPU = dData.customAPU; }
+    }
+    return docRef.collection('extra').doc('groups').get().then(function (gDoc) {
+      var customGroups = null;
+      if (gDoc.exists && gDoc.data().groupsJson) { try { customGroups = JSON.parse(gDoc.data().groupsJson); } catch (e) {} }
+      var pFinal = Object.assign({}, p);
+      var okCaps = caps && caps.some(function (c) { return c && c.length; });
+      if (okCaps) { pFinal.caps = caps; }
+      if (customAPU) { pFinal.customAPU = customAPU; }
+      if (customGroups) { pFinal.customGroups = customGroups; }
+      // Parchear el caché local ya mismo para que la próxima vez no haga falta volver a buscar
+      if (okCaps) {
+        var all = getSavedProjects();
+        var idx = all.findIndex(function (x) { return x.name === name; });
+        if (idx >= 0) { all[idx] = pFinal; try { localStorage.setItem(PROJ_KEY(), JSON.stringify(all)); } catch (e) {} }
+      } else {
+        console.warn('[BuildMatrix] "' + name + '": la nube tampoco trae rubros todavía al momento de abrir — se abre con lo que haya.');
+      }
+      _bmApplyLoadedProject(pFinal);
+      toast('Proyecto "'+name+'" cargado');
+    });
+  }).catch(function (e) {
+    console.warn('[BuildMatrix] No se pudo refrescar rubros de "' + name + '" antes de abrir:', e && e.code, e && e.message);
+    _bmApplyLoadedProject(p);
+    toast('Proyecto "'+name+'" cargado (no se pudo confirmar con la nube)');
+  });
 }
 
 function deleteProject(name){
@@ -7041,57 +7100,62 @@ function renderSavedProjectsView(){
     var preview=document.createElement('div');
     preview.style.cssText='display:none;border-top:1px solid var(--br);padding:0 20px 20px';
 
-    // Resumen financiero
-    var finHtml='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px;margin-bottom:18px">'
-      +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Costo directo</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(t.cd)+'</div></div>'
-      +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Indirectos '+(p.ind||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(t.ind)+'</div></div>'
-      +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Utilidad '+(p.uti||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(t.uti)+'</div></div>'
-      +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">IVA '+(p.iva||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(t.iva)+'</div></div>'
-      +'<div class="kpi" style="padding:12px 14px;border-color:rgba(0,82,255,.4);background:rgba(0,82,255,.08)"><div style="font-size:10px;color:var(--cy);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Total general</div><div style="font-size:17px;font-weight:800;font-family:var(--f-mo);color:var(--cy)">'+fmtUSD(t.total)+'</div></div>'
-      +'</div>';
-
-    // Tabla de capítulos
-    var caps=p.caps||[];
-    var capNames=p.capNames||[];
-    var capNums=p.capNums||[];
     var CAPS_DEF=['TRAMITES Y PERMISOS MUNICIPALES','OBRAS PRELIMINARES','ESTRUCTURA','MAMPOSTERIA','ENLUCIDOS','PISOS','CUBIERTAS','CARPINTERIA METALICA','INSTALACIONES ELECTRICAS','INSTALACIONES HIDRO-SANITARIAS','APARATOS SANITARIOS','PUERTAS Y VENTANAS','OBRAS EXTERIORES','PINTURA','EQUIPAMIENTO','VARIOS'];
-    var tableHtml='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
-      +'<thead><tr style="border-bottom:2px solid #0052FF">'
-      +'<th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Cód.</th>'
-      +'<th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Descripción</th>'
-      +'<th style="text-align:center;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Unid.</th>'
-      +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Cant.</th>'
-      +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">P.U.</th>'
-      +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Subtotal</th>'
-      +'</tr></thead><tbody>';
-
-    caps.forEach(function(rows,i){
-      if(!rows||!rows.length) return;
-      var capTot=(rows||[]).reduce(function(a,r){return a+(r.qty||0)*(r.pu||0);},0);
-      var pct=t.cd>0?((capTot/t.cd)*100).toFixed(1)+'%':'—';
-      var cName=capNames[i]||CAPS_DEF[i]||('Cap. '+(i+1));
-      var cNum=capNums&&capNums[i]!=null&&capNums[i]!==''?capNums[i]:(i+1);
-      // Fila del capítulo (cabecera)
-      tableHtml+='<tr style="background:rgba(0,52,160,.18)">'
-        +'<td colspan="5" style="padding:8px 10px;font-weight:700;font-size:11px;color:#7aadff;letter-spacing:.4px;text-transform:uppercase">CAP. '+cNum+' — '+esc(cName)+'</td>'
-        +'<td style="padding:8px 10px;text-align:right;font-weight:700;font-family:var(--f-mo);color:#7aadff">'+fmtUSD(capTot)+' <span style="font-size:10px;opacity:.7">('+pct+')</span></td>'
-        +'</tr>';
-      // Filas de rubros
-      rows.forEach(function(r,ri){
-        var sub=(r.qty||0)*(r.pu||0);
-        tableHtml+='<tr style="border-bottom:1px solid var(--br);transition:background .12s" onmouseover="this.style.background=\'rgba(0,82,255,.06)\'" onmouseout="this.style.background=\'\'">'
-          +'<td style="padding:7px 10px;color:var(--cy);font-family:var(--f-mo);font-size:11px">'+esc(r.code||'')+'</td>'
-          +'<td style="padding:7px 10px;color:var(--ow)">'+esc(r.desc||'')+'</td>'
-          +'<td style="padding:7px 10px;text-align:center;color:var(--sld);font-size:11px">'+esc(r.unit||'')+'</td>'
-          +'<td style="padding:7px 10px;text-align:right;font-family:var(--f-mo);font-size:11px">'+fmt(r.qty||0,2)+'</td>'
-          +'<td style="padding:7px 10px;text-align:right;font-family:var(--f-mo);font-size:11px">'+fmtUSD(r.pu||0)+'</td>'
-          +'<td style="padding:7px 10px;text-align:right;font-weight:700;font-family:var(--f-mo);font-size:11px">'+fmtUSD(sub)+'</td>'
+    // Factorizado en una función para poder reconstruir el preview con datos frescos
+    // (ver más abajo: si al abrir "Ver resumen" los rubros locales todavía no habían
+    // llegado, se van a buscar a la nube y se vuelve a llamar esto con la copia real).
+    function _bmBuildPreviewHtml(pLocal){
+      var tt=_calcProjTotals(pLocal);
+      var fin='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px;margin-bottom:18px">'
+        +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Costo directo</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(tt.cd)+'</div></div>'
+        +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Indirectos '+(pLocal.ind||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(tt.ind)+'</div></div>'
+        +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Utilidad '+(pLocal.uti||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(tt.uti)+'</div></div>'
+        +'<div class="kpi" style="padding:12px 14px"><div style="font-size:10px;color:var(--sld);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">IVA '+(pLocal.iva||0)+'%</div><div style="font-size:15px;font-weight:700;font-family:var(--f-mo)">'+fmtUSD(tt.iva)+'</div></div>'
+        +'<div class="kpi" style="padding:12px 14px;border-color:rgba(0,82,255,.4);background:rgba(0,82,255,.08)"><div style="font-size:10px;color:var(--cy);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Total general</div><div style="font-size:17px;font-weight:800;font-family:var(--f-mo);color:var(--cy)">'+fmtUSD(tt.total)+'</div></div>'
+        +'</div>';
+      var capsL=pLocal.caps||[];
+      var capNamesL=pLocal.capNames||[];
+      var capNumsL=pLocal.capNums||[];
+      var tbl='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="border-bottom:2px solid #0052FF">'
+        +'<th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Cód.</th>'
+        +'<th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Descripción</th>'
+        +'<th style="text-align:center;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Unid.</th>'
+        +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Cant.</th>'
+        +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">P.U.</th>'
+        +'<th style="text-align:right;padding:8px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--sld);font-weight:700">Subtotal</th>'
+        +'</tr></thead><tbody>';
+      var _tieneFilas=false;
+      capsL.forEach(function(rows,i){
+        if(!rows||!rows.length) return;
+        _tieneFilas=true;
+        var capTot=(rows||[]).reduce(function(a,r){return a+(r.qty||0)*(r.pu||0);},0);
+        var pct=tt.cd>0?((capTot/tt.cd)*100).toFixed(1)+'%':'—';
+        var cName=capNamesL[i]||CAPS_DEF[i]||('Cap. '+(i+1));
+        var cNum=capNumsL&&capNumsL[i]!=null&&capNumsL[i]!==''?capNumsL[i]:(i+1);
+        tbl+='<tr style="background:rgba(0,52,160,.18)">'
+          +'<td colspan="5" style="padding:8px 10px;font-weight:700;font-size:11px;color:#7aadff;letter-spacing:.4px;text-transform:uppercase">CAP. '+cNum+' — '+esc(cName)+'</td>'
+          +'<td style="padding:8px 10px;text-align:right;font-weight:700;font-family:var(--f-mo);color:#7aadff">'+fmtUSD(capTot)+' <span style="font-size:10px;opacity:.7">('+pct+')</span></td>'
           +'</tr>';
+        rows.forEach(function(r,ri){
+          var sub=(r.qty||0)*(r.pu||0);
+          tbl+='<tr style="border-bottom:1px solid var(--br);transition:background .12s" onmouseover="this.style.background=\'rgba(0,82,255,.06)\'" onmouseout="this.style.background=\'\'">'
+            +'<td style="padding:7px 10px;color:var(--cy);font-family:var(--f-mo);font-size:11px">'+esc(r.code||'')+'</td>'
+            +'<td style="padding:7px 10px;color:var(--ow)">'+esc(r.desc||'')+'</td>'
+            +'<td style="padding:7px 10px;text-align:center;color:var(--sld);font-size:11px">'+esc(r.unit||'')+'</td>'
+            +'<td style="padding:7px 10px;text-align:right;font-family:var(--f-mo);font-size:11px">'+fmt(r.qty||0,2)+'</td>'
+            +'<td style="padding:7px 10px;text-align:right;font-family:var(--f-mo);font-size:11px">'+fmtUSD(r.pu||0)+'</td>'
+            +'<td style="padding:7px 10px;text-align:right;font-weight:700;font-family:var(--f-mo);font-size:11px">'+fmtUSD(sub)+'</td>'
+            +'</tr>';
+        });
       });
-    });
-    tableHtml+='</tbody></table></div>';
-
-    preview.innerHTML=finHtml+tableHtml;
+      tbl+='</tbody></table></div>';
+      if(!_tieneFilas && typeof pLocal.totalRubros==='number' && pLocal.totalRubros>0){
+        tbl='<div style="padding:16px;text-align:center;color:var(--sld);font-size:12px">Cargando el detalle de los '+pLocal.totalRubros+' rubro(s) desde la nube…</div>';
+      }
+      return fin+tbl;
+    }
+    preview.innerHTML=_bmBuildPreviewHtml(p);
     card.appendChild(preview);
 
     // ── Eventos ──
@@ -7110,6 +7174,32 @@ function renderSavedProjectsView(){
         prevBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>Ocultar';
         prevBtn.style.background='rgba(0,82,255,.22)';
         _openCard=preview; _openCard._btn=prevBtn;
+        // Si los rubros locales todavía no habían llegado (igual que en "Abrir"), ir a
+        // buscar la versión fresca a la nube y reconstruir este preview con los datos reales.
+        var _tieneLocal = Array.isArray(p.caps) && p.caps.some(function(c){ return c && c.length; });
+        var _declarados = typeof p.totalRubros === 'number' ? p.totalRubros : null;
+        if (_declarados != null && _declarados > 0 && !_tieneLocal) {
+          var _user = firebase.auth().currentUser;
+          if (_user) {
+            var _docId = _user.uid + '_' + (p.name || '').replace(/[^a-zA-Z0-9]/g, '_');
+            var _docRef = firebase.firestore().collection('projects').doc(_docId);
+            _docRef.collection('detail').doc('data').get().then(function (dDoc) {
+              var caps=null, customAPU=null;
+              if (dDoc.exists) {
+                var dData=dDoc.data();
+                if (dData.detailJson) { try { var d=JSON.parse(dData.detailJson); caps=d.caps; customAPU=d.customAPU; } catch(e){} }
+                else { caps=dData.caps; customAPU=dData.customAPU; }
+              }
+              if (caps && caps.some(function(c){return c&&c.length;})) {
+                var pFresh=Object.assign({},p,{caps:caps, customAPU:customAPU||p.customAPU});
+                preview.innerHTML=_bmBuildPreviewHtml(pFresh);
+                var all=getSavedProjects();
+                var idx2=all.findIndex(function(x){return x.name===p.name;});
+                if(idx2>=0){ all[idx2]=Object.assign({},all[idx2],{caps:caps, customAPU:customAPU||all[idx2].customAPU}); try{localStorage.setItem(PROJ_KEY(),JSON.stringify(all));}catch(e){} }
+              }
+            }).catch(function(e){ console.warn('[BuildMatrix] No se pudo refrescar el preview de "'+p.name+'":', e && e.code); });
+          }
+        }
       }
     });
 

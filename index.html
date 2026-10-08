@@ -6471,6 +6471,24 @@ function _silentSaveProject(){
     var projects=getSavedProjects();
     var ts=Date.now();
     var idx=projects.findIndex(function(p){return p.name===S.proj;});
+    // ── Resguardo contra guardar un presupuesto "vacío" encima de uno bueno ──
+    // Si en memoria (S) no quedaron rubros NI los % de ind/uti/iva (por ejemplo,
+    // un autoguardado que se disparó antes de que _loadEntryIntoSession/enterAppTo
+    // terminaran de poblar S por completo — p.ej. justo tras cambiar de cuenta o
+    // recargar) pero YA existía en este dispositivo una copia local con datos
+    // reales para el mismo proyecto, NO se sobre-escribe esa copia buena con una
+    // vacía: se ignora este guardado puntual y se avisa por consola. Esto es la
+    // misma protección que ya existe al LEER de la nube (_startProjectsSync),
+    // pero aplicada también al ESCRIBIR, que es por donde se puede originar la
+    // corrupción si S queda a medio llenar.
+    var _prevEntry = idx>=0 ? projects[idx] : null;
+    function _bmTieneRubros(caps){ return !!caps && caps.some(function(c){return c&&c.length;}); }
+    var _sTieneRubros = _bmTieneRubros(S.caps);
+    var _sTieneMeta = (S.ind!=null) || (S.uti!=null) || (S.iva!=null);
+    if(_prevEntry && _bmTieneRubros(_prevEntry.caps) && !_sTieneRubros && !_sTieneMeta){
+      console.warn('[BuildMatrix] autoguardado BLOQUEADO para "'+S.proj+'": se iba a guardar sin rubros ni % (ind/uti/iva) encima de una copia local que SÍ los tenía. Se ignora este guardado para no perder los datos.');
+      return;
+    }
     if(!S.customAPU) S.customAPU={};
     Object.keys(BD.A).forEach(function(k){
       if(BD.A[k]._custom||S.customAPU[k]){ S.customAPU[k]=JSON.parse(JSON.stringify(BD.A[k])); }

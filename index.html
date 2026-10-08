@@ -7357,18 +7357,39 @@ function _startProjectsSync() {
                 // copia local en cada recarga de la app, así que este bloque se ejecuta prácticamente
                 // SIEMPRE, no solo cuando algo cambió de verdad. Si justo en ese momento el documento
                 // "detail/data" (el que de verdad trae los rubros) todavía no terminaba de escribirse
-                // en la nube — por ejemplo, guardaste y cerraste la app muy rápido — "entry" se queda
-                // sin rubros. Sin este resguardo, esa versión vacía SOBREESCRIBÍA la copia local buena
-                // en localStorage sin avisar nada: el presupuesto "se guardaba" pero al reabrirlo
-                // aparecía en ceros, sin rubros. Ahora, si la nube no trae rubros pero la copia local sí
-                // los tenía, se conservan los locales (y se reintenta más tarde) en vez de perderlos.
-                if (!tieneRubros(entry.caps) && prevEntry && tieneRubros(prevEntry.caps)) {
-                  console.warn('[BuildMatrix] "' + entry.name + '": la nube todavía no trae rubros (posible carrera al guardar) — se conservan los locales.');
-                  entry.caps = prevEntry.caps;
-                  if (!entry.customAPU || !Object.keys(entry.customAPU).length) entry.customAPU = prevEntry.customAPU;
-                  if (!entry.customGroups || !entry.customGroups.length) entry.customGroups = prevEntry.customGroups;
-                  _markProjPending(entry.name, true);   // para que se reintente guardar esta copia buena hacia la nube
-                  setTimeout(_retryPendingProjectSyncs, 5000);   // no esperar a la próxima reconexión/recarga: reintenta pronto
+                // en la nube — por ejemplo, el doc principal se escribió y el listener ya reaccionó a
+                // ESE cambio antes de que la escritura separada de detail/data (más lenta, otra
+                // petición de red) terminara — "entry" se queda sin rubros.
+                //
+                // "totalRubros" (campo plano del documento principal, escrito ATÓMICAMENTE junto con
+                // ind/uti/iva en el mismo set()) es la prueba objetiva de si este presupuesto DEBERÍA
+                // tener rubros o no — no depende de ninguna copia local. Si totalRubros>0 pero
+                // "detail/data" no trajo nada, es 100% una carrera, nunca un presupuesto vacío real.
+                var _dataTotalRubros = (typeof data.totalRubros === 'number') ? data.totalRubros : null;
+                var _expectRubros = _dataTotalRubros != null ? (_dataTotalRubros > 0) : null;
+                if (!tieneRubros(entry.caps) && _expectRubros === true) {
+                  if (prevEntry && tieneRubros(prevEntry.caps)) {
+                    // Ya existía una copia local buena (p.ej. edición de un proyecto existente) —
+                    // conservarla en vez de machacarla con la versión incompleta recién leída.
+                    console.warn('[BuildMatrix] "' + entry.name + '": la nube todavía no trae rubros (carrera al guardar) — se conservan los locales.');
+                    entry.caps = prevEntry.caps;
+                    if (!entry.customAPU || !Object.keys(entry.customAPU).length) entry.customAPU = prevEntry.customAPU;
+                    if (!entry.customGroups || !entry.customGroups.length) entry.customGroups = prevEntry.customGroups;
+                    localMap[entry.name] = entry;
+                    _markProjPending(entry.name, true);   // para que se reintente guardar esta copia buena hacia la nube
+                    setTimeout(_retryPendingProjectSyncs, 5000);
+                  } else {
+                    // Caso de un presupuesto RECIÉN CREADO: no hay ninguna copia local previa de la
+                    // que "restaurar" nada — simplemente detail/data no ha llegado todavía. En vez de
+                    // guardar una versión vacía (que es justo el bug: "se guarda pero sale en ceros"),
+                    // no se toca localMap con esto todavía — se deja lo que hubiera (o nada) — y se
+                    // reintenta la LECTURA sola varias veces hasta que el detail/data real aparezca.
+                    console.warn('[BuildMatrix] "' + entry.name + '": presupuesto nuevo — el documento principal indica ' + _dataTotalRubros + ' rubro(s) pero detail/data aún no llega; reintentando lectura.');
+                    if (prevEntry) { localMap[entry.name] = prevEntry; } else { delete localMap[entry.name]; }
+                    _bmRetryProjectDetailRead(doc.ref, entry, 1);
+                  }
+                  finish();
+                  return;
                 }
                 localMap[entry.name] = entry;
                 finish();
@@ -7389,6 +7410,49 @@ function _startProjectsSync() {
     }, function(err) {
       console.warn('Error sync proyectos:', err.code, err.message);
     });
+}
+
+// ── Reintento de LECTURA de detail/data para un presupuesto recién creado ──
+// Cuando el doc principal ya confirma (totalRubros>0) que este presupuesto tiene
+// rubros, pero detail/data todavía no llegó y no había ninguna copia local previa
+// de la que restaurar nada (porque es la primera vez que se guarda), no queda otra
+// que reintentar la lectura sola hasta que el subdocumento aparezca — no es un
+// reintento de ESCRITURA (eso ya se guardó bien, solo falta que la lectura lo vea).
+function _bmRetryProjectDetailRead(docRef, entryBase, attempt) {
+  var delays = [1200, 2500, 5000, 9000];
+  if (attempt > delays.length) {
+    console.warn('[BuildMatrix] "' + entryBase.name + '": se agotaron los reintentos de lectura de detail/data — revisa tu conexión o abre el proyecto manualmente.');
+    return;
+  }
+  setTimeout(function () {
+    docRef.collection('detail').doc('data').get().then(function (dDoc) {
+      var caps = null, customAPU = null;
+      if (dDoc.exists) {
+        var dData = dDoc.data();
+        if (dData.detailJson) {
+          try { var d = JSON.parse(dData.detailJson); caps = d.caps; customAPU = d.customAPU; } catch (e) {}
+        } else { caps = dData.caps; customAPU = dData.customAPU; }
+      }
+      var ok = !!caps && caps.some(function (c) { return c && c.length; });
+      if (ok) {
+        entryBase.caps = caps;
+        if (customAPU) entryBase.customAPU = customAPU;
+        return docRef.collection('extra').doc('groups').get().then(function (gDoc) {
+          if (gDoc.exists && gDoc.data().groupsJson) { try { entryBase.customGroups = JSON.parse(gDoc.data().groupsJson); } catch (e) {} }
+          var all = getSavedProjects();
+          var idx = all.findIndex(function (p) { return p.name === entryBase.name; });
+          if (idx >= 0) all[idx] = entryBase; else all.push(entryBase);
+          try { localStorage.setItem(PROJ_KEY(), JSON.stringify(all)); } catch (e) {}
+          if (typeof renderSavedProjects === 'function') renderSavedProjects();
+          console.log('[BuildMatrix] "' + entryBase.name + '": rubros recuperados en el reintento ' + attempt + ' — ya debería verse bien.');
+        });
+      } else {
+        _bmRetryProjectDetailRead(docRef, entryBase, attempt + 1);
+      }
+    }).catch(function () {
+      _bmRetryProjectDetailRead(docRef, entryBase, attempt + 1);
+    });
+  }, delays[attempt - 1]);
 }
 
 function _stopProjectsSync() {

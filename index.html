@@ -7227,6 +7227,26 @@ function _applyProjectToBD(p){
   if(!p){ _bmLibMergeSafe(); return; }
   if(p.customAPU && Object.keys(p.customAPU).length){
     Object.assign(BD.A, p.customAPU);
+    // ── CORREGIDO: un APU personalizado importado (o restaurado) que no viene listado en
+    // ningún grupo de customGroups se quedaba SOLO en BD.A — se usaba bien dentro del
+    // Presupuesto (cada fila de "caps" ya trae su propio precio guardado) pero nunca
+    // aparecía como rubro reutilizable en "Grupos y Rubros" ni en el buscador del
+    // Constructor APU por grupo, porque esas vistas listan por BD.G, no por BD.A directo.
+    // Un backup/JSON con "customGroups": [] (como los presupuestos más viejos, de antes
+    // de que se guardaran los grupos) disparaba esto siempre. Ahora, cualquier código de
+    // customAPU que no aparezca todavía en ningún grupo se agrega a uno de respaldo
+    // ("PERSONALIZADOS") para que sí sea visible y reutilizable.
+    var _yaEnGrupo = {};
+    BD.G.forEach(function(g){ (g.r||[]).forEach(function(r){ if(r && r[0]) _yaEnGrupo[r[0]]=true; }); });
+    Object.keys(p.customAPU).forEach(function(code){
+      if(_yaEnGrupo[code]) return;
+      var apu = p.customAPU[code];
+      var cd = 0;
+      try { cd = (typeof calcAPU==='function') ? calcAPU(apu).cd : 0; } catch(e) {}
+      var grp = BD.G.find(function(g){ return g.n==='PERSONALIZADOS'; });
+      if(!grp){ grp={n:'PERSONALIZADOS', p:'CUS', r:[]}; BD.G.push(grp); }
+      grp.r.push([code, apu._desc||code, apu._unit||'u', cd]);
+    });
   }
   if(p.customInsumos && p.customInsumos.length){
     p.customInsumos.forEach(function(ins){

@@ -6210,6 +6210,7 @@ function _restoreBD(){
   // Resetear caches de vista para que se recarguen desde BD limpio
   insFiltered = [];
   window._usageMap = null;
+  if(typeof _invalidateRubroCaches==='function') _invalidateRubroCaches();
   // Biblioteca personal del usuario (users/{uid}/insumos|apus) sobre la base limpia
   if(typeof bmLibMergeAll==='function'){ try{ bmLibMergeAll(); }catch(e){ console.warn('bmLib merge:',e); } }
 }
@@ -7236,8 +7237,18 @@ function _applyProjectToBD(p){
     // de que se guardaran los grupos) disparaba esto siempre. Ahora, cualquier código de
     // customAPU que no aparezca todavía en ningún grupo se agrega a uno de respaldo
     // ("PERSONALIZADOS") para que sí sea visible y reutilizable.
+    // Ojo: si esto ya se corrió antes (una importación anterior, antes de este arreglo),
+    // el código quedó registrado en "PERSONALIZADOS" pero con el nombre mal puesto (el
+    // código repetido como descripción). Por eso NO cuenta como "ya en grupo" cuando el
+    // único lugar donde aparece es justo ese grupo de respaldo propio — ahí se actualiza
+    // (upsert) la fila con la descripción real en vez de dejarla como quedó la vez pasada.
+    // Solo cuenta como "ya en grupo" (y se deja intacto) cuando aparece en CUALQUIER OTRO
+    // grupo — uno de verdad, hecho por el usuario.
     var _yaEnGrupo = {};
-    BD.G.forEach(function(g){ (g.r||[]).forEach(function(r){ if(r && r[0]) _yaEnGrupo[r[0]]=true; }); });
+    BD.G.forEach(function(g){
+      if(g.n==='PERSONALIZADOS') return;
+      (g.r||[]).forEach(function(r){ if(r && r[0]) _yaEnGrupo[r[0]]=true; });
+    });
     // El objeto "apu" guardado (r/e/m/t) no trae su propia descripción/unidad — esas viven
     // en la fila del PRESUPUESTO que lo usa (S.caps/p.caps: {code,desc,unit,...}), que es
     // justo de donde salió el rubro originalmente. Se arma un índice código→{desc,unit}
@@ -7260,7 +7271,9 @@ function _applyProjectToBD(p){
       var _unit = (_info && _info.unit) || apu._unit || 'u';
       var grp = BD.G.find(function(g){ return g.n==='PERSONALIZADOS'; });
       if(!grp){ grp={n:'PERSONALIZADOS', p:'CUS', r:[]}; BD.G.push(grp); }
-      grp.r.push([code, _desc, _unit, cd]);
+      var _fila = grp.r.find(function(r){ return r[0]===code; });
+      if(_fila){ _fila[1]=_desc; _fila[2]=_unit; _fila[3]=cd; }
+      else { grp.r.push([code, _desc, _unit, cd]); }
     });
   }
   if(p.customInsumos && p.customInsumos.length){
@@ -7284,6 +7297,7 @@ function _applyProjectToBD(p){
   }
   // Biblioteca personal: se re-aplica al final para que sus APUs/insumos siempre aparezcan
   _bmLibMergeSafe();
+  if(typeof _invalidateRubroCaches==='function') _invalidateRubroCaches();
 }
 function _bootProject(){
   // Al arrancar la app, detectar si hay un proyecto activo guardado
@@ -7985,6 +7999,16 @@ function rubroByCode(code){
   if(!_rubroByCodeCache){ _rubroByCodeCache={}; BD.G.forEach(function(g){ g.r.forEach(function(r){ _rubroByCodeCache[r[0]]=r; }); }); }
   return _rubroByCodeCache[code];
 }
+// Estos caches (flatRubros/rubroByCode) se construyen UNA sola vez por performance, pero eso
+// significa que si BD.G cambia después (se crea un APU nuevo en "Constructor APU", se importa un
+// proyecto, se renombra/borra un rubro, etc.) los caches quedan desactualizados y el rubro nuevo
+// no aparece en los selectores (modal "Agregar a capítulo", sidebar, lista de APUs) hasta recargar
+// la app entera (lo único que los reconstruye desde cero). Toda mutación de BD.G debe invalidar
+// los caches llamando esta función inmediatamente después.
+function _invalidateRubroCaches(){
+  _flatRubrosCache=null;
+  _rubroByCodeCache=null;
+}
 function renderRM(){
   const q=normSearch($id('rs').value.trim());
   const flat=flatRubros();
@@ -8534,6 +8558,7 @@ async function deleteRubro(gIdx,rIdx){
   if(!await BM_CONFIRM('¿Eliminar el rubro/APU '+r[0]+' - '+r[1]+'?\nEsta acción no se puede deshacer.'))return;
   var code=r[0];
   g.r.splice(rIdx,1);
+  if(typeof _invalidateRubroCaches==='function') _invalidateRubroCaches();
   if(BD.A&&BD.A[code])delete BD.A[code];
   try{ if(typeof _bmLibOnDeleted==='function') _bmLibOnDeleted('apu', code); }catch(e){}
   // Si este APU ya estaba insertado en el Presupuesto, quitarlo de TODOS los capítulos donde aparezca
@@ -8830,6 +8855,7 @@ function saveRubroEdit(gIdx, rIdx, a){
   }
   // Save group rubro
   g.r[rIdx]=[code,desc,unit,price];
+  if(typeof _invalidateRubroCaches==='function') _invalidateRubroCaches();
   // Save APU data if exists
   var apu=BD.A[oldCode]||a;
   if(apu){
@@ -9129,7 +9155,11 @@ function importJSON(inp){
       if(!S.customAPU) S.customAPU={};
       if(!S.customInsumos) S.customInsumos=[];
       // Aplicar APUs, insumos y grupos del archivo a BD
+      // (se pasa también "caps" — _applyProjectToBD lo usa para rescatar la descripción real
+      // de cada APU personalizado cuando el archivo no trae sus propios grupos; sin esto,
+      // esos rubros terminaban mostrando el código como si fuera el nombre)
       _applyProjectToBD({
+        caps: S.caps,
         customAPU: S.customAPU,
         customInsumos: S.customInsumos,
         customGroups: d.customGroups||[]
@@ -11139,6 +11169,9 @@ function anpSaveNew() {
     }
     customGrp.r.push([code, desc, unit, cd]);
   }
+  // Invalidar caches de flatRubros/rubroByCode: sin esto, el APU recién creado no aparecía
+  // en el selector "Agregar a capítulo" (ni en el sidebar) hasta recargar la app entera.
+  if (typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
 
   // ── Biblioteca personal: users/{uid}/apus/{code} (con _grp, _desc, _unit, _cd) ──
   var _libGrp = targetGrp ? targetGrp.n : ((BD.G.find(function(x){return x.p==='CUS';})||{}).n || 'PERSONALIZADOS');
@@ -15113,6 +15146,7 @@ if ('serviceWorker' in navigator) {
     var row = g.r.find(function (r) { return r[0] === code; });
     if (row) { row[1] = desc; row[2] = unit; row[3] = cd; }
     else { g.r.push([code, desc, unit, cd]); }
+    if (typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
   }
 
   // Copia precio/descr./unidad de los insumos indicados a las líneas de APU que los usan
@@ -15168,6 +15202,7 @@ if ('serviceWorker' in navigator) {
       for (var i = g.r.length - 1; i >= 0; i--) { if (g.r[i][0] === code) g.r.splice(i, 1); }
       if (!g.r.length && !names[g.n]) BD.G.splice(gi, 1);   // grupo propio vacío
     }
+    if (typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
   }
 
   function applyMasterInsumo(d) {
@@ -23105,6 +23140,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       S.caps[ci].push({ code: r.codigo, desc: r.descripcion, unit: r.unidad, pu: known ? (function () { try { return calcAPU(known).cd; } catch (e) { return r.precio_unitario; } })() : r.precio_unitario, qty: r.cantidad });
       added++;
     });
+    if (newApuCount > 0 && typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
 
     persist();
     if (typeof _silentSaveProject === 'function') _silentSaveProject();

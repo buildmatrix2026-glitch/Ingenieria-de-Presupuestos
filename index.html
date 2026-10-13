@@ -6546,6 +6546,16 @@ function _markProjPending(name, add) {
 var _bmProjSyncTimer = {};          // nombre de proyecto -> timer de debounce pendiente
 var _bmProjSyncSeq = {};            // nombre de proyecto -> número de secuencia más reciente pedido
 var _bmProjSyncPendingEntry = {};   // nombre de proyecto -> último "entry" pedido (el que de verdad se manda)
+// nombre de proyecto -> true mientras haya una sync "en vuelo" (agendada o en la red) para ese
+// proyecto. Antes, cada llamada a _syncProjectToFirestore (una por cada tecla/edición) sumaba 1 a
+// _projSync.pending, pero el debounce solo deja que UNA de esas llamadas llegue a completarse y
+// reste el contador — las que quedaban descartadas por una versión más nueva nunca lo restaban.
+// Resultado: con varias ediciones seguidas, "pending" subía más de lo que bajaba y el indicador
+// de sincronización se quedaba trabado en "guardando..." para siempre, aun con todo ya guardado.
+// Ahora solo se suma 1 la primera vez que un proyecto queda pendiente, y se resta exactamente esa
+// misma vez cuando por fin se resuelve (éxito o error) — sin importar cuántas ediciones se hayan
+// agrupado en el medio.
+var _bmProjSyncOutstanding = {};
 
 function _syncProjectToFirestore(entry) {
   if (!entry || !entry.name) return;
@@ -6555,7 +6565,9 @@ function _syncProjectToFirestore(entry) {
   _bmProjSyncPendingEntry[_name] = entry;
   var _mySeq = (_bmProjSyncSeq[_name] = (_bmProjSyncSeq[_name] || 0) + 1);
   _markProjPending(_name, true);              // hasta que confirme Firestore, queda marcado como pendiente
-  _projSync.state = 'syncing'; _projSync.pending++; _renderProjSync();
+  _projSync.state = 'syncing';
+  if (!_bmProjSyncOutstanding[_name]) { _bmProjSyncOutstanding[_name] = true; _projSync.pending++; }
+  _renderProjSync();
   if (_bmProjSyncTimer[_name]) { clearTimeout(_bmProjSyncTimer[_name]); }
   _bmProjSyncTimer[_name] = setTimeout(function () {
     _bmProjSyncTimer[_name] = null;
@@ -6668,7 +6680,7 @@ function _bmReallySyncProjectToFirestore(entry) {
       delete window._projDetailCache[docRef.id];
     }
     _markProjPending(entry.name, false);
-    _projSync.pending = Math.max(0, _projSync.pending - 1);
+    if (_bmProjSyncOutstanding[entry.name]) { _bmProjSyncOutstanding[entry.name] = false; _projSync.pending = Math.max(0, _projSync.pending - 1); }
     if (_projSync.pending === 0) { _projSync.state = 'ok'; _projSync.err = ''; _projSync.warned = false; }
     // Una escritura que sí llegó a la nube confirma que no hay nada bloqueando la conexión ahora mismo
     _projSync.blockedStrikes = 0;
@@ -6713,7 +6725,7 @@ function _bmReallySyncProjectToFirestore(entry) {
     }
   }).catch(function(e) {
     console.warn('Sync error:', e.code, e.message);
-    _projSync.pending = Math.max(0, _projSync.pending - 1);
+    if (_bmProjSyncOutstanding[entry.name]) { _bmProjSyncOutstanding[entry.name] = false; _projSync.pending = Math.max(0, _projSync.pending - 1); }
     _projSyncError(e);
     // reintento automático si fue un problema transitorio (no de permisos, ni de tamaño — un
     // documento demasiado grande va a fallar exactamente igual la próxima vez: reintentarlo sin
@@ -7422,6 +7434,7 @@ function _startProjectsSync() {
   var db = firebase.firestore();
   var _isFirstSnapshot = true;  // Bandera para la primera sincronización
   _projSync.state = 'idle'; _projSync.err = ''; _projSync.pending = 0; _projSync.warned = false; _renderProjSync();
+  _bmProjSyncOutstanding = {};
   _retryPendingProjectSyncs();
 
   _projectsListener = db.collection('projects')
@@ -15252,6 +15265,7 @@ if ('serviceWorker' in navigator) {
     if (has) propagateInsumos(ov);                            // ediciones globales → líneas de APU
     Object.keys(LIB.apu).forEach(function (c) { window._applyMasterAPU(LIB.apu[c]); });
     window._usageMap = null;
+    if (typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
   };
 
   /* ─────────────── construcción de documentos ─────────────── */
@@ -15404,6 +15418,7 @@ if ('serviceWorker' in navigator) {
   function refreshViews() {
     try {
       window._usageMap = null;
+      if (typeof _invalidateRubroCaches === 'function') _invalidateRubroCaches();
       if (typeof renderSidebarRubros === 'function') { try { renderSidebarRubros(''); } catch (e) {} }
       var act = document.querySelector('.vw.ac');
       var id = act ? act.id : '';

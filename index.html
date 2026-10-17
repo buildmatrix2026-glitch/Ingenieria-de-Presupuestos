@@ -22558,8 +22558,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 (function () {
   'use strict';
 
-  var PIA_MODEL = 'gemini-2.5-flash';
-  var PIA_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  // Octubre 2026: Google limitó el acceso a los modelos Gemini 2.5 a cuentas que ya los usaban antes, y además
+  // están saturados (error 503) en horas pico — "gemini-flash-latest" también dejó de responder (404). Se prioriza
+  // la familia Gemini 3.x (de acceso abierto y vigente) y se deja 2.5 como último recurso por si la cuenta sí
+  // conserva acceso a él.
+  var PIA_MODEL = 'gemini-3.8-flash';
+  var PIA_MODEL_FALLBACKS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
   // Los 16 capítulos reales que ya usa BuildMatrix (CAPS_DEFAULT) — se le piden a la IA tal cual,
   // así los rubros caen directo en el capítulo correcto del presupuesto en vez de crear uno genérico nuevo.
   var CAP_LABELS = [
@@ -23198,22 +23202,55 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
+  // Gemini 2.5 y Gemini 3.x usan DOS parámetros distintos para limitar el "pensamiento" interno (que se descuenta
+  // del mismo maxOutputTokens y puede dejar sin espacio al JSON real si no se limita): 2.5 usa "thinkingBudget"
+  // (número de tokens), 3.x usa "thinkingLevel" (texto: minimal/low/...) — mandarle el parámetro equivocado a un
+  // modelo puede hacer que la llamada falle o que el límite simplemente se ignore. Replica el mismo criterio que
+  // ya usa el resto de la app (módulo Gastos y Facturas) para no reinventar un comportamiento distinto aquí.
+  function piaThinkCfg(model) {
+    try { if (localStorage.getItem('bm_gx_nothink_' + model) === '1') return null; } catch (e) {}
+    if (/2\.5/.test(model)) return { thinkingBudget: 8192 };
+    // 'low' (no 'minimal') para toda la familia 3.x incluida flash-lite: a diferencia de una simple extracción
+    // de factura, aquí el modelo tiene que cuantificar geometría, cruzar columnas y verificar costo/m2 — se le
+    // deja algo más de margen de razonamiento aunque sea el modelo más ligero.
+    if (/gemini-3|gemini-[4-9]|latest/.test(model)) return { thinkingLevel: 'low' };
+    return null;
+  }
+
   async function sendOnce(model, parts, key, tok) {
     var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     if (tok) tok.cur = ctrl;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 150000) : null;
     var resp;
     try {
+      // thinkingConfig: gemini-2.5-flash y gemini-3.x por defecto usan "pensamiento dinámico" y esos tokens de
+      // razonamiento SE DESCUENTAN del mismo maxOutputTokens — con un prompt tan exigente (verificación cruzada
+      // de columnas, chequeo de costo/m2, autoverificación de exhaustividad) el modelo puede consumir la mayoría
+      // del presupuesto "pensando" y dejar muy pocos tokens para el JSON real, produciendo solo 5-6 rubros en vez
+      // de decenas. Se limita el pensamiento a un nivel razonable (nunca cero: esta tarea sí se beneficia de algo
+      // de razonamiento) usando el parámetro correcto según la familia del modelo.
+      var genCfg = { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 };
+      var tc = piaThinkCfg(model);
+      if (tc) genCfg.thinkingConfig = tc;
       resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         signal: ctrl ? ctrl.signal : undefined,
-        // thinkingConfig.thinkingBudget: gemini-2.5-flash por defecto usa "pensamiento dinámico" y esos tokens de
-        // razonamiento SE DESCUENTAN del mismo maxOutputTokens — con un prompt tan exigente (verificación cruzada
-        // de columnas, chequeo de costo/m2, autoverificación de exhaustividad) el modelo puede consumir la mayoría
-        // del presupuesto "pensando" y dejar muy pocos tokens para el JSON real, produciendo solo 5-6 rubros en vez
-        // de decenas. Limitamos el pensamiento a un tope razonable para garantizar espacio de sobra para la salida.
-        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536, thinkingConfig: { thinkingBudget: 8192 } } })
+        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: genCfg })
       });
+      // Si el modelo rechazó el parámetro de pensamiento (400), se recuerda para no volver a mandarlo con ese
+      // modelo y se reintenta una vez sin él — mismo patrón de autorrecuperación que el resto de la app.
+      if (resp.status === 400 && tc) {
+        var bodyPeek = null; try { bodyPeek = await resp.clone().json(); } catch (e) {}
+        var msgPeek = (bodyPeek && bodyPeek.error && bodyPeek.error.message) || '';
+        if (/thinking/i.test(msgPeek)) {
+          try { localStorage.setItem('bm_gx_nothink_' + model, '1'); } catch (e) {}
+          resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+            signal: ctrl ? ctrl.signal : undefined,
+            body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
+          });
+        }
+      }
     } catch (e) {
       if (timer) clearTimeout(timer);
       if (tok && tok.cancelled) throw { code: 'CANCEL' };

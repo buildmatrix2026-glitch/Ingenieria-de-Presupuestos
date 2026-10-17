@@ -2894,6 +2894,12 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 #v-pia .pia-file-remove{margin-top:6px;font-size:11px;font-weight:600;color:var(--rd);background:none;border:1px solid rgba(255,92,92,.4);border-radius:8px;padding:5px 11px;cursor:pointer;transition:.15s}
 #v-pia .pia-file-remove:hover{background:rgba(255,92,92,.1);border-color:var(--rd)}
 #v-pia .pia-thumb{max-width:100%;max-height:52px;border-radius:8px;margin-bottom:6px;object-fit:cover}
+#v-pia .pia-file-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+#v-pia .pia-file-list .pia-file-info{flex-direction:row;align-items:center;gap:10px;width:auto;background:var(--s3);border:1px solid var(--br);border-radius:12px;padding:8px 12px}
+#v-pia .pia-file-list .pia-thumb{max-width:36px;max-height:36px;margin-bottom:0;flex:0 0 auto}
+#v-pia .pia-file-list .pia-file-name{flex:1 1 auto;text-align:left}
+#v-pia .pia-file-list .pia-file-remove{margin-top:0;flex:0 0 auto}
+#v-pia .pia-drop-multi{min-height:120px}
 
 #v-pia .pia-actions-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
 #v-pia .pia-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--f-ui);font-size:13.5px;font-weight:600;padding:11px 20px;border-radius:10px;border:1px solid var(--br);background:var(--s3);color:var(--ow);cursor:pointer;transition:.15s}
@@ -4794,7 +4800,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         <div class="pia-head">
           <div>
             <h2>Presupuesto Avanzado con IA</h2>
-            <div class="sub">Análisis multimodal de planos (Arquitectura, Estructura, MEP) y cuantificación automática de APUs</div>
+            <div class="sub">Análisis multimodal de planos (Arquitectura, Estructura, MEP) y cuantificación automática de APUs · puedes subir solo el plano que tengas: la IA cuantifica con precisión lo que ve y no inventa las especialidades que falten</div>
           </div>
           <span class="pia-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg>Powered by Gemini</span>
         </div>
@@ -4808,36 +4814,15 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
           </form>
         </div>
 
-        <div class="pia-drop-grid">
-          <div class="pia-drop" id="pia-drop-arq" data-key="arq">
-            <input type="file" id="pia-file-arq" accept="image/*,application/pdf" hidden>
-            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/><path d="M14 14l3 3M17 14l-3 3"/></svg></div>
-            <div class="pia-drop-title">Plano Arquitectónico</div>
-            <div class="pia-drop-desc">Mamposterías, enlucidos, contrapisos, acabados, vanos</div>
-            <div class="pia-drop-state" id="pia-state-arq"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
-          </div>
-          <div class="pia-drop" id="pia-drop-est" data-key="est">
-            <input type="file" id="pia-file-est" accept="image/*,application/pdf" hidden>
-            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M4 21V8l8-5 8 5v13"/><path d="M4 21h16M9 21V12h6v9"/></svg></div>
-            <div class="pia-drop-title">Plano Estructural</div>
-            <div class="pia-drop-desc">Zapatas, columnas, vigas, losas, volumen de hormigón</div>
-            <div class="pia-drop-state" id="pia-state-est"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
-          </div>
-          <div class="pia-drop" id="pia-drop-hid" data-key="hid">
-            <input type="file" id="pia-file-hid" accept="image/*,application/pdf" hidden>
-            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M12 3c3.5 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 2.5-7 6-11z"/></svg></div>
-            <div class="pia-drop-title">Plano Hidrosanitario</div>
-            <div class="pia-drop-desc">Puntos AF/AC, bajantes, cajas, aparatos</div>
-            <div class="pia-drop-state" id="pia-state-hid"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
-          </div>
-          <div class="pia-drop" id="pia-drop-ele" data-key="ele">
-            <input type="file" id="pia-file-ele" accept="image/*,application/pdf" hidden>
-            <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg></div>
-            <div class="pia-drop-title">Plano Eléctrico</div>
-            <div class="pia-drop-desc">Puntos de luz, tomacorrientes 110V/220V, tableros, acometida</div>
-            <div class="pia-drop-state" id="pia-state-ele"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra un archivo o haz clic</span></div>
-          </div>
+        <div class="pia-hint" style="display:block;margin-bottom:10px">Sube uno o varios archivos con tus planos (imagen o PDF, de varias láminas o combinados). No hace falta separarlos por especialidad: la IA revisa el contenido real de cada archivo. Si quieres, puedes marcar qué especialidad es cada uno — ayuda a la precisión, pero es opcional.</div>
+        <div class="pia-drop pia-drop-multi" id="pia-drop-multi">
+          <input type="file" id="pia-file-multi" accept="image/*,application/pdf" multiple hidden>
+          <div class="pia-drop-icon"><svg class="pia-drop-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/><path d="M14 14l3 3M17 14l-3 3"/></svg></div>
+          <div class="pia-drop-title">Planos del proyecto</div>
+          <div class="pia-drop-desc">Arquitectónico, estructural, instalaciones, cubierta — juntos o separados, hasta 10 archivos / 15MB en total</div>
+          <div class="pia-drop-state" id="pia-state-multi"><span class="pia-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></span><span class="pia-empty-txt">Arrastra uno o varios archivos o haz clic</span></div>
         </div>
+        <div class="pia-file-list" id="pia-file-list"></div>
 
         <div class="pia-actions-top">
           <button class="pia-btn pia-btn-primary" id="pia-generate-btn" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg><span>Generar Presupuesto con IA</span></button>
@@ -4855,6 +4840,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         </div>
 
         <div class="pia-result" id="pia-result" style="display:none">
+          <div class="pia-status on" id="pia-tipo-banner" style="display:none;margin-bottom:12px"></div>
           <div class="pia-tabs" id="pia-tabs"></div>
 
           <div class="pia-table-wrap">
@@ -4878,7 +4864,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
               <b class="pia-mono" id="pia-sum-aiu">$0.00</b>
             </div>
             <div class="pia-summary-row"><span>Subtotal sin IVA</span><b class="pia-mono" id="pia-sum-sub">$0.00</b></div>
-            <div class="pia-summary-row"><span>IVA (15%)</span><b class="pia-mono" id="pia-sum-iva">$0.00</b></div>
+            <div class="pia-summary-row"><span>IVA (<span id="pia-iva-label">15</span>%)</span><b class="pia-mono" id="pia-sum-iva">$0.00</b></div>
             <div class="pia-summary-row pia-summary-total"><span>Presupuesto Total General de Obra</span><b class="pia-mono" id="pia-sum-total">$0.00</b></div>
           </div>
 
@@ -22553,7 +22539,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'CIELOS FALSOS GYPSUM', 'FACHALETA Y ACABADOS FACHADA', 'OBRAS COMPLEMENTARIAS Y EXTERIORES'
   ];
   var CAP_FALLBACK = 'OBRAS COMPLEMENTARIAS Y EXTERIORES';
-  var CAP_KEYS = { arq: 'Arquitectónica', est: 'Estructural', hid: 'Hidrosanitaria', ele: 'Eléctrica' };
+  var CAP_KEYS = { arq: 'Arquitectónico', est: 'Estructural', hid: 'Hidrosanitario', ele: 'Eléctrico' };
+  // Qué capítulos de los 16 depende de CADA plano de especialidad. Si ese plano no se sube, esos
+  // capítulos no se piden a la IA (no se inventan): solo se cuantifica lo que el usuario sí cargó.
+  var CAP_BY_KEY = {
+    arq: ['MAMPOSTERIA', 'ENLUCIDOS Y ACABADOS DE PAREDES', 'PISOS Y CONTRAPISOS',
+      'CARPINTERIA METALICA MADERA Y ALUMINIO', 'PINTURA Y RECUBRIMIENTOS', 'CIELOS FALSOS GYPSUM',
+      'FACHALETA Y ACABADOS FACHADA'],
+    est: ['ESTRUCTURA DE HORMIGON ARMADO', 'ESTRUCTURA METALICA', 'CUBIERTA'],
+    hid: ['INSTALACIONES HIDROSANITARIAS', 'APARATOS SANITARIOS Y GRIFERIA'],
+    ele: ['INSTALACIONES ELECTRICAS']
+  };
+  // Capítulos "generales de obra" que no dependen de un plano de especialidad concreto: se estiman
+  // siempre de forma proporcional al área construida, aunque solo se haya subido un plano.
+  var CAP_GENERIC = ['TRAMITES Y PERMISOS MUNICIPALES', 'OBRAS PRELIMINARES', 'OBRAS COMPLEMENTARIAS Y EXTERIORES'];
   function normCapitulo(s) {
     var t = String(s || '').trim().toUpperCase();
     if (CAP_LABELS.indexOf(t) >= 0) return t;
@@ -22561,7 +22560,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return hit || CAP_FALLBACK;
   }
 
-  var PIA = { files: { arq: null, est: null, hid: null, ele: null }, rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '' };
+  var PIA = { files: [], rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '', tipoProyecto: '', unidadesDetectadas: 0, alcancePresupuestado: '', especialidadesDetectadas: [] };
+  var ESP_LABELS = { ARQUITECTONICO: 'Arquitectónico', ESTRUCTURAL: 'Estructural', HIDROSANITARIO: 'Hidrosanitario', ELECTRICO: 'Eléctrico', CUBIERTA: 'Cubierta' };
+  var TIPO_LABELS = {
+    VIVIENDA_UNIFAMILIAR: 'Vivienda unifamiliar', VIVIENDA_PAREADA_DUPLEX: 'Vivienda pareada / dúplex (dos unidades adosadas)',
+    CONJUNTO_VIVIENDAS_REPETIDAS: 'Conjunto de viviendas repetidas', EDIFICIO_MULTIFAMILIAR: 'Edificio multifamiliar (varios niveles/departamentos)',
+    EDIFICIO_MIXTO: 'Edificio mixto (comercial + vivienda)', OTRO: 'Tipo de proyecto no clasificado con certeza'
+  };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -22609,10 +22614,38 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'aplicando metodología BIM 5D (Building Information Modeling) de cuantificación de obra: en BIM real, cada ' +
     'elemento constructivo (cada zapata, cada columna, cada muro, cada puerta, cada punto eléctrico) se modela y ' +
     'se cuantifica de forma INDIVIDUAL con su propia regla de medición, y luego se agrupan por tipo dentro de su ' +
-    'capítulo (WBS). Vas a recibir hasta 4 planos (Arquitectónico, Estructural, Hidrosanitario, Eléctrico) como ' +
+    'capítulo (WBS). Vas a recibir SOLO los archivos que el usuario efectivamente cargó (puede ser 1, 2, 3 o 4 ' +
+    'archivos, subidos en casillas etiquetadas Arquitectónico, Estructural, Hidrosanitario, Eléctrico) como ' +
     'imágenes o PDF, y una lista de APUs REALES de referencia. NO vas a resumir el proyecto: vas a hacer el ' +
-    'levantamiento de cantidades completo, capítulo por capítulo, como lo haría un software profesional de ' +
-    'presupuestos (tipo Presto, CYPE, Arquímedes, Novo) alimentado por un modelo BIM.\n\n' +
+    'levantamiento de cantidades completo de TODO lo que sí puedas ver, capítulo por capítulo, como lo haría un ' +
+    'software profesional de presupuestos (tipo Presto, CYPE, Arquímedes, Novo) alimentado por un modelo BIM.\n\n' +
+
+    'IMPORTANTE SOBRE LA ETIQUETA DE CADA ARCHIVO: en Ecuador es MUY común que, para la aprobación municipal, el ' +
+    'profesional entregue UN SOLO PDF de varias láminas que combina plano arquitectónico, fachadas, cortes, ' +
+    'cuadro/planta de instalaciones eléctricas, cuadro/planta de instalaciones sanitarias y hasta la planta de ' +
+    'cubiertas, todo junto en un mismo archivo. La etiqueta de la casilla donde el usuario subió cada archivo ' +
+    '(Arquitectónico/Estructural/Hidrosanitario/Eléctrico) es solo una SUPOSICIÓN INICIAL de qué trae ese archivo, ' +
+    'NO UNA RESTRICCIÓN. Debes revisar el CONTENIDO REAL página por página/imagen por imagen de TODOS los ' +
+    'archivos recibidos: si encuentras una lámina de instalaciones eléctricas, sanitarias, cortes estructurales o ' +
+    'cubierta DENTRO de un archivo que el usuario etiquetó como "Arquitectónico" (o cualquier otra etiqueta), ' +
+    'TRÁTALA como recibida y cuantifica también los capítulos de esa especialidad — amplía el alcance real más ' +
+    'allá de lo que el bloque "ALCANCE DE ESTA CORRIDA" de abajo supone, y dilo en "resumen_cobertura" y en el ' +
+    'nuevo campo "especialidades_detectadas". El bloque de alcance de abajo es tu piso mínimo garantizado (nunca ' +
+    'cuantifiques MENOS de lo que indica), pero no es un techo: si el contenido real te da más, cuantifica más. ' +
+    'Es un alcance PARCIAL cuando, después de revisar el contenido real de todos los archivos, de verdad falta ' +
+    'una especialidad — y eso está bien, mejor parcial y honesto que inventado.\n\n' +
+    '__ALCANCE__\n' +
+
+    'PRECISIÓN POR ENCIMA DE TODO: los planos profesionales vienen ACOTADOS (con cotas numéricas en metros o ' +
+    'centímetros escritas sobre cada muro, vano, eje y elemento) y con NIVELES/EJES identificados (N+0.00, ' +
+    'N+2.60, Planta Baja, Planta Alta, eje A-B-C, eje 1-2-3, etc.). SIEMPRE que una cota, un nivel o una etiqueta ' +
+    'de dimensión esté escrita en el plano, LÉELA Y ÚSALA TAL CUAL — nunca midas "a ojo" ni estimes por ' +
+    'proporción visual un dato que el plano ya te está dando en números. Si un muro dice "3.40" en metros, la ' +
+    'longitud de ese muro es 3.40, no una aproximación. Si hay dos niveles (Planta Baja y Planta Alta) cuantifica ' +
+    'cada uno por separado (no multipliques por 2 "a ojo": lee el área real de cada nivel si cambia entre ' +
+    'plantas). Solo cuando una cota no sea legible o no exista, usa una proporción razonable sobre la escala del ' +
+    'plano, y dilo expresamente en "resumen_cobertura" (qué mediste por cota exacta vs. qué estimaste por falta ' +
+    'de acotación).\n\n' +
 
     'CAPÍTULOS OBLIGATORIOS (usa EXACTAMENTE estos 16 nombres, en mayúsculas, tal como están escritos aquí, en ' +
     'el campo "capitulo" de cada rubro — es la estructura de capítulos real del sistema del usuario):\n' +
@@ -22623,18 +22656,126 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '14. CIELOS FALSOS GYPSUM\n15. FACHALETA Y ACABADOS FACHADA\n16. OBRAS COMPLEMENTARIAS Y EXTERIORES\n\n' +
 
     'METODOLOGÍA DE CUANTIFICACIÓN BIM (síguela mentalmente antes de escribir el JSON final):\n' +
-    'PASO 1 — Estima el ÁREA DE CONSTRUCCIÓN TOTAL en m2 desde el plano arquitectónico (súmala por piso si hay ' +
-    'más de uno).\n' +
+    'PASO 0 — NUNCA confíes en un "cuadro de áreas" impreso en la lámina arquitectónica (tabla con metraje por ' +
+    'departamento, nivel o ambiente que a veces aparece junto al sello o el cajetín). Esas tablas con frecuencia ' +
+    'son plantillas reutilizadas de otro proyecto y pueden estar completamente desactualizadas o ser irrelevantes ' +
+    'al dibujo real. La fuente de verdad para ÁREAS es lo que está DIBUJADO: los muros, ejes y cotas del plano ' +
+    'mismo. Si un cuadro de áreas contradice lo que mides en el dibujo, ignóralo y usa tu propio levantamiento ' +
+    'geométrico. ESTA DESCONFIANZA NO APLICA a las tablas de INGENIERÍA ESTRUCTURAL (cuadro/tabla de columnas, ' +
+    'cuadro de vigas, cuadro de zapatas o plintos, despiece de acero/armado, cuadro de materiales) que puedan venir ' +
+    'en el plano estructural: esas SÍ son datos de cálculo estructural reales, elaborados por el ingeniero, y son ' +
+    'tu fuente PRIMARIA y más confiable para dimensiones de elementos y diámetros/cantidad de varillas — úsalas ' +
+    'siempre que existan, en vez de medir el elemento a ojo sobre el dibujo en planta.\n' +
+    'PASO 1 — LEVANTAMIENTO AMBIENTE POR AMBIENTE (no por edificio completo): para cada recinto con nombre ' +
+    '(Dormitorio, Cocina, Sala, Baño, Garaje, Patio, Estudio, etc.) identifica las cotas que acotan ESE recinto ' +
+    'específicamente — las líneas de cota más cercanas a sus propios muros, no la cota global del edificio — y ' +
+    'calcula su área como ancho x fondo de ESE recinto. Suma las áreas de todos los recintos de un piso para ' +
+    'obtener el área techada de ese piso; no derives el área total solo del rectángulo envolvente exterior del ' +
+    'edificio, porque patios abiertos, vacíos de doble altura y muros medianeros compartidos distorsionan esa ' +
+    'cuenta. Usa el espesor de muro acotado (cotas pequeñas típicas de .10, .15 o .20 m sobre las líneas de ' +
+    'pared) para distinguir muro interior de muro exterior/estructural, y para saber si una cota dada es eje-a-' +
+    'eje o cara-a-cara (ajusta el área neta del recinto restando el espesor cuando corresponda).\n' +
+    'PASO 1b — USA EL MOBILIARIO DIBUJADO COMO VALIDACIÓN CRUZADA, no como adorno: una cama indica dormitorio y ' +
+    'da una pista de sus dimensiones mínimas; un inodoro + lavamanos (y opcionalmente ducha/tina) indica baño y ' +
+    'permite contarlo como aparato sanitario si el plano de esa especialidad está en el alcance; una cocina con ' +
+    'quemadores/mesón confirma el área de cocina; un auto dibujado confirma garaje y su ancho libre mínimo; mesa ' +
+    'con sillas confirma comedor. Cuenta las puertas por el ARCO DE GIRO dibujado (cada arco de 90° es una ' +
+    'puerta) y las ventanas por los vanos/aberturas en los muros exteriores — no asumas una puerta o ventana por ' +
+    'ambiente, cuenta las que realmente estén dibujadas.\n' +
+    'PASO 1b-2 — SIMBOLOGÍA ESTÁNDAR: si el plano trae su propio cuadro de simbología/leyenda, esa es tu fuente ' +
+    'PRIMARIA — úsala literal. Si no lo trae, reconoce estos símbolos estándar usados en planos latinoamericanos ' +
+    '(Ecuador incluido) para contar sin necesitar una tabla aparte:\n' +
+    '   • PUERTAS → arco de giro de 90° (cuarto de círculo) saliendo de una línea recta sobre el vano; el ancho ' +
+    'del vano (a veces acotado, a veces solo a escala) distingue puerta principal (ancho mayor, suele rondar ' +
+    '0.80-1.00m), puerta interior (0.60-0.80m) y puerta de closet/corrediza (línea recta sin arco, con flecha).\n' +
+    '   • VENTANAS → línea(s) delgada(s) paralela(s) dentro de un vano de muro exterior (a veces con una línea ' +
+    'diagonal fina que indica apertura); cuenta cada vano distinto como una ventana, agrupando solo las de igual ' +
+    'ancho y tipo.\n' +
+    '   • ELÉCTRICO (solo si el plano/lámina de especialidad eléctrica está en el alcance) → punto de luz de ' +
+    'techo: círculo pequeño, a veces con una X o una cruz dentro; interruptor de pared: letra "S" minúscula junto ' +
+    'al muro (S2/S3 o dos/tres marcas = interruptor doble/triple, de conmutación); línea punteada o curva fina ' +
+    'entre un interruptor y un punto de luz = circuito de control, cuéntalos como PUNTOS (no como metros de ' +
+    'cable, eso requiere más detalle del que normalmente trae un plano de puntos); tomacorriente 110V: círculo ' +
+    'pequeño con dos rayitas paralelas cortas o etiqueta "TC"; tomacorriente 220V: símbolo similar con etiqueta ' +
+    '"220" o distinto color/relleno; tablero eléctrico: rectángulo etiquetado "TAB" o "TD".\n' +
+    '   • HIDROSANITARIO (solo si el plano/lámina de esa especialidad está en el alcance) → inodoro: óvalo ' +
+    'alargado (vista en planta del aparato); lavamanos: óvalo o semicírculo adosado a un muro; ducha: cuadrado ' +
+    'con una X o un círculo con cruz dentro, a veces con rejilla de piso cerca; fregadero de cocina: rectángulo ' +
+    'con uno o dos círculos/óvalos (pozos); punto de agua fría/caliente: círculos pequeños sobre la línea de ' +
+    'tubería, a veces con color o etiqueta (F/C, azul/rojo); bajante o tubería de desagüe: línea gruesa o ' +
+    'discontinua con flecha de pendiente, etiquetada con su diámetro (ej. "110mm", "50mm").\n' +
+    'Cuenta cada símbolo real que veas — nunca asumas "1 punto de luz por dormitorio" o "1 tomacorriente por ' +
+    'pared" sin verlo dibujado; si el plano es de bajísima resolución y los símbolos no son distinguibles entre ' +
+    'sí, dilo en "resumen_cobertura" en vez de inventar un conteo.\n' +
+    'PASO 1c — DETECCIÓN DE VIVIENDAS GEMELAS/DÚPLEX: si el dibujo muestra un muro medianero (pared compartida ' +
+    'sin acabado por ambos lados) y una distribución SIMÉTRICA o ESPEJADA con ambientes del mismo tipo repetidos ' +
+    'a cada lado (dos cocinas, dos garajes, dos patios, etc.), es casi seguro que la lámina contiene DOS viviendas ' +
+    'adosadas independientes, no una sola vivienda de doble ancho. En ese caso, cuantifica y presupuesta SOLO UNA ' +
+    'de las dos mitades (la que tenga la rotulación o el cajetín de propietario más clara si hay diferencia, o la ' +
+    'primera que identifiques si son idénticas), y dilo EXPLÍCITAMENTE en "resumen_cobertura" (ej. "Se detectó ' +
+    'una distribución simétrica compatible con dos viviendas adosadas; se presupuestó solo una unidad de ~X m² ' +
+    'por planta — verifica si esto es correcto antes de usar el presupuesto"). Nunca dupliques el costo asumiendo ' +
+    'que ambas mitades pertenecen al mismo cliente sin advertirlo.\n' +
+    'PASO 1d — CLASIFICA EL TIPO DE PROYECTO antes de cuantificar nada; esto es OBLIGATORIO y define qué y cuánto ' +
+    'presupuestas. Determínalo por evidencia real del dibujo (número de unidades distintas, muros medianeros, ' +
+    'accesos independientes, gradas repetidas, cajetín/rótulo, notas como "PLANTA TIPO" o "PISOS 2-5 IGUALES"), ' +
+    'nunca por defecto. Usa exactamente una de estas categorías en el campo "tipo_proyecto":\n' +
+    '   • VIVIENDA_UNIFAMILIAR — una sola casa, un solo acceso, ningún muro medianero con otra unidad.\n' +
+    '   • VIVIENDA_PAREADA_DUPLEX — dos viviendas independientes que comparten UN muro medianero (ver PASO 1c).\n' +
+    '   • CONJUNTO_VIVIENDAS_REPETIDAS — tres o más viviendas iguales o en fila (lotización, urbanización), cada ' +
+    'una independiente.\n' +
+    '   • EDIFICIO_MULTIFAMILIAR — un solo edificio de varios niveles con una o más unidades/departamentos por ' +
+    'piso, accedidos por gradas/ascensor comunes (áreas comunes compartidas, no muros medianeros entre viviendas ' +
+    'independientes).\n' +
+    '   • EDIFICIO_MIXTO — combina locales comerciales u oficinas con vivienda.\n' +
+    '   • OTRO — si no encaja claramente en las anteriores (describe brevemente en "resumen_cobertura").\n' +
+    'Según la clasificación, decide el alcance exacto a presupuestar y repórtalo en el nuevo campo ' +
+    '"alcance_presupuestado" (string breve, ej. "1 vivienda de las 2 adosadas" o "1 departamento tipo del nivel 2, ' +
+    'edificio tiene 4 niveles similares según planta"):\n' +
+    '   • VIVIENDA_UNIFAMILIAR → presupuesta la casa completa, todos sus niveles dibujados.\n' +
+    '   • VIVIENDA_PAREADA_DUPLEX o CONJUNTO_VIVIENDAS_REPETIDAS → presupuesta SOLO UNA unidad (ver PASO 1c), ' +
+    'nunca multipliques por el número de unidades salvo que el usuario lo pida explícitamente en una corrida ' +
+    'futura.\n' +
+    '   • EDIFICIO_MULTIFAMILIAR → si el plano trae una "planta tipo" que se repite en varios niveles (dícelo el ' +
+    'rótulo o nótalo tú por simetría de plantas), presupuesta SOLO el nivel/departamento tipo dibujado una vez, ' +
+    'NUNCA multipliques por el número de pisos del edificio (eso son mampostería/acabados de UN piso, no del ' +
+    'edificio completo) — dilo claramente en "resumen_cobertura" (ej. "Este presupuesto corresponde a 1 piso ' +
+    'tipo; el edificio tiene N pisos similares, multiplica manualmente o pide una corrida que lo indique"). Si el ' +
+    'edificio tiene plantas distintas entre sí (planta baja comercial + pisos de vivienda diferentes), ' +
+    'presupuesta cada planta dibujada por separado y dilo así.\n' +
+    'El campo "unidades_detectadas" debe llevar el número ENTERO de unidades/viviendas/departamentos distintos ' +
+    'que identificaste dibujados en la lámina (no necesariamente los que presupuestaste).\n' +
     'PASO 2 — NO analices "el plano" en general: analiza CADA ELEMENTO INDIVIDUAL que puedas identificar, con su ' +
     'propia regla de medición (igual que un modelador BIM):\n' +
     '   • Muros/mampostería → por ÁREA (largo x alto, descontando vanos de puertas/ventanas), separados por tipo ' +
     'de bloque/espesor si el plano distingue más de uno; NO mezcles muro interior de 10cm con muro exterior de ' +
     '20cm en la misma línea.\n' +
-    '   • Zapatas/plintos → CONTEO por tipo/dimensión, y su hormigón por VOLUMEN (ancho x largo x peralte x ' +
-    'cantidad); si hay zapatas de distinta dimensión, son rubros distintos.\n' +
+    '   • CIMENTACIÓN (solo si hay plano Estructural): busca primero el "cuadro de zapatas/plintos" o el detalle ' +
+    'de cimentación con cortes — ahí vienen dimensión de plinto, profundidad de desplante, y el acero de refuerzo ' +
+    'ya especificado; úsalo tal cual. Genera rubros SEPARADOS para: excavación (por VOLUMEN, área de plinto x ' +
+    'profundidad de desplante x cantidad), replantillo de hormigón simple bajo plinto (por VOLUMEN, espesor típico ' +
+    '5-7cm si no se especifica), zapatas/plintos de hormigón armado (por VOLUMEN: ancho x largo x peralte x ' +
+    'cantidad — diferencia zapata aislada de zapata corrida si el plano las distingue), vigas de cimentación o ' +
+    'cadena de amarre a nivel de cimentación (volumen de hormigón + peso de acero como rubros separados), relleno ' +
+    'y compactado de plintos (por VOLUMEN). Si el plano estructural NO trae detalle de cimentación aunque sí ' +
+    'traiga columnas/vigas de niveles superiores, dilo en "resumen_cobertura" y aun así incluye una zapata ' +
+    'razonable por columna (tipo aislada, dimensionada de forma conservadora según la sección de columna que sí ' +
+    'ves) — nunca dejes el capítulo de Estructura sin cimentación, un presupuesto de obra gruesa sin plintos no ' +
+    'sirve para nada.\n' +
     '   • Columnas → hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo por PESO (kg), como ' +
     'dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
     '   • Vigas y cadenas → igual: hormigón por volumen y acero por peso, por nivel si aplica.\n' +
+    '   • ACERO DE REFUERZO (hierro) EN TODO ELEMENTO DE HORMIGÓN ARMADO (zapatas, columnas, vigas, cadenas, ' +
+    'losas, muros de contención si hay) → calcula el PESO en kg, nunca lo omitas ni lo mezcles con el hormigón en ' +
+    'un mismo rubro: longitud total de varilla (suma de todos los tramos, incluyendo ganchos/anclajes si se ' +
+    'aprecian) x peso por metro lineal según su diámetro, usando esta tabla estándar ecuatoriana (varilla ' +
+    'corrugada fy=4200): 8mm=0.395 kg/m, 10mm=0.617 kg/m, 12mm=0.888 kg/m, 14mm=1.21 kg/m, 16mm=1.58 kg/m, ' +
+    '18mm=2.00 kg/m, 20mm=2.47 kg/m, 22mm=2.98 kg/m, 25mm=3.85 kg/m. Si el plano trae cuadro de columnas o ' +
+    'despiece con el armado ya especificado (ej. "4Ø16mm + estribos Ø10mm@15cm"), úsalo literalmente — es más ' +
+    'confiable que estimarlo tú. Aplica un factor de desperdicio/empalme del 5-8% sobre el peso calculado (dilo en ' +
+    '"memoria_calculo"). El estribo/flejes también se cuantifica y se SUMA al mismo rubro de acero de ese ' +
+    'elemento (no lo ignores): perímetro del estribo x cantidad de estribos (según separación indicada, ej. ' +
+    '@15cm, a lo largo del elemento) x peso por metro de su diámetro.\n' +
     '   • Losas/entrepisos → por ÁREA o VOLUMEN según el sistema constructivo que se aprecie (losa maciza, ' +
     'alivianada, etc.), separando por nivel.\n' +
     '   • Pisos/contrapisos/enlucidos → por ÁREA, separados por AMBIENTE O TIPO DE ACABADO cuando cambien de ' +
@@ -22652,25 +22793,39 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'rubro separado; tablero(s) y acometida como rubros propios por unidad.\n' +
     '   • Pintura → por ÁREA, interior y exterior como rubros separados si ambos se aprecian.\n' +
     '   • Fachaleta/revestimientos de fachada → por ÁREA si se aprecian en el plano arquitectónico.\n' +
-    'PASO 3 — Aunque un capítulo no tenga plano específico (Trámites, Preliminares, Estructura metálica si no ' +
-    'aplica, Obras exteriores), DEBES incluir una estimación razonable proporcional al área de construcción; ' +
-    'nunca dejes un capítulo vacío salvo que sea evidente que no aplica a este proyecto (ejemplo: sin Estructura ' +
-    'Metálica si todo el sistema es de hormigón armado, aunque incluso ahí revisa si hay cubierta con cerchas ' +
-    'metálicas).\n' +
-    'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER: (a) cuenta cuántos capítulos de los 16 quedaron ' +
-    'con al menos un rubro — deberían ser prácticamente todos, salvo excepción justificada; (b) suma el costo ' +
-    'directo total y divídelo entre el área de construcción. El usuario de esta cuenta es un profesional de la ' +
-    'construcción en Ibarra, Ecuador, y su referencia real de campo es que una obra de construcción media-buena ' +
-    'en esa zona cuesta ALREDEDOR DE 450 USD/m2 de costo directo, SIN IVA y sin indirectos (tolera un rango de ' +
-    '380 a 550 USD/m2 según el nivel de acabados que muestren los planos; a nivel nacional el rango general es ' +
-    '220-800 USD/m2, pero 450 USD/m2 es el dato calibrado y más confiable para este caso). Si tu resultado da ' +
-    'muy por debajo de ese rango, es señal inequívoca de que faltan elementos — revisa qué capítulo(s) quedaron ' +
-    'pobres en detalle y complétalos ANTES de responder. Un presupuesto de menos de 50 rubros para una vivienda ' +
-    'completa casi siempre significa que agrupaste elementos que debían ir separados: vuelve a los planos y ' +
-    'desglosa más, no menos.\n\n' +
+    'PASO 3 — ALCANCE: el bloque "ALCANCE DE ESTA CORRIDA" de arriba es tu PISO MÍNIMO garantizado (los capítulos ' +
+    'que correspondan a las casillas que el usuario llenó), más los capítulos generales de obra (Trámites y ' +
+    'Permisos, Obras Preliminares, Obras Complementarias y Exteriores), que SIEMPRE se estiman proporcional al ' +
+    'área de construcción. Pero NO es un techo: si al revisar el CONTENIDO REAL de los archivos (como se explicó ' +
+    'arriba, un PDF puede traer varias especialidades combinadas) encuentras información suficiente de un ' +
+    'capítulo que el bloque de alcance marcaba como "sin plano", sí cuantifícalo — amplía el alcance real y dilo ' +
+    'en "especialidades_detectadas" y "resumen_cobertura". Solo para el capítulo que, tras revisar TODO el ' +
+    'contenido de TODOS los archivos recibidos, de verdad no tiene información suficiente (ejemplo: ninguna ' +
+    'lámina eléctrica en ningún archivo), NO generes rubros ni inventes cantidades: déjalo fuera del arreglo ' +
+    '"rubros" y explica en "resumen_cobertura" que ese capítulo requiere el plano correspondiente. Dentro de ' +
+    'cualquier capítulo que SÍ tengas información (ya sea del alcance mínimo o ampliado), sé exhaustivo y no ' +
+    'dejes elementos visibles sin cuantificar.\n' +
+    'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER, solo sobre los capítulos dentro del alcance actual ' +
+    '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
+    'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +
+    'si agrupaste elementos que debían ir separados por ambiente, tipo o nivel, vuelve a los planos y desglosa ' +
+    'más, no menos; (b) si el alcance actual incluye el plano Estructural (es decir, tienes costo directo de ' +
+    'TODOS los capítulos de obra gruesa y acabados, no solo de una especialidad parcial), suma el costo directo ' +
+    'de esos capítulos y divídelo entre el área de construcción: el usuario es un profesional de la construcción ' +
+    'en Ibarra, Ecuador, y su referencia real de campo es que una obra completa media-buena en esa zona cuesta ' +
+    'ALREDEDOR DE 450 USD/m2 de costo directo, SIN IVA y sin indirectos (rango tolerable 380-550 USD/m2 según ' +
+    'acabados; rango nacional 220-800 USD/m2). Si el alcance actual es parcial (por ejemplo solo tienes el plano ' +
+    'Arquitectónico), NO apliques ese rango de 450 USD/m2 al total — un presupuesto parcial debe costar menos que ' +
+    'la obra completa por definición, eso es correcto y esperado, no un error a corregir.\n\n' +
 
     'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
-    '{"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
+    '{"tipo_proyecto": "una de: VIVIENDA_UNIFAMILIAR | VIVIENDA_PAREADA_DUPLEX | CONJUNTO_VIVIENDAS_REPETIDAS | ' +
+    'EDIFICIO_MULTIFAMILIAR | EDIFICIO_MIXTO | OTRO", "unidades_detectadas": 0, "alcance_presupuestado": "string ' +
+    'breve: qué unidad(es) o nivel(es) específicamente se presupuestaron en este JSON", ' +
+    '"especialidades_detectadas": ["array de strings: qué especialidades encontraste REALMENTE dentro de los ' +
+    'archivos recibidos, aunque vinieran combinadas en un solo PDF — usa solo estos valores: Arquitectonico, ' +
+    'Estructural, Hidrosanitario, Electrico, Cubierta"], ' +
+    '"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
     'sin rubros y por qué", "rubros": [{"capitulo": "uno de los 16 nombres exactos listados arriba", ' +
     '"codigo": "string", "descripcion": "string específica del elemento (no genérica)", "unidad": "string", ' +
     '"cantidad": 0.00, "precio_unitario": 0.00, "memoria_calculo": "string breve y explícita con la medición u ' +
@@ -22684,12 +22839,37 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'ELE-07 para eléctrico, PIN-01 para pintura, GYP-01 para cielo raso, FAC-01 para fachaleta, VAR-01 para ' +
     'obras exteriores) y estima un precio unitario razonable de mercado ecuatoriano actual. No inventes ' +
     'cantidades sin sustento: cada "cantidad" debe poder rastrearse a una medición u operación explicada en ' +
-    '"memoria_calculo". Si un plano no es legible o una especialidad no tiene información suficiente, sé ' +
-    'honesto en "resumen_cobertura" en vez de inventar datos para esa especialidad específica, pero eso NO te ' +
-    'exime de estimar los capítulos generales que dependen del área total (preliminares, trámites, obras ' +
-    'exteriores) aunque no tengas el plano de esa especialidad. Devuelve el JSON minificado (una sola línea), ' +
-    'sin espacios de más.' +
+    '"memoria_calculo", citando la cota o nivel exacto leído del plano cuando exista (ej. "cota de 3.40m leída ' +
+    'en el plano arquitectónico, muro eje B-C, Planta Baja"). Si un plano SÍ fue recibido pero no es legible en ' +
+    'alguna zona, sé honesto en "resumen_cobertura" en vez de inventar datos para esa zona específica. Recuerda: ' +
+    'los capítulos de un plano que NO se recibió NO se estiman (van fuera de "rubros"), salvo los generales de ' +
+    'obra (preliminares, trámites, obras exteriores) que siempre se incluyen. Devuelve el JSON minificado (una ' +
+    'sola línea), sin espacios de más.' +
     '__MARKET_RESEARCH__';
+
+  var ALCANCE_PLACEHOLDER = '__ALCANCE__';
+  // Construye, a partir de los planos realmente cargados, la lista de capítulos que la IA SÍ debe
+  // cuantificar en esta corrida y los que debe omitir por falta de plano (alcance parcial o completo).
+  function buildAlcanceBlock(providedKeys, hasUntagged) {
+    var provided = providedKeys.map(function (k) { return CAP_KEYS[k]; });
+    var missingKeys = Object.keys(CAP_BY_KEY).filter(function (k) { return providedKeys.indexOf(k) < 0; });
+    var capsToDo = CAP_GENERIC.concat(providedKeys.reduce(function (acc, k) { return acc.concat(CAP_BY_KEY[k] || []); }, []));
+    var capsSkip = missingKeys.reduce(function (acc, k) { return acc.concat(CAP_BY_KEY[k] || []); }, []);
+    var isFull = missingKeys.length === 0;
+    var etiquetaTxt = providedKeys.length
+      ? ('el usuario etiquetó explícitamente archivo(s) de: ' + provided.join(', ') + (isFull ? ' (las 4 especialidades).' : '.'))
+      : 'el usuario no etiquetó ningún archivo con una especialidad específica.';
+    var txt = 'ALCANCE DE ESTA CORRIDA (PISO MÍNIMO, NO TECHO — ver arriba por qué): ' + etiquetaTxt + '\n' +
+      (hasUntagged ? 'Además, hay al menos un archivo SIN etiquetar (o marcado "otro") — revisa su contenido ' +
+        'completo tú mismo, puede traer cualquier combinación de especialidades, fachadas, cortes o cubierta.\n' : '') +
+      'Capítulos GARANTIZADOS a cuantificar ahora (con rubros reales, exhaustivos): ' + capsToDo.join('; ') + '.\n' +
+      (capsSkip.length ? ('Capítulos que por defecto asumirías SIN plano propio, salvo que SÍ encuentres su ' +
+        'información dentro de alguno de los archivos recibidos (etiquetados o no) — en ese caso cuantifícalos ' +
+        'igual, son la especialidad de (' + missingKeys.map(function (k) { return CAP_KEYS[k]; }).join(', ') + '): ' + capsSkip.join('; ') + '. Solo ' +
+        'déjalos sin rubros si de verdad no hay ninguna lámina de esa especialidad en ningún archivo recibido.\n') : '');
+    return txt;
+  }
+  function withAlcanceBlock(base, alcanceText) { return base.replace(ALCANCE_PLACEHOLDER, alcanceText); }
 
   var MARKET_PLACEHOLDER = '__MARKET_RESEARCH__';
   function withMarketBlock(base, marketText) {
@@ -22713,59 +22893,95 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
   }
 
-  async function handleFile(key, file) {
-    if (!file) return;
-    var isImg = /^image\//i.test(file.type || '');
-    var isPdf = /pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
-    if (!isImg && !isPdf) { say('Solo se aceptan imágenes o archivos PDF'); return; }
-    if (file.size > 15 * 1024 * 1024) { say('El archivo pesa más de 15 MB. Usa uno más liviano'); return; }
-    try {
-      var base64 = await fileToBase64(file);
-      var thumbUrl = isImg ? URL.createObjectURL(file) : null;
-      if (PIA.files[key] && PIA.files[key].thumbUrl) URL.revokeObjectURL(PIA.files[key].thumbUrl);
-      PIA.files[key] = { name: file.name, size: file.size, mime: file.type || 'application/pdf', base64: base64, thumbUrl: thumbUrl };
-      renderDropzone(key);
-      updateGenerateState();
-    } catch (e) { say('No se pudo leer el archivo'); }
+  // Zona única: hasta MAX_FILES archivos y MAX_TOTAL_BYTES en conjunto. El tope de peso total (no solo por
+  // archivo) existe porque Gemini recibe todos los archivos en UNA sola solicitud (inline, en base64) y esa
+  // solicitud tiene un límite real de tamaño — varios PDFs "livianos" por separado pueden sumar demasiado.
+  var MAX_FILES = 10;
+  var MAX_TOTAL_BYTES = 15 * 1024 * 1024;
+  function totalBytes() { return PIA.files.reduce(function (s, f) { return s + f.size; }, 0); }
+
+  async function handleFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList || []);
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      if (PIA.files.length >= MAX_FILES) { say('Máximo ' + MAX_FILES + ' archivos por generación'); break; }
+      var isImg = /^image\//i.test(file.type || '');
+      var isPdf = /pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+      if (!isImg && !isPdf) { say('"' + file.name + '": solo se aceptan imágenes o PDF'); continue; }
+      if (totalBytes() + file.size > MAX_TOTAL_BYTES) {
+        say('No se agregó "' + file.name + '": el conjunto de archivos superaría ' + fmtKB(MAX_TOTAL_BYTES) + ' en total. Quita alguno o comprime los PDF.');
+        continue;
+      }
+      try {
+        var base64 = await fileToBase64(file);
+        var thumbUrl = isImg ? URL.createObjectURL(file) : null;
+        PIA.files.push({ id: newId(), name: file.name, size: file.size, mime: file.type || 'application/pdf', base64: base64, thumbUrl: thumbUrl, tag: '' });
+      } catch (e) { say('No se pudo leer "' + file.name + '"'); }
+    }
+    renderFileList();
+    updateGenerateState();
   }
 
-  function renderDropzone(key) {
-    var zone = $('pia-drop-' + key), stateEl = $('pia-state-' + key), f = PIA.files[key];
-    if (!zone || !stateEl) return;
-    if (!f) { zone.classList.remove('pia-filled'); stateEl.innerHTML = '<span class="pia-empty-txt">Arrastra un archivo o haz clic</span>'; return; }
-    zone.classList.add('pia-filled');
-    var thumb = f.thumbUrl ? '<img class="pia-thumb" src="' + f.thumbUrl + '" alt="">' : '';
-    stateEl.innerHTML = '<div class="pia-file-info">' + thumb +
-      '<span class="pia-file-name">' + esc(f.name) + '</span>' +
-      '<span class="pia-file-size">' + fmtKB(f.size) + '</span>' +
-      '<button type="button" class="pia-file-remove" data-remove="' + key + '">Quitar / Cambiar</button></div>';
+  function removeFile(id) {
+    var f = PIA.files.filter(function (x) { return x.id === id; })[0];
+    if (f && f.thumbUrl) URL.revokeObjectURL(f.thumbUrl);
+    PIA.files = PIA.files.filter(function (x) { return x.id !== id; });
+    renderFileList();
+    updateGenerateState();
+  }
+
+  var TAG_OPTIONS = [
+    ['', 'Sin especificar (la IA detecta por contenido)'], ['arq', 'Arquitectónico'], ['est', 'Estructural'],
+    ['hid', 'Hidrosanitario'], ['ele', 'Eléctrico'], ['otro', 'Otro (fachadas, cortes, cubierta…)']
+  ];
+  function renderFileList() {
+    var box = $('pia-file-list'); if (!box) return;
+    if (!PIA.files.length) { box.innerHTML = ''; return; }
+    box.innerHTML = PIA.files.map(function (f) {
+      var thumb = f.thumbUrl ? '<img class="pia-thumb" src="' + f.thumbUrl + '" alt="">' : '';
+      var opts = TAG_OPTIONS.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === f.tag ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
+      return '<div class="pia-file-info" data-file="' + f.id + '">' + thumb +
+        '<span class="pia-file-name">' + esc(f.name) + '</span>' +
+        '<span class="pia-file-size">' + fmtKB(f.size) + '</span>' +
+        '<select class="pia-input-pct" data-tag="' + f.id + '" style="width:auto;padding:4px 6px">' + opts + '</select>' +
+        '<button type="button" class="pia-file-remove" data-remove="' + f.id + '">Quitar</button></div>';
+    }).join('');
   }
 
   function updateGenerateState() {
-    var count = Object.keys(PIA.files).filter(function (k) { return PIA.files[k]; }).length;
-    var hint = $('pia-count-hint'); if (hint) hint.textContent = count + ' de 4 planos cargados';
+    var count = PIA.files.length;
+    var hint = $('pia-count-hint');
+    if (hint) {
+      hint.textContent = count === 0 ? 'Ningún archivo cargado' :
+        (count + ' archivo' + (count === 1 ? '' : 's') + ' cargado' + (count === 1 ? '' : 's') + ' · ' + fmtKB(totalBytes()) + ' de ' + fmtKB(MAX_TOTAL_BYTES));
+    }
     var btn = $('pia-generate-btn'); if (btn) btn.disabled = count === 0 || typeof S === 'undefined' || !S.proj;
   }
 
-  function wireDropzone(key) {
-    var zone = $('pia-drop-' + key), input = $('pia-file-' + key);
+  function wireDropzone() {
+    var zone = $('pia-drop-multi'), input = $('pia-file-multi');
     if (!zone || !input) return;
-    zone.addEventListener('click', function (e) { if (!e.target.closest('[data-remove]')) input.click(); });
-    input.addEventListener('change', function () { var f = input.files && input.files[0]; input.value = ''; handleFile(key, f); });
+    zone.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () { var fs = input.files; input.value = ''; handleFiles(fs); });
     zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('pia-dragover'); });
     zone.addEventListener('dragleave', function () { zone.classList.remove('pia-dragover'); });
     zone.addEventListener('drop', function (e) {
       e.preventDefault(); zone.classList.remove('pia-dragover');
-      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (file) handleFile(key, file);
+      var fs = e.dataTransfer && e.dataTransfer.files;
+      if (fs && fs.length) handleFiles(fs);
     });
-    zone.addEventListener('click', function (e) {
-      var rm = e.target.closest('[data-remove]'); if (!rm) return;
-      e.stopPropagation();
-      var k = rm.getAttribute('data-remove');
-      if (PIA.files[k] && PIA.files[k].thumbUrl) URL.revokeObjectURL(PIA.files[k].thumbUrl);
-      PIA.files[k] = null; renderDropzone(k); updateGenerateState();
-    });
+    var list = $('pia-file-list');
+    if (list) {
+      list.addEventListener('click', function (e) {
+        var rm = e.target.closest('[data-remove]'); if (!rm) return;
+        removeFile(rm.getAttribute('data-remove'));
+      });
+      list.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-tag]'); if (!sel) return;
+        var f = PIA.files.filter(function (x) { return x.id === sel.getAttribute('data-tag'); })[0];
+        if (f) f.tag = sel.value;
+      });
+    }
   }
 
   /* ─────────────── Estado / overlay ─────────────── */
@@ -22966,12 +23182,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     if (!json) throw { code: 'PARSE' };
     var list = Array.isArray(json.rubros) ? json.rubros : [];
     var rubros = list.map(normRubro).filter(function (r) { return r.descripcion && (r.cantidad > 0 || r.precio_unitario > 0); });
-    return { rubros: rubros, areaM2: Math.max(0, Number(json.area_m2) || 0), cobertura: String(json.resumen_cobertura || '').trim(), truncated: truncated };
+    var TIPOS = ['VIVIENDA_UNIFAMILIAR', 'VIVIENDA_PAREADA_DUPLEX', 'CONJUNTO_VIVIENDAS_REPETIDAS', 'EDIFICIO_MULTIFAMILIAR', 'EDIFICIO_MIXTO', 'OTRO'];
+    var tipoProyecto = String(json.tipo_proyecto || '').trim().toUpperCase();
+    if (TIPOS.indexOf(tipoProyecto) < 0) tipoProyecto = '';
+    var ESP_OK = ['ARQUITECTONICO', 'ESTRUCTURAL', 'HIDROSANITARIO', 'ELECTRICO', 'CUBIERTA'];
+    var especialidades = (Array.isArray(json.especialidades_detectadas) ? json.especialidades_detectadas : [])
+      .map(function (s) { return String(s || '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); })
+      .filter(function (s, i, arr) { return ESP_OK.indexOf(s) >= 0 && arr.indexOf(s) === i; });
+    return {
+      rubros: rubros, areaM2: Math.max(0, Number(json.area_m2) || 0), cobertura: String(json.resumen_cobertura || '').trim(),
+      truncated: truncated, tipoProyecto: tipoProyecto, unidadesDetectadas: Math.max(0, Math.round(Number(json.unidades_detectadas) || 0)),
+      alcancePresupuestado: String(json.alcance_presupuestado || '').trim(), especialidadesDetectadas: especialidades
+    };
   }
 
   async function generatePresupuesto() {
-    var count = Object.keys(PIA.files).filter(function (k) { return PIA.files[k]; }).length;
-    if (!count) { say('Carga al menos un plano antes de generar el presupuesto'); return; }
+    var count = PIA.files.length;
+    if (!count) { say('Carga al menos un archivo antes de generar el presupuesto'); return; }
     if (typeof S === 'undefined' || !S.proj) { say('Abre o crea un proyecto antes de generar el presupuesto'); return; }
 
     var btn = $('pia-generate-btn'); if (btn) btn.disabled = true;
@@ -22983,11 +23210,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     });
     if (tok.cancelled) { hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null; setStatus('warn', 'Generación cancelada.'); return; }
 
-    var promptText = withMarketBlock(PROMPT_BASE, marketText);
+    // providedKeys = especialidades que el usuario SÍ etiquetó explícitamente (mínimo garantizado). Un archivo
+    // sin etiquetar o marcado "otro" no resta nada — la IA igual debe revisar su contenido (ver PROMPT_BASE).
+    var providedKeys = ['arq', 'est', 'hid', 'ele'].filter(function (k) { return PIA.files.some(function (f) { return f.tag === k; }); });
+    var isFullScope = providedKeys.length === 4;
+    var hasUntagged = PIA.files.some(function (f) { return !f.tag || f.tag === 'otro'; });
+    var promptText = withAlcanceBlock(withMarketBlock(PROMPT_BASE, marketText), buildAlcanceBlock(providedKeys, hasUntagged));
     var parts = [{ text: promptText + '\n\nAPUs de referencia (reales, de tu base de datos):\n' + JSON.stringify(sampleReference()) }];
-    Object.keys(PIA.files).forEach(function (k) {
-      var f = PIA.files[k]; if (!f) return;
-      parts.push({ text: '\nPlano de especialidad: ' + CAP_KEYS[k] });
+    PIA.files.forEach(function (f) {
+      var label = f.tag && CAP_KEYS[f.tag] ? CAP_KEYS[f.tag] : 'sin especificar — revisa el contenido para identificar qué especialidad(es) trae';
+      parts.push({ text: '\nArchivo "' + f.name + '", especialidad indicada por el usuario: ' + label });
       parts.push({ inline_data: { mime_type: f.mime, data: f.base64 } });
     });
     var cancelBtn = $('pia-overlay-cancel');
@@ -23000,16 +23232,34 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var rubros = out.rubros;
       if (!rubros.length) throw { code: 'EMPTY' };
       PIA.rubros = rubros; PIA.activeTab = 'Todos'; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
+      PIA.tipoProyecto = out.tipoProyecto; PIA.unidadesDetectadas = out.unidadesDetectadas; PIA.alcancePresupuestado = out.alcancePresupuestado;
+      PIA.especialidadesDetectadas = out.especialidadesDetectadas;
+      // Especialidades que la IA encontró en el contenido real pero que NO correspondían a ninguna casilla que
+      // el usuario llenó (ej. subió todo en un solo PDF municipal combinado) — se resalta en el banner.
+      var KEY_TO_ESP = { arq: 'ARQUITECTONICO', est: 'ESTRUCTURAL', hid: 'HIDROSANITARIO', ele: 'ELECTRICO' };
+      var expectedEsp = providedKeys.map(function (k) { return KEY_TO_ESP[k]; });
+      PIA.especialidadesExtra = out.especialidadesDetectadas.filter(function (e) { return expectedEsp.indexOf(e) < 0; });
       renderTabs();
       renderTable();
+      renderTipoBanner();
       $('pia-result').style.display = '';
 
       var cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
       var perM2 = out.areaM2 > 0 ? cd / out.areaM2 : 0;
-      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '');
+      // El alcance real para el mensaje final se toma de lo que la IA REALMENTE encontró
+      // (especialidadesDetectadas), no de lo que el usuario etiquetó (providedKeys) — si subió todo sin
+      // etiquetar, providedKeys está vacío pero el contenido puede cubrir igual las 4 especialidades.
+      var realIsFull = out.especialidadesDetectadas.length >= 4 ||
+        (out.especialidadesDetectadas.length === 0 && isFullScope); // si la IA no reportó el campo, cae al cálculo por etiquetas
+      var scopeTxt = realIsFull ? '' : (' · alcance: ' + (out.especialidadesDetectadas.length
+        ? out.especialidadesDetectadas.map(function (e) { return ESP_LABELS[e] || e; }).join(' + ')
+        : (providedKeys.length ? providedKeys.map(function (k) { return CAP_KEYS[k]; }).join(' + ') : 'sin especialidad determinada')));
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + scopeTxt + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '');
       if (out.truncated) {
-        setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los capítulos (Preliminares, Estructura, Acabados, Instalaciones, Cubierta…) antes de continuar.');
-      } else if (out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
+        setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los rubros de los capítulos de este alcance antes de continuar.');
+      } else if (!realIsFull) {
+        setStatus('ok', base + (perM2 > 0 ? ' Costo directo de lo cargado ≈ ' + money(perM2) + '/m² (es solo una parte del presupuesto total; sube los planos restantes cuando los tengas para completar el resto).' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
+      } else if (realIsFull && out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
         setStatus('warn', base + ' El costo directo da ' + money(perM2) + '/m², un valor muy bajo para una obra completa: probablemente faltan capítulos (revisa Preliminares, Cimentación, Cubierta, Acabados). Puedes agregar rubros manualmente o volver a generar.');
       } else {
         setStatus('ok', base + (perM2 > 0 ? ' Costo directo ≈ ' + money(perM2) + '/m².' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
@@ -23021,6 +23271,30 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     } finally {
       hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null;
     }
+  }
+
+  /* ─────────────── Banner de tipo de proyecto detectado ───────────────
+     Se muestra ANTES de la tabla, bien visible: qué tipo de construcción detectó la IA (casa sola,
+     dúplex, edificio...) y qué parte exacta de ella está presupuestando, para que el usuario no
+     se entere a medias leyendo el resumen de texto — esto evita duplicar o faltar costos por
+     confundir "una casa" con "dos casas adosadas" o "un piso tipo" con "el edificio completo". */
+  function renderTipoBanner() {
+    var el = $('pia-tipo-banner'); if (!el) return;
+    if (!PIA.tipoProyecto && !PIA.alcancePresupuestado && !(PIA.especialidadesDetectadas && PIA.especialidadesDetectadas.length)) {
+      el.style.display = 'none'; el.innerHTML = ''; return;
+    }
+    var isMulti = PIA.tipoProyecto === 'VIVIENDA_PAREADA_DUPLEX' || PIA.tipoProyecto === 'CONJUNTO_VIVIENDAS_REPETIDAS' || PIA.tipoProyecto === 'EDIFICIO_MULTIFAMILIAR' || PIA.tipoProyecto === 'EDIFICIO_MIXTO';
+    var hasExtra = PIA.especialidadesExtra && PIA.especialidadesExtra.length > 0;
+    el.style.display = '';
+    el.className = 'pia-status on ' + (isMulti || hasExtra ? 'warn' : 'ok');
+    var espTxt = (PIA.especialidadesDetectadas && PIA.especialidadesDetectadas.length)
+      ? PIA.especialidadesDetectadas.map(function (e) { return ESP_LABELS[e] || e; }).join(', ') : '';
+    el.innerHTML = '<span><b>Tipo de proyecto detectado: ' + esc(TIPO_LABELS[PIA.tipoProyecto] || 'No especificado') + '</b>' +
+      (PIA.unidadesDetectadas > 1 ? ' · ' + PIA.unidadesDetectadas + ' unidades identificadas en el dibujo' : '') +
+      (PIA.alcancePresupuestado ? '<br>Se presupuestó: ' + esc(PIA.alcancePresupuestado) : '') +
+      (espTxt ? '<br>Especialidades encontradas en el contenido de los archivos: ' + esc(espTxt) : '') +
+      (hasExtra ? '<br>Se amplió el alcance: encontró ' + esc(PIA.especialidadesExtra.map(function (e) { return ESP_LABELS[e] || e; }).join(', ')) + ' dentro de un archivo que no estaba etiquetado para esa especialidad (típico de un PDF municipal combinado).' : '') +
+      (isMulti ? '<br>Verifica que esto sea correcto antes de agregar al presupuesto — no se multiplicó el costo por el número de unidades.' : '') + '</span>';
   }
 
   /* ─────────────── Tabla + totales ─────────────── */
@@ -23063,6 +23337,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   function renderTotals() {
+    // El IVA se toma del proyecto activo (S.iva, el mismo que usa el presupuesto maestro) en vez de un
+    // 15% fijo, para que el total coincida con el IVA que el usuario configuró para ese proyecto.
+    if (typeof S !== 'undefined' && S && typeof S.iva === 'number' && S.iva >= 0) PIA.ivaPct = S.iva;
     var cd = round2(PIA.rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
     var aiu = round2(cd * (PIA.aiuPct / 100));
     var sub = round2(cd + aiu);
@@ -23073,6 +23350,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('pia-sum-sub').textContent = money(sub);
     $('pia-sum-iva').textContent = money(iva);
     $('pia-sum-total').textContent = money(total);
+    var ivaLbl = $('pia-iva-label'); if (ivaLbl) ivaLbl.textContent = PIA.ivaPct;
     return { cd: cd, aiu: aiu, sub: sub, iva: iva, total: total };
   }
 
@@ -23207,7 +23485,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   function init() {
     if (wired || !$('pia-generate-btn')) return;
     wired = true;
-    ['arq', 'est', 'hid', 'ele'].forEach(wireDropzone);
+    wireDropzone();
     $('pia-generate-btn').addEventListener('click', generatePresupuesto);
     $('pia-tbody').addEventListener('input', onQtyInput);
     $('pia-tbody').addEventListener('click', onRowDelete);
@@ -23222,7 +23500,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, state: PIA };
 })();
 </script>
 

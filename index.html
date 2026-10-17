@@ -22941,6 +22941,28 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'completo). Identifica también elementos arquitectónicos nombrados dentro de la planta como islas de cocina, ' +
     'mesones, barras americanas, etc. — van en "contiene", citando el nombre tal como aparece rotulado si lo está. ' +
     '(cada ambiente identificado con su área real y qué trae construido), ' +
+    'REGLA DE MEDICIÓN DE "area_m2" POR AMBIENTE (OBLIGATORIA, aplícala a CADA entrada de "ambientes", es el error ' +
+    'más común de medición): el área de cada ambiente es el ÁREA INTERIOR NETA/ÚTIL — mide desde la CARA INTERNA ' +
+    'de un muro perimetral hasta la CARA INTERNA del muro opuesto (el espacio realmente habitable/pisable dentro ' +
+    'de ese ambiente), NUNCA eje a eje de muros, NUNCA incluyendo el espesor del muro ni la mitad de un muro ' +
+    'compartido con el ambiente vecino. Si el plano trae cotas interiores propias de cada ambiente (comunes en ' +
+    'planos bien acotados: una cota corta dentro del cuarto, distinta de la cota general de fachada eje a eje), ' +
+    'úsalas literalmente — son tu fuente primaria y ya vienen en neto. Si solo tienes cotas generales eje a eje o ' +
+    'de fachada, resta el espesor real de cada muro perimetral de ese ambiente (lee el espesor del muro del ' +
+    'propio plano o del texto vectorial, no asumas un valor) antes de reportar el área — nunca reportes una cota ' +
+    'general sin descontar muros como si fuera el área interior del ambiente. Verifica al final que la SUMA de ' +
+    'las áreas netas de todos los ambientes de una planta sea coherente con (ligeramente menor que) el área total ' +
+    'techada de esa planta — la diferencia son los muros, no un error de más de unos pocos m².\n' +
+    'CLASIFICACIÓN ELÉCTRICA POR AMBIENTE (OBLIGATORIA, no la dejes como conteo suelto sin ubicar): dentro de ' +
+    '"contiene" de cada ambiente, incluye TAMBIÉN sus puntos eléctricos reales leídos del plano eléctrico/de ' +
+    'instalaciones si lo recibiste (ej. dormitorio: "2 puntos de luz techo", "3 tomacorrientes 110V", "1 ' +
+    'interruptor simple"; cocina: "punto 220V para cocina de inducción", "tomacorrientes sobre mesón"; baño: ' +
+    '"punto de luz con extractor", "tomacorriente con protección"). Esto es ADEMÁS del conteo global en el bloque ' +
+    '"Puntos eléctricos" de PASO 2 (que sigue existiendo y debe cuadrar en total con la suma de lo que asignaste ' +
+    'por ambiente) — la idea es que el usuario pueda ver, ambiente por ambiente, qué punto eléctrico corresponde a ' +
+    'cada espacio, no solo un número total sin ubicar. Si el plano eléctrico no distingue por ambiente (solo trae ' +
+    'un cuadro de cantidades global), dilo así en "resumen_cobertura" y deja el campo eléctrico de "contiene" vacío ' +
+    'para esos ambientes en vez de inventar la ubicación.\n' +
     '"columnas": {"cantidad", "ejes": "string con los ejes, ej. A-1, A-3, B-1..."}, ' +
     '"muros": {"espesor_15cm_m2", "espesor_10cm_m2", "medianero_m2"} (0 si ese espesor no existe en el plano), ' +
     '"puertas": {"principal","interior","closet"}, "ventanas": 0, ' +

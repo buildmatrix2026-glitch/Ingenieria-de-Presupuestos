@@ -2922,6 +2922,22 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 #v-pia .pia-elem-n{font-size:16px;font-weight:800;color:var(--ow,#F0F4FF)}
 #v-pia .pia-elem-l{font-size:10px;color:var(--sl);margin-top:2px;line-height:1.3}
 #v-pia .pia-elem-sub{font-size:11.5px;color:var(--sl);margin-top:10px;line-height:1.6}
+.pia-modal-overlay{position:fixed;inset:0;z-index:99985;background:rgba(4,8,18,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
+.pia-modal-box{background:var(--s2);border:1px solid var(--br);border-radius:18px;width:min(900px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden}
+.pia-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 4px}
+.pia-modal-title{font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)}
+.pia-modal-close{background:none;border:none;color:var(--sl);font-size:24px;line-height:1;cursor:pointer;padding:4px 8px}
+.pia-modal-sub{font-size:12px;color:var(--sl);padding:0 22px 14px}
+.pia-modal-body{overflow-y:auto;padding:0 22px 22px}
+.pia-espacio-planta{margin-bottom:18px}
+.pia-espacio-planta-title{font-size:12.5px;font-weight:700;color:var(--sl);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+.pia-espacio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pia-espacio-card{background:var(--s3);border:1px solid var(--br);border-radius:12px;padding:12px 14px}
+.pia-espacio-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pia-espacio-nombre{font-size:13px;font-weight:700;color:var(--ow,#F0F4FF)}
+.pia-espacio-area{font-size:11.5px;color:var(--bl,#0082FF);font-weight:600;white-space:nowrap}
+.pia-espacio-list{margin:0;padding-left:16px;font-size:11.5px;color:var(--sl);line-height:1.7}
+.pia-espacio-list-empty{font-size:11px;color:var(--sl);opacity:.7;font-style:italic}
 
 #v-pia .pia-overlay{display:none;position:fixed;inset:0;background:rgba(6,11,20,.85);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center}
 #v-pia .pia-overlay.pia-show{display:flex}
@@ -22803,7 +22819,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'la imagen que se solapan, (b) no confundir el círculo/bombilla de rótulo de un eje (el número o letra dentro ' +
     'de un círculo al final de la línea de eje, ej. "①" o "(A)") con una columna — eso es solo una etiqueta de ' +
     'grilla, nunca un elemento estructural, (c) si el plano trae un "cuadro de columnas" con el listado oficial, ' +
-    'ese es tu fuente PRIMARIA y DEFINITIVA del conteo, úsalo literal en vez de contar tú manualmente. Una vez que ' +
+    'ese es tu fuente PRIMARIA y DEFINITIVA del conteo, úsalo literal en vez de contar tú manualmente, y (d) SI ' +
+    'RECIBISTE "TEXTO VECTORIAL EXACTO" de este archivo, búscalo ahí primero: los rótulos de columna (C1, C2, C3... ' +
+    'o P1, P2...) casi siempre existen como texto vectorial real aunque no los veas claros en la imagen — contar ' +
+    'cuántas etiquetas distintas de columna aparecen en ese texto (C1...C10 = 10 columnas, ni una más ni una menos) ' +
+    'es más confiable que contar cuadraditos en la imagen, y es tu fuente de verdad por encima de tu conteo visual. ' +
+    'Una vez que ' +
     'tengas el conteo verificado, calcula hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo ' +
     'por PESO (kg), como dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
     '   • Vigas y cadenas → igual: hormigón por volumen y acero por peso, por nivel si aplica.\n' +
@@ -22873,12 +22894,24 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'CONTEOS NUMÉRICOS reales (nunca texto vago, nunca "varios" o "algunos"), tal como los usaste para calcular los ' +
     'rubros — si un dato no aplica o no se pudo determinar, dialo con 0 o arreglo vacío, nunca inventes un número ' +
     'para rellenar el campo:\n' +
-    '   {"ambientes": [{"nombre","area_m2","planta"}, ...] (cada ambiente identificado con su área real), ' +
+    '   {"ambientes": [{"nombre","area_m2","planta","contiene":["array de strings: SOLO lo que queda fijo/' +
+    'construido en ese ambiente al entregar la vivienda nueva sin amoblar — ej. cocina: [\\"mueble bajo de cocina\\",' +
+    '\\"mueble alto de cocina\\",\\"mesón\\",\\"instalación para cocina de inducción/gas\\",\\"punto de lavadero\\"]; ' +
+    'baño: [\\"inodoro\\",\\"lavamanos\\",\\"ducha con grifería\\",\\"espejo\\"]; dormitorio: [\\"closet empotrado\\",' +
+    '\\"punto de luz\\",\\"tomacorrientes\\"]. NUNCA incluyas mobiliario suelto (cama, sofá, mesa de comedor, sillas, ' +
+    'TV) — ver la regla de alcance de obra gris en PASO 1b, aplica igual aquí"]}, ...] (cada ambiente identificado ' +
+    'con su área real y qué trae construido), ' +
     '"columnas": {"cantidad", "ejes": "string con los ejes, ej. A-1, A-3, B-1..."}, ' +
     '"muros": {"espesor_15cm_m2", "espesor_10cm_m2", "medianero_m2"} (0 si ese espesor no existe en el plano), ' +
     '"puertas": {"principal","interior","closet"}, "ventanas": 0, ' +
     '"aparatos_sanitarios": {"inodoro","lavamanos","ducha","fregadero"}, ' +
     '"pisos_por_tipo": [{"tipo","area_m2"}, ...], "pintura": {"interior_m2","exterior_m2"}}.\n' +
+    'PASO 3c — VERIFICACIÓN CRUZADA DE COLUMNAS (obligatoria, es el error más frecuente): antes de responder, ' +
+    'vuelve a contar tu propia lista de columnas una última vez y confirma que estos 3 números coinciden ' +
+    'EXACTAMENTE entre sí: (1) la cantidad de etiquetas C1/C2/... que enumeraste, (2) "elementos_detectados.' +
+    'columnas.cantidad", y (3) la "cantidad" del rubro de columnas de hormigón en la lista "rubros". Si alguno de ' +
+    'los 3 no coincide, hay un error de conteo — vuelve a la lista y corrígelo en los 3 lugares antes de responder, ' +
+    'nunca dejes 3 números distintos para la misma cosa.\n' +
     'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER, solo sobre los capítulos dentro del alcance actual ' +
     '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
     'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +
@@ -22909,7 +22942,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'archivos recibidos, aunque vinieran combinadas en un solo PDF — usa solo estos valores: Arquitectonico, ' +
     'Estructural, Hidrosanitario, Electrico, Cubierta"], ' +
     '"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
-    'sin rubros y por qué", "elementos_detectados": {"ambientes": [], "columnas": {"cantidad":0,"ejes":""}, ' +
+    'sin rubros y por qué", "elementos_detectados": {"ambientes": [{"nombre":"","area_m2":0,"planta":"","contiene":[]}], "columnas": {"cantidad":0,"ejes":""}, ' +
     '"muros": {"espesor_15cm_m2":0,"espesor_10cm_m2":0,"medianero_m2":0}, "puertas": {"principal":0,"interior":0,' +
     '"closet":0}, "ventanas": 0, "aparatos_sanitarios": {"inodoro":0,"lavamanos":0,"ducha":0,"fregadero":0}, ' +
     '"pisos_por_tipo": [], "pintura": {"interior_m2":0,"exterior_m2":0}} (ver PASO 3b), ' +
@@ -23336,7 +23369,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     function str(v) { return String(v || '').trim(); }
     var ambientes = Array.isArray(e.ambientes) ? e.ambientes.map(function (a) {
       a = a && typeof a === 'object' ? a : {};
-      return { nombre: str(a.nombre), area_m2: num(a.area_m2), planta: str(a.planta) };
+      var contiene = Array.isArray(a.contiene) ? a.contiene.map(str).filter(Boolean) : [];
+      return { nombre: str(a.nombre), area_m2: num(a.area_m2), planta: str(a.planta), contiene: contiene };
     }).filter(function (a) { return a.nombre; }) : [];
     var pisos = Array.isArray(e.pisos_por_tipo) ? e.pisos_por_tipo.map(function (p) {
       p = p && typeof p === 'object' ? p : {};
@@ -23516,8 +23550,43 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     tiles += tile('Pintura exterior/fachada (m²)', fmt(d.pintura.exterior_m2, 1));
     var ambList = d.ambientes.length ? ('<div class="pia-elem-sub"><b>Ambientes:</b> ' + d.ambientes.map(function (a) { return esc(a.nombre) + (a.planta ? ' (' + esc(a.planta) + ')' : '') + ' ' + fmt(a.area_m2, 1) + 'm²'; }).join(' · ') + '</div>') : '';
     var pisosList = d.pisos_por_tipo.length ? ('<div class="pia-elem-sub"><b>Pisos por tipo:</b> ' + d.pisos_por_tipo.map(function (p) { return esc(p.tipo) + ' ' + fmt(p.area_m2, 1) + 'm²'; }).join(' · ') + '</div>') : '';
+    var verBtn = d.ambientes.length ? '<button type="button" class="pia-btn" id="pia-ver-espacios-btn" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Ver detalle de cada espacio</span></button>' : '';
     el.innerHTML = '<div class="pia-elem-title">Qué se analizó en el plano (verifícalo contra tus planos)</div>' +
-      '<div class="pia-elem-grid">' + tiles + '</div>' + ambList + pisosList;
+      '<div class="pia-elem-grid">' + tiles + '</div>' + ambList + pisosList + verBtn;
+    var vb = $('pia-ver-espacios-btn'); if (vb) vb.addEventListener('click', openEspaciosModal);
+  }
+
+  /* Ventana flotante con el detalle de CADA ambiente: área y qué trae construido (fijo, sin mobiliario
+     suelto) — ej. cocina con sus muebles bajos/altos, baño con sus aparatos, dormitorio con su closet.
+     Es justo lo que viene en una casa nueva entregada sin amoblar. */
+  function openEspaciosModal() {
+    var d = PIA.elementosDetectados; if (!d || !d.ambientes.length) return;
+    var old = document.getElementById('pia-espacios-modal'); if (old) old.remove();
+    var porPlanta = {};
+    d.ambientes.forEach(function (a) {
+      var k = a.planta || 'Sin especificar';
+      (porPlanta[k] = porPlanta[k] || []).push(a);
+    });
+    var plantas = Object.keys(porPlanta);
+    var body = plantas.map(function (pl) {
+      var cards = porPlanta[pl].map(function (a) {
+        var items = a.contiene.length ? ('<ul class="pia-espacio-list">' + a.contiene.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>') : '<div class="pia-espacio-list-empty">Sin detalle de contenido fijo para este ambiente.</div>';
+        return '<div class="pia-espacio-card"><div class="pia-espacio-head"><span class="pia-espacio-nombre">' + esc(a.nombre) + '</span><span class="pia-espacio-area">' + fmt(a.area_m2, 1) + ' m²</span></div>' + items + '</div>';
+      }).join('');
+      return '<div class="pia-espacio-planta"><div class="pia-espacio-planta-title">' + esc(pl) + '</div><div class="pia-espacio-grid">' + cards + '</div></div>';
+    }).join('');
+    var modal = document.createElement('div');
+    modal.id = 'pia-espacios-modal';
+    modal.className = 'pia-modal-overlay';
+    modal.innerHTML = '<div class="pia-modal-box">' +
+      '<div class="pia-modal-head"><div class="pia-modal-title">Detalle de espacios — qué viene construido en cada ambiente</div><button type="button" class="pia-modal-close" id="pia-espacios-close">&times;</button></div>' +
+      '<div class="pia-modal-sub">Vivienda nueva entregada sin mobiliario suelto (sin sala, comedor, camas, sillas) — solo lo fijo/empotrado.</div>' +
+      '<div class="pia-modal-body">' + body + '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    function close() { modal.remove(); }
+    document.getElementById('pia-espacios-close').addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
   }
 
   /* ─────────────── Tabla + totales ─────────────── */
@@ -23964,7 +24033,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, normElementos: normElementos, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, normElementos: normElementos, openEspaciosModal: openEspaciosModal, state: PIA };
 })();
 </script>
 

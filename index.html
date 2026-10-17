@@ -22988,13 +22988,36 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'acotado) como escala de referencia, y estima el tamaño del ambiente en la imagen proporcionalmente a esa ' +
     'referencia conocida — esto te sirve para detectar si el Método A tiene un error grueso (ej. confundiste una ' +
     'cota de 3.40m con una de 1.40m, o mediste el ambiente equivocado).\n' +
-    'Si ambos métodos coinciden razonablemente (diferencia menor al 10%), usa el valor del Método A (cotas, más ' +
-    'preciso). Si DIFIEREN MÁS del 10%, NO promedies ni adivines — vuelve a mirar el plano con cuidado, identifica ' +
+    'Si ambos métodos coinciden razonablemente (diferencia menor al 5%), usa el valor del Método A (cotas, más ' +
+    'preciso). Si DIFIEREN MÁS del 5%, NO promedies ni adivines — vuelve a mirar el plano con cuidado, identifica ' +
     'cuál de los dos métodos tiene el error (revisa si leíste la cota correcta, si es la del ambiente correcto, si ' +
     'confundiste una cota general eje-a-eje con una interior) y corrige antes de responder. Si después de revisar ' +
     'sigues sin confianza en la medida de un ambiente específico, dilo explícitamente agregando al final de su ' +
     '"nombre" el sufijo " (medida aproximada, verificar en sitio)" en vez de reportar un número falso con falsa ' +
     'precisión de 2 decimales.\n' +
+    'ESPACIOS EXTERIORES (patio, terraza, jardín, parqueadero descubierto, retiro): NO apliques aquí la resta de ' +
+    'espesor de muro interior (esa regla es para ambientes CERRADOS entre 4 muros) — un patio o terraza se mide ' +
+    'por SU PROPIO perímetro dibujado (muros/verjas/límite de lote que lo encierran, o la cota propia que el plano ' +
+    'le da a ese patio específico), nunca infiriéndolo como "lo que sobra" de restar el área techada del lote total ' +
+    '(eso acumula todos los errores de las demás mediciones y es la causa más común de que un patio salga mal). Si ' +
+    'el plano trae una cota o un área impresa específica para ese patio/retiro, úsala literal en vez de calcularla ' +
+    'tú.\n' +
+    'ÁREAS IRREGULARES (NO rectangulares): NUNCA asumas que un ambiente es un rectángulo perfecto por defecto — ' +
+    'mira el contorno real dibujado antes de multiplicar "largo x ancho". Es muy común (sobre todo en patios, ' +
+    'retiros y ambientes junto al límite de un lote en esquina o con fachada no perpendicular) que un lado del ' +
+    'ambiente tenga un corte en DIAGONAL en vez de ser recto — si ves una línea inclinada que no es ni horizontal ' +
+    'ni vertical en el contorno de un espacio, es una señal de corte diagonal, típico de un lote que sigue el eje ' +
+    'de una vía no perpendicular. En ese caso: descompón el área en figuras simples (un rectángulo + un triángulo ' +
+    'que se resta o se suma según el corte) y calcula cada una por separado antes de sumar/restar — un rectángulo ' +
+    'de las mismas cotas generales SIN descontar el triángulo del corte diagonal sobrestima el área real y es un ' +
+    'error grave y frecuente en patios con fachada angular.\n' +
+    'CUADRO DE ÁREAS: si el set de planos que recibiste incluye una lámina o recuadro con una tabla de "Cuadro de ' +
+    'Áreas" (lista de ambientes con su área ya calculada por el diseñador), esa es tu fuente DEFINITIVA y absoluta ' +
+    'para el "area_m2" de cada ambiente que ahí aparezca — úsala literal, no la recalcules ni la cuestiones, y solo ' +
+    'calcula tú geométricamente los ambientes que NO figuren en esa tabla. Si no recibiste ninguna lámina con ese ' +
+    'cuadro, dilo en "resumen_cobertura" (ej. "no se recibió cuadro de áreas; las áreas por ambiente son estimadas ' +
+    'a partir de las cotas de muros del plano arquitectónico, no de una tabla de áreas del diseñador") para que el ' +
+    'usuario sepa que esas cifras son una estimación geométrica, no una lectura directa de un dato ya calculado.\n' +
     'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER, solo sobre los capítulos dentro del alcance actual ' +
     '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
     'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +
@@ -23291,7 +23314,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       // del presupuesto "pensando" y dejar muy pocos tokens para el JSON real, produciendo solo 5-6 rubros en vez
       // de decenas. Se limita el pensamiento a un nivel razonable (nunca cero: esta tarea sí se beneficia de algo
       // de razonamiento) usando el parámetro correcto según la familia del modelo.
-      var genCfg = { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 };
+      // temperature EN 0 (no 0.2): con temperatura > 0 el modelo introduce aleatoriedad deliberada en cada
+      // respuesta — es justo lo que hace que, al subir el MISMO plano dos veces, salgan áreas y cantidades
+      // distintas cada vez. Para una tarea de medición/extracción (no de creatividad) queremos la lectura más
+      // consistente posible, siempre la misma para el mismo plano.
+      var genCfg = { temperature: 0, responseMimeType: 'application/json', maxOutputTokens: 65536 };
       var tc = piaThinkCfg(model);
       if (tc) genCfg.thinkingConfig = tc;
       resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
@@ -23309,7 +23336,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
           resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
             signal: ctrl ? ctrl.signal : undefined,
-            body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
+            body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
           });
         }
       }

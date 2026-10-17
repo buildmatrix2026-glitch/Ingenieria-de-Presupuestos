@@ -22682,6 +22682,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'con sillas confirma comedor. Cuenta las puertas por el ARCO DE GIRO dibujado (cada arco de 90° es una ' +
     'puerta) y las ventanas por los vanos/aberturas en los muros exteriores — no asumas una puerta o ventana por ' +
     'ambiente, cuenta las que realmente estén dibujadas.\n' +
+    'IMPORTANTE — ALCANCE DE OBRA GRIS/VIVIENDA PARA VENTA (nunca presupuestes mobiliario suelto): este es un ' +
+    'presupuesto de CONSTRUCCIÓN de una vivienda para entrega/venta, no de amoblamiento. El mobiliario dibujado en ' +
+    'sala, comedor y dormitorios (sofás, mesas, sillas, camas, veladores, televisores, etc.) se dibuja SOLO como ' +
+    'referencia de escala y uso del ambiente — NUNCA generes un rubro de costo por esos muebles, el comprador los ' +
+    'trae por su cuenta. Lo único de "mobiliario" que SÍ es parte de la obra y SÍ debe llevar su propio rubro de ' +
+    'costo es lo que queda fijo/empotrado al inmueble: mueble bajo y alto de cocina (muebles de cocina, por metro ' +
+    'lineal de mesón/módulos), closets/armarios empotrados en dormitorios (por unidad o por m² de puertas de ' +
+    'closet), y las puertas (principal + interiores, ya cubiertas arriba por conteo). Si ves una cama, sofá, mesa ' +
+    'de comedor o sillas sueltas, úsalas solo para confirmar qué es el ambiente y su área — no las traduzcas a un ' +
+    'rubro de "mobiliario" ni de "equipamiento".\n' +
     'PASO 1b-2 — SIMBOLOGÍA ESTÁNDAR: si el plano trae su propio cuadro de simbología/leyenda, esa es tu fuente ' +
     'PRIMARIA — úsala literal. Si no lo trae, reconoce estos símbolos estándar usados en planos latinoamericanos ' +
     '(Ecuador incluido) para contar sin necesitar una tabla aparte:\n' +
@@ -22743,6 +22753,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'tipo; el edificio tiene N pisos similares, multiplica manualmente o pide una corrida que lo indique"). Si el ' +
     'edificio tiene plantas distintas entre sí (planta baja comercial + pisos de vivienda diferentes), ' +
     'presupuesta cada planta dibujada por separado y dilo así.\n' +
+    'REGLA UNIVERSAL DE "area_m2" EN PROYECTOS DE VARIOS NIVELES (vivienda unifamiliar de 2+ plantas, UNA unidad ' +
+    'de un dúplex/conjunto, o un departamento tipo): "area_m2" es la SUMA del área de TODAS las plantas/niveles ' +
+    'dibujados de esa única unidad, NUNCA el área de una sola planta — ej. una vivienda con Planta Baja de 78 m² ' +
+    'y Planta Alta de 80 m² tiene "area_m2": 158.00, no 78 ni 80. Calcula y anota cada subárea por planta en ' +
+    '"memoria_calculo" del primer rubro de cada capítulo que dependa del área, y verifica en el PASO 4 que la ' +
+    'suma de esas subáreas coincide exactamente con el "area_m2" final reportado — si no coincide, corrígelo ' +
+    'antes de responder, es un error común y grave.\n' +
     'El campo "unidades_detectadas" debe llevar el número ENTERO de unidades/viviendas/departamentos distintos ' +
     'que identificaste dibujados en la lámina (no necesariamente los que presupuestaste).\n' +
     'PASO 2 — NO analices "el plano" en general: analiza CADA ELEMENTO INDIVIDUAL que puedas identificar, con su ' +
@@ -22786,6 +22803,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '(por área), impermeabilización (por área), canales y bajantes (por longitud/unidad), como rubros separados.\n' +
     '   • Puertas y ventanas → por CONTEO, agrupando solo las que compartan tipo y dimensión exacta (ej. "Puerta ' +
     'tablero 0.70x2.10m" es un rubro con su cantidad; "Ventana aluminio corrediza 1.20x1.00m" es otro).\n' +
+    '   • Mueble de cocina (bajo + alto, empotrado) → por METRO LINEAL de mesón/módulos según el ancho de la ' +
+    'cocina dibujada; es el ÚNICO mobiliario de ambiente social que lleva rubro propio. NUNCA generes rubro de ' +
+    'sala, comedor, camas, veladores ni ningún mueble suelto — ver nota de alcance en PASO 1b.\n' +
+    '   • Closets/armarios empotrados en dormitorios → por UNIDAD o por m² de puertas de closet si se aprecia su ' +
+    'ancho; son parte de obra gris/entrega, a diferencia de los muebles sueltos.\n' +
     '   • Puntos hidrosanitarios (agua fría, agua caliente, desagüe) → por CONTEO de puntos, separados por tipo.\n' +
     '   • Aparatos sanitarios (inodoro, lavamanos, ducha/grifería, fregadero, calefón/tanque) → por CONTEO, cada ' +
     'tipo de aparato es un rubro propio.\n' +
@@ -22809,14 +22831,23 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
     'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +
     'si agrupaste elementos que debían ir separados por ambiente, tipo o nivel, vuelve a los planos y desglosa ' +
-    'más, no menos; (b) si el alcance actual incluye el plano Estructural (es decir, tienes costo directo de ' +
-    'TODOS los capítulos de obra gruesa y acabados, no solo de una especialidad parcial), suma el costo directo ' +
-    'de esos capítulos y divídelo entre el área de construcción: el usuario es un profesional de la construcción ' +
-    'en Ibarra, Ecuador, y su referencia real de campo es que una obra completa media-buena en esa zona cuesta ' +
-    'ALREDEDOR DE 450 USD/m2 de costo directo, SIN IVA y sin indirectos (rango tolerable 380-550 USD/m2 según ' +
-    'acabados; rango nacional 220-800 USD/m2). Si el alcance actual es parcial (por ejemplo solo tienes el plano ' +
-    'Arquitectónico), NO apliques ese rango de 450 USD/m2 al total — un presupuesto parcial debe costar menos que ' +
-    'la obra completa por definición, eso es correcto y esperado, no un error a corregir.\n\n' +
+    'más, no menos; (b) CHEQUEO DE COSTO POR M² — OBLIGATORIO siempre que tengas el plano Arquitectónico completo ' +
+    '(la envolvente/huella de la vivienda es conocida), SIN IMPORTAR si recibiste una lámina Estructural dedicada ' +
+    'o no: la ausencia de lámina estructural NO es excusa para un presupuesto barato, porque el PASO 2 ya te obliga ' +
+    'a estimar cimentación, columnas, vigas, losa y acero de forma completa aunque no haya plano estructural propio ' +
+    '(zapata razonable por cada punto de apoyo, acero por peso real, nunca "lo básico"). Suma el costo DIRECTO de ' +
+    'TODOS los capítulos que SÍ llevan rubros en este alcance y divídelo entre "area_m2" (ya verificada como la ' +
+    'suma de todas las plantas, ver regla universal arriba): el usuario es un profesional de la construcción en ' +
+    'Ibarra, Ecuador, y su referencia real de campo es que una vivienda terminada media-buena (obra gruesa + ' +
+    'acabados + instalaciones, con IVA e indirectos incluidos) cuesta ALREDEDOR DE 450 USD/m2 TOTAL (costo directo ' +
+    'aprox. 340 USD/m2, rango tolerable de costo directo 280-420 USD/m2 según acabados). Si tu costo directo/m2 da ' +
+    'por debajo de ese rango, es señal de que ALGÚN capítulo quedó incompleto o con precios irreales de mercado ' +
+    '(revisa primero Estructura/Cimentación/Acero, que es el capítulo que más se subestima sin plano propio, y ' +
+    'Acabados) — vuelve a revisar y corrige las cantidades o precios antes de responder, no te conformes con un ' +
+    'número bajo solo porque falta una especialidad. La ÚNICA situación donde un costo/m2 bajo es correcto y ' +
+    'esperado es cuando el plano Arquitectónico mismo es parcial o no se recibió (por ejemplo, solo tienes una ' +
+    'lámina eléctrica o hidrosanitaria suelta, sin conocer la huella completa de la vivienda) — en ese caso sí dilo ' +
+    'en "resumen_cobertura" como alcance parcial genuino, no como excusa de precio.\n\n' +
 
     'Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni markdown, con esta forma exacta: ' +
     '{"tipo_proyecto": "una de: VIVIENDA_UNIFAMILIAR | VIVIENDA_PAREADA_DUPLEX | CONJUNTO_VIVIENDAS_REPETIDAS | ' +

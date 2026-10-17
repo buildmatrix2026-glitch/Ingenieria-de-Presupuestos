@@ -22980,8 +22980,15 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'en el plano arquitectónico, muro eje B-C, Planta Baja"). Si un plano SÍ fue recibido pero no es legible en ' +
     'alguna zona, sé honesto en "resumen_cobertura" en vez de inventar datos para esa zona específica. Recuerda: ' +
     'los capítulos de un plano que NO se recibió NO se estiman (van fuera de "rubros"), salvo los generales de ' +
-    'obra (preliminares, trámites, obras exteriores) que siempre se incluyen. Devuelve el JSON minificado (una ' +
-    'sola línea), sin espacios de más.' +
+    'obra (preliminares, trámites, obras exteriores) que siempre se incluyen.\n\n' +
+    'RECORDATORIO FINAL (lo más importante, no lo saltes): (1) "rubros" debe ser EXHAUSTIVO — un plano ' +
+    'arquitectónico completo produce TÍPICAMENTE 40-80+ rubros entre todos sus capítulos, nunca un puñado de 5-10; ' +
+    'si tu borrador interno tiene menos de eso para un alcance amplio, te falta desglosar, vuelve a revisar antes ' +
+    'de responder. (2) "elementos_detectados" NO es opcional ni decorativo — llénalo siempre con datos reales, es ' +
+    'tan obligatorio como "rubros". (3) No gastes tu presupuesto de razonamiento repitiendo el mismo chequeo una y ' +
+    'otra vez: verifica una vez, con cuidado, y pasa a generar la respuesta completa — el usuario necesita el JSON ' +
+    'final completo, no un resumen parcial por quedarte sin espacio de respuesta.\n\n' +
+    'Devuelve el JSON minificado (una sola línea), sin espacios de más.' +
     '__MARKET_RESEARCH__';
 
   var ALCANCE_PLACEHOLDER = '__ALCANCE__';
@@ -23200,7 +23207,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         signal: ctrl ? ctrl.signal : undefined,
-        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536 } })
+        // thinkingConfig.thinkingBudget: gemini-2.5-flash por defecto usa "pensamiento dinámico" y esos tokens de
+        // razonamiento SE DESCUENTAN del mismo maxOutputTokens — con un prompt tan exigente (verificación cruzada
+        // de columnas, chequeo de costo/m2, autoverificación de exhaustividad) el modelo puede consumir la mayoría
+        // del presupuesto "pensando" y dejar muy pocos tokens para el JSON real, produciendo solo 5-6 rubros en vez
+        // de decenas. Limitamos el pensamiento a un tope razonable para garantizar espacio de sobra para la salida.
+        body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 65536, thinkingConfig: { thinkingBudget: 8192 } } })
       });
     } catch (e) {
       if (timer) clearTimeout(timer);
@@ -23547,7 +23559,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   /* Cuadro de verificación "qué se analizó realmente" — conteos numéricos, no prosa, para que el usuario
      pueda comprobar de un vistazo que sí se revisó cada ambiente, columna, puerta, baño, piso y acabado. */
   function renderElementosDetectados() {
-    var el = $('pia-elementos-box'); if (!el) return;
+    var el = $('pia-elementos-box');
+    if (!el) {
+      // Blindaje: si por algún motivo el contenedor no está en el HTML (despliegue parcial/viejo), lo
+      // creamos al vuelo justo después del banner de tipo de proyecto, para que la función nunca falle en
+      // silencio y el usuario siempre vea el cuadro si hay datos que mostrar.
+      var banner = $('pia-tipo-banner');
+      if (!banner || !banner.parentNode) return;
+      el = document.createElement('div');
+      el.className = 'pia-elem-box'; el.id = 'pia-elementos-box';
+      banner.parentNode.insertBefore(el, banner.nextSibling);
+    }
     var d = PIA.elementosDetectados;
     if (!d) { el.style.display = 'none'; el.innerHTML = ''; return; }
     el.style.display = '';

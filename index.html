@@ -2915,6 +2915,18 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 #v-pia .pia-status.warn{color:var(--am);border-color:rgba(255,178,36,.4)}
 #v-pia .pia-status.ok{color:var(--gr);border-color:rgba(110,231,183,.35)}
 #v-pia .pia-status.danger{color:var(--rd);border-color:rgba(255,92,92,.5);background:rgba(255,92,92,.06)}
+#v-pia .pia-areas-box{display:none;margin:12px 0;padding:14px 16px;border:1.5px solid rgba(0,200,150,.4);border-radius:12px;background:var(--s3)}
+#v-pia .pia-areas-title{font-size:13px;font-weight:800;color:var(--ow,#F0F4FF);margin-bottom:3px}
+#v-pia .pia-areas-sub{font-size:11.5px;color:var(--sl);margin-bottom:12px}
+#v-pia .pia-areas-planta{margin-bottom:10px}
+#v-pia .pia-areas-planta:last-of-type{margin-bottom:0}
+#v-pia .pia-areas-planta-head{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:700;color:var(--sl);padding:4px 2px;border-bottom:1px solid var(--br);margin-bottom:4px}
+#v-pia .pia-areas-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;font-size:12.5px}
+#v-pia .pia-areas-row:nth-child(odd){background:var(--s2)}
+#v-pia .pia-areas-row b{font-weight:700}
+#v-pia .pia-areas-nombre{display:flex;align-items:center;gap:6px}
+#v-pia .pia-areas-badge{font-size:9.5px;padding:1px 6px;border-radius:20px;background:rgba(0,200,150,.18);color:#00c896;font-weight:700}
+#v-pia .pia-areas-total-row{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1.5px solid var(--br);font-size:13px;font-weight:800}
 #v-pia .pia-elem-box{display:none;margin:12px 0;padding:14px 16px;border:1px solid var(--br);border-radius:12px;background:var(--s3)}
 #v-pia .pia-elem-title{font-size:12.5px;font-weight:700;color:var(--sl);margin-bottom:10px}
 #v-pia .pia-elem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
@@ -4869,6 +4881,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
         <div class="pia-result" id="pia-result" style="display:none">
           <div class="pia-status on" id="pia-tipo-banner" style="display:none;margin-bottom:12px"></div>
+          <div class="pia-areas-box" id="pia-areas-box"></div>
           <div class="pia-elem-box" id="pia-elementos-box"></div>
           <div class="pia-tabs" id="pia-tabs"></div>
 
@@ -23648,7 +23661,39 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       html += '<br>Verifica que esto sea correcto antes de agregar al presupuesto — no se multiplicó el costo por el número de unidades.';
     }
     el.innerHTML = html + '</span>';
+    renderVerificacionAreas();
     renderElementosDetectados();
+  }
+
+  /* Cuadro APARTE y simple — SOLO nombre de cada espacio y su área, agrupado por planta, con el total de
+     cada planta y el total general. Nada de columnas, muros, puertas ni otros datos mezclados aquí: es
+     exclusivamente para que el usuario compare rápido, espacio por espacio, contra las cotas de su plano. */
+  function renderVerificacionAreas() {
+    var el = $('pia-areas-box'); if (!el) return;
+    var d = PIA.elementosDetectados;
+    if (!d || !d.ambientes || !d.ambientes.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = '';
+    var porPlanta = {}; var orden = [];
+    d.ambientes.forEach(function (a) {
+      var p = a.planta || 'Sin planta especificada';
+      if (!porPlanta[p]) { porPlanta[p] = []; orden.push(p); }
+      porPlanta[p].push(a);
+    });
+    var totalGeneral = 0;
+    var bloques = orden.map(function (p) {
+      var lista = porPlanta[p];
+      var subtotal = lista.reduce(function (s, a) { return s + (a.area_m2 || 0); }, 0);
+      totalGeneral += subtotal;
+      var filas = lista.map(function (a) {
+        return '<div class="pia-areas-row"><span class="pia-areas-nombre">' + esc(a.nombre) +
+          (a.esEspacioAbierto ? '<span class="pia-areas-badge">espacio abierto</span>' : '') + '</span><b>' + fmt(a.area_m2, 2) + ' m²</b></div>';
+      }).join('');
+      return '<div class="pia-areas-planta"><div class="pia-areas-planta-head"><span>' + esc(p) + '</span><span>' + fmt(subtotal, 2) + ' m²</span></div>' + filas + '</div>';
+    }).join('');
+    el.innerHTML = '<div class="pia-areas-title">Verificación de áreas por espacio</div>' +
+      '<div class="pia-areas-sub">Compara cada nombre y área contra las cotas de tu plano — esto NO incluye columnas, muros, puertas ni otros elementos, solo espacios y su área.</div>' +
+      bloques +
+      '<div class="pia-areas-total-row"><span>Área total (suma de espacios)</span><span>' + fmt(totalGeneral, 2) + ' m²</span></div>';
   }
 
   /* Cuadro de verificación "qué se analizó realmente" — conteos numéricos, no prosa, para que el usuario

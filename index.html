@@ -2929,13 +2929,16 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 #v-pia .pia-areas-nombre{display:flex;align-items:center;gap:6px}
 #v-pia .pia-areas-badge{font-size:9.5px;padding:1px 6px;border-radius:20px;background:rgba(0,200,150,.18);color:#00c896;font-weight:700}
 #v-pia .pia-areas-total-row{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1.5px solid var(--br);font-size:13px;font-weight:800}
-#v-pia .pia-elem-box{display:none;margin:12px 0;padding:14px 16px;border:1px solid var(--br);border-radius:12px;background:var(--s3)}
-#v-pia .pia-elem-title{font-size:12.5px;font-weight:700;color:var(--sl);margin-bottom:10px}
-#v-pia .pia-elem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-#v-pia .pia-elem-tile{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:8px 10px;text-align:center}
-#v-pia .pia-elem-n{font-size:16px;font-weight:800;color:var(--ow,#F0F4FF)}
-#v-pia .pia-elem-l{font-size:10px;color:var(--sl);margin-top:2px;line-height:1.3}
-#v-pia .pia-elem-sub{font-size:11.5px;color:var(--sl);margin-top:10px;line-height:1.6}
+/* Sin prefijo "#v-pia " a propósito: estas mismas clases se reutilizan dentro de la ventana flotante
+   "Información del proyecto", que se agrega directo a <body> (fuera de #v-pia) para poder taparlo todo como
+   modal — si quedaran con el prefijo, la grilla de fichas se ve como texto suelto apilado dentro del modal. */
+.pia-elem-box{display:none;margin:12px 0;padding:14px 16px;border:1px solid var(--br);border-radius:12px;background:var(--s3)}
+.pia-elem-title{font-size:12.5px;font-weight:700;color:var(--sl);margin-bottom:10px}
+.pia-elem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.pia-elem-tile{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:8px 10px;text-align:center}
+.pia-elem-n{font-size:16px;font-weight:800;color:var(--ow,#F0F4FF)}
+.pia-elem-l{font-size:10px;color:var(--sl);margin-top:2px;line-height:1.3}
+.pia-elem-sub{font-size:11.5px;color:var(--sl);margin-top:10px;line-height:1.6}
 .pia-modal-overlay{position:fixed;inset:0;z-index:99985;background:rgba(4,8,18,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
 .pia-modal-box{background:var(--s2);border:1px solid var(--br);border-radius:18px;width:min(900px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden}
 .pia-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 4px}
@@ -22974,6 +22977,24 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'columnas.cantidad", y (3) la "cantidad" del rubro de columnas de hormigón en la lista "rubros". Si alguno de ' +
     'los 3 no coincide, hay un error de conteo — vuelve a la lista y corrígelo en los 3 lugares antes de responder, ' +
     'nunca dejes 3 números distintos para la misma cosa.\n' +
+    'PASO 3d — VERIFICACIÓN CRUZADA DE ÁREA POR AMBIENTE POR DOS MÉTODOS INDEPENDIENTES (obligatoria para CADA ' +
+    'ambiente de "elementos_detectados.ambientes", es el segundo error más frecuente después de columnas): no te ' +
+    'quedes con tu primera lectura. Calcula el área de cada ambiente de DOS formas distintas y compáralas:\n' +
+    '   MÉTODO A (cotas/texto): lee las cotas interiores de ese ambiente (del texto vectorial si lo tienes, o de ' +
+    'las cifras impresas junto a sus muros) y multiplica largo interior x ancho interior (o súmalo por tramos si ' +
+    'el ambiente no es rectangular).\n' +
+    '   MÉTODO B (proporción visual contra una referencia conocida): toma una medida de la imagen que SÍ conozcas ' +
+    'con certeza (ej. el ancho total de fachada, o la distancia entre dos ejes estructurales cuyo valor sí está ' +
+    'acotado) como escala de referencia, y estima el tamaño del ambiente en la imagen proporcionalmente a esa ' +
+    'referencia conocida — esto te sirve para detectar si el Método A tiene un error grueso (ej. confundiste una ' +
+    'cota de 3.40m con una de 1.40m, o mediste el ambiente equivocado).\n' +
+    'Si ambos métodos coinciden razonablemente (diferencia menor al 10%), usa el valor del Método A (cotas, más ' +
+    'preciso). Si DIFIEREN MÁS del 10%, NO promedies ni adivines — vuelve a mirar el plano con cuidado, identifica ' +
+    'cuál de los dos métodos tiene el error (revisa si leíste la cota correcta, si es la del ambiente correcto, si ' +
+    'confundiste una cota general eje-a-eje con una interior) y corrige antes de responder. Si después de revisar ' +
+    'sigues sin confianza en la medida de un ambiente específico, dilo explícitamente agregando al final de su ' +
+    '"nombre" el sufijo " (medida aproximada, verificar en sitio)" en vez de reportar un número falso con falsa ' +
+    'precisión de 2 decimales.\n' +
     'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER, solo sobre los capítulos dentro del alcance actual ' +
     '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
     'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +

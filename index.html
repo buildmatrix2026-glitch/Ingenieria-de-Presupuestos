@@ -2914,6 +2914,14 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 #v-pia .pia-status.err{color:var(--rd);border-color:rgba(255,92,92,.4)}
 #v-pia .pia-status.warn{color:var(--am);border-color:rgba(255,178,36,.4)}
 #v-pia .pia-status.ok{color:var(--gr);border-color:rgba(110,231,183,.35)}
+#v-pia .pia-status.danger{color:var(--rd);border-color:rgba(255,92,92,.5);background:rgba(255,92,92,.06)}
+#v-pia .pia-elem-box{display:none;margin:12px 0;padding:14px 16px;border:1px solid var(--br);border-radius:12px;background:var(--s3)}
+#v-pia .pia-elem-title{font-size:12.5px;font-weight:700;color:var(--sl);margin-bottom:10px}
+#v-pia .pia-elem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+#v-pia .pia-elem-tile{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:8px 10px;text-align:center}
+#v-pia .pia-elem-n{font-size:16px;font-weight:800;color:var(--ow,#F0F4FF)}
+#v-pia .pia-elem-l{font-size:10px;color:var(--sl);margin-top:2px;line-height:1.3}
+#v-pia .pia-elem-sub{font-size:11.5px;color:var(--sl);margin-top:10px;line-height:1.6}
 
 #v-pia .pia-overlay{display:none;position:fixed;inset:0;background:rgba(6,11,20,.85);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center}
 #v-pia .pia-overlay.pia-show{display:flex}
@@ -4841,6 +4849,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
         <div class="pia-result" id="pia-result" style="display:none">
           <div class="pia-status on" id="pia-tipo-banner" style="display:none;margin-bottom:12px"></div>
+          <div class="pia-elem-box" id="pia-elementos-box"></div>
           <div class="pia-tabs" id="pia-tabs"></div>
 
           <div class="pia-table-wrap">
@@ -22562,7 +22571,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return hit || CAP_FALLBACK;
   }
 
-  var PIA = { files: [], rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '', tipoProyecto: '', unidadesDetectadas: 0, alcancePresupuestado: '', especialidadesDetectadas: [] };
+  var PIA = { files: [], rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '', tipoProyecto: '', unidadesDetectadas: 0, alcancePresupuestado: '', especialidadesDetectadas: [], elementosDetectados: null };
   var ESP_LABELS = { ARQUITECTONICO: 'Arquitectónico', ESTRUCTURAL: 'Estructural', HIDROSANITARIO: 'Hidrosanitario', ELECTRICO: 'Eléctrico', CUBIERTA: 'Cubierta' };
   var TIPO_LABELS = {
     VIVIENDA_UNIFAMILIAR: 'Vivienda unifamiliar', VIVIENDA_PAREADA_DUPLEX: 'Vivienda pareada / dúplex (dos unidades adosadas)',
@@ -22647,7 +22656,9 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'cada uno por separado (no multipliques por 2 "a ojo": lee el área real de cada nivel si cambia entre ' +
     'plantas). Solo cuando una cota no sea legible o no exista, usa una proporción razonable sobre la escala del ' +
     'plano, y dilo expresamente en "resumen_cobertura" (qué mediste por cota exacta vs. qué estimaste por falta ' +
-    'de acotación).\n\n' +
+    'de acotación). Si para alguno de los archivos recibiste un bloque de "TEXTO VECTORIAL EXACTO" (extraído directamente ' +
+    'del PDF, no es lectura visual), esa es tu fuente de verdad ABSOLUTA para cualquier cota/rótulo que aparezca ahí ' +
+    '— úsala para confirmar o corregir lo que creas ver en la imagen, nunca al revés.\n\n' +
 
     'CAPÍTULOS OBLIGATORIOS (usa EXACTAMENTE estos 16 nombres, en mayúsculas, tal como están escritos aquí, en ' +
     'el campo "capitulo" de cada rubro — es la estructura de capítulos real del sistema del usuario):\n' +
@@ -22857,6 +22868,17 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     '"rubros" y explica en "resumen_cobertura" que ese capítulo requiere el plano correspondiente. Dentro de ' +
     'cualquier capítulo que SÍ tengas información (ya sea del alcance mínimo o ampliado), sé exhaustivo y no ' +
     'dejes elementos visibles sin cuantificar.\n' +
+    'PASO 3b — RESUMEN VERIFICABLE "elementos_detectados": el usuario necesita poder comprobar a simple vista que ' +
+    'SÍ revisaste cada cosa, no solo confiar en el total en dólares. Llena el campo "elementos_detectados" con ' +
+    'CONTEOS NUMÉRICOS reales (nunca texto vago, nunca "varios" o "algunos"), tal como los usaste para calcular los ' +
+    'rubros — si un dato no aplica o no se pudo determinar, dialo con 0 o arreglo vacío, nunca inventes un número ' +
+    'para rellenar el campo:\n' +
+    '   {"ambientes": [{"nombre","area_m2","planta"}, ...] (cada ambiente identificado con su área real), ' +
+    '"columnas": {"cantidad", "ejes": "string con los ejes, ej. A-1, A-3, B-1..."}, ' +
+    '"muros": {"espesor_15cm_m2", "espesor_10cm_m2", "medianero_m2"} (0 si ese espesor no existe en el plano), ' +
+    '"puertas": {"principal","interior","closet"}, "ventanas": 0, ' +
+    '"aparatos_sanitarios": {"inodoro","lavamanos","ducha","fregadero"}, ' +
+    '"pisos_por_tipo": [{"tipo","area_m2"}, ...], "pintura": {"interior_m2","exterior_m2"}}.\n' +
     'PASO 4 — AUTOVERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER, solo sobre los capítulos dentro del alcance actual ' +
     '(ver "ALCANCE DE ESTA CORRIDA" arriba): (a) de los capítulos que SÍ corresponden a los planos recibidos, revisa que ninguno haya ' +
     'quedado pobre en detalle — un plano arquitectónico completo normalmente da decenas de rubros, no un puñado; ' +
@@ -22887,7 +22909,11 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'archivos recibidos, aunque vinieran combinadas en un solo PDF — usa solo estos valores: Arquitectonico, ' +
     'Estructural, Hidrosanitario, Electrico, Cubierta"], ' +
     '"area_m2": 0.00, "resumen_cobertura": "string breve: qué capítulos de los 16 cubriste, cuáles quedaron ' +
-    'sin rubros y por qué", "rubros": [{"capitulo": "uno de los 16 nombres exactos listados arriba", ' +
+    'sin rubros y por qué", "elementos_detectados": {"ambientes": [], "columnas": {"cantidad":0,"ejes":""}, ' +
+    '"muros": {"espesor_15cm_m2":0,"espesor_10cm_m2":0,"medianero_m2":0}, "puertas": {"principal":0,"interior":0,' +
+    '"closet":0}, "ventanas": 0, "aparatos_sanitarios": {"inodoro":0,"lavamanos":0,"ducha":0,"fregadero":0}, ' +
+    '"pisos_por_tipo": [], "pintura": {"interior_m2":0,"exterior_m2":0}} (ver PASO 3b), ' +
+    '"rubros": [{"capitulo": "uno de los 16 nombres exactos listados arriba", ' +
     '"codigo": "string", "descripcion": "string específica del elemento (no genérica)", "unidad": "string", ' +
     '"cantidad": 0.00, "precio_unitario": 0.00, "memoria_calculo": "string breve y explícita con la medición u ' +
     'operación exacta usada, incluyendo el elemento contado (ej. \\"6 columnas de 0.25x0.25m x 2.60m de altura = ' +
@@ -22961,6 +22987,44 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   var MAX_TOTAL_BYTES = 15 * 1024 * 1024;
   function totalBytes() { return PIA.files.reduce(function (s, f) { return s + f.size; }, 0); }
 
+  /* ───── Extracción de TEXTO VECTORIAL real del PDF (pdf.js) ─────
+     Los planos exportados desde AutoCAD a PDF traen las cotas, niveles y rótulos como texto
+     vectorial real (no son un dibujo plano/escaneado) — este texto es exacto, no una lectura
+     visual aproximada. Lo extraemos aquí y se lo mandamos a Gemini como fuente de verdad
+     adicional, para que una cota como "3.47" nunca dependa de que el modelo la "vea" bien en
+     la imagen: si está en el texto vectorial, ese valor es literal y no admite error de lectura.
+     Reutiliza el mismo pdf.js que ya usa el módulo de Gastos/Facturas, vía loadLibCached (global). */
+  var PIA_PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  var PIA_PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  function piaPdfJsReady() {
+    if (window.pdfjsLib && window.pdfjsLib.getDocument) return Promise.resolve(window.pdfjsLib);
+    return loadLibCached(PIA_PDFJS_URL, 'pdfjsLib', 'buildmatrix-libs-v1').then(function () {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PIA_PDFJS_WORKER;
+      return window.pdfjsLib;
+    });
+  }
+  function piaBase64ToUint8(b64) {
+    var bin = atob(b64), arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  }
+  async function extraerTextoVectorialPDF(base64) {
+    try {
+      var pdfjsLib = await piaPdfJsReady();
+      var doc = await pdfjsLib.getDocument({ data: piaBase64ToUint8(base64) }).promise;
+      var out = [], maxPages = Math.min(doc.numPages, 6);
+      for (var p = 1; p <= maxPages; p++) {
+        var pg = await doc.getPage(p);
+        var tc = await pg.getTextContent();
+        var items = tc.items.map(function (it) { return (it.str || '').trim(); }).filter(Boolean);
+        if (items.length) out.push('— Página ' + p + ' (' + items.length + ' elementos de texto) —\n' + items.join(' '));
+      }
+      var texto = out.join('\n');
+      // Si no hay texto vectorial (plano escaneado/foto), no es un error — simplemente no hay nada que extraer
+      return texto.length > 24000 ? texto.slice(0, 24000) + '\n[...texto adicional omitido por longitud...]' : texto;
+    } catch (e) { return ''; }
+  }
+
   async function handleFiles(fileList) {
     var files = Array.prototype.slice.call(fileList || []);
     for (var i = 0; i < files.length; i++) {
@@ -22976,7 +23040,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       try {
         var base64 = await fileToBase64(file);
         var thumbUrl = isImg ? URL.createObjectURL(file) : null;
-        PIA.files.push({ id: newId(), name: file.name, size: file.size, mime: file.type || 'application/pdf', base64: base64, thumbUrl: thumbUrl, tag: '' });
+        var rec = { id: newId(), name: file.name, size: file.size, mime: file.type || 'application/pdf', base64: base64, thumbUrl: thumbUrl, tag: '', textoVectorial: '' };
+        PIA.files.push(rec);
+        renderFileList(); updateGenerateState(); // mostrar el archivo de inmediato, no esperar la extracción de texto
+        if (isPdf) {
+          extraerTextoVectorialPDF(base64).then(function (txt) { rec.textoVectorial = txt; if (txt) renderFileList(); });
+        }
       } catch (e) { say('No se pudo leer "' + file.name + '"'); }
     }
     renderFileList();
@@ -23253,7 +23322,40 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return {
       rubros: rubros, areaM2: Math.max(0, Number(json.area_m2) || 0), cobertura: String(json.resumen_cobertura || '').trim(),
       truncated: truncated, tipoProyecto: tipoProyecto, unidadesDetectadas: Math.max(0, Math.round(Number(json.unidades_detectadas) || 0)),
-      alcancePresupuestado: String(json.alcance_presupuestado || '').trim(), especialidadesDetectadas: especialidades
+      alcancePresupuestado: String(json.alcance_presupuestado || '').trim(), especialidadesDetectadas: especialidades,
+      elementosDetectados: normElementos(json.elementos_detectados)
+    };
+  }
+
+  /* Sanitiza "elementos_detectados": nunca confía ciegamente en la forma que Gemini devolvió — si un campo no
+     viene con el tipo esperado, se normaliza a su "vacío" (0, '', []) en vez de romper el render o mostrar
+     basura. Así el cuadro de verificación siempre es seguro de pintar aunque el modelo se desvíe del esquema. */
+  function normElementos(e) {
+    e = e && typeof e === 'object' ? e : {};
+    function num(v) { return Math.max(0, Number(v) || 0); }
+    function str(v) { return String(v || '').trim(); }
+    var ambientes = Array.isArray(e.ambientes) ? e.ambientes.map(function (a) {
+      a = a && typeof a === 'object' ? a : {};
+      return { nombre: str(a.nombre), area_m2: num(a.area_m2), planta: str(a.planta) };
+    }).filter(function (a) { return a.nombre; }) : [];
+    var pisos = Array.isArray(e.pisos_por_tipo) ? e.pisos_por_tipo.map(function (p) {
+      p = p && typeof p === 'object' ? p : {};
+      return { tipo: str(p.tipo), area_m2: num(p.area_m2) };
+    }).filter(function (p) { return p.tipo; }) : [];
+    var col = e.columnas && typeof e.columnas === 'object' ? e.columnas : {};
+    var mu = e.muros && typeof e.muros === 'object' ? e.muros : {};
+    var pu = e.puertas && typeof e.puertas === 'object' ? e.puertas : {};
+    var ap = e.aparatos_sanitarios && typeof e.aparatos_sanitarios === 'object' ? e.aparatos_sanitarios : {};
+    var pi = e.pintura && typeof e.pintura === 'object' ? e.pintura : {};
+    return {
+      ambientes: ambientes,
+      columnas: { cantidad: num(col.cantidad), ejes: str(col.ejes) },
+      muros: { espesor_15cm_m2: num(mu.espesor_15cm_m2), espesor_10cm_m2: num(mu.espesor_10cm_m2), medianero_m2: num(mu.medianero_m2) },
+      puertas: { principal: num(pu.principal), interior: num(pu.interior), closet: num(pu.closet) },
+      ventanas: num(e.ventanas),
+      aparatos_sanitarios: { inodoro: num(ap.inodoro), lavamanos: num(ap.lavamanos), ducha: num(ap.ducha), fregadero: num(ap.fregadero) },
+      pisos_por_tipo: pisos,
+      pintura: { interior_m2: num(pi.interior_m2), exterior_m2: num(pi.exterior_m2) }
     };
   }
 
@@ -23276,11 +23378,27 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var providedKeys = ['arq', 'est', 'hid', 'ele'].filter(function (k) { return PIA.files.some(function (f) { return f.tag === k; }); });
     var isFullScope = providedKeys.length === 4;
     var hasUntagged = PIA.files.some(function (f) { return !f.tag || f.tag === 'otro'; });
+    // Por si el usuario generó el presupuesto antes de que terminara la extracción de texto vectorial en segundo
+    // plano (handleFiles la dispara async): asegurar que cada PDF tenga su intento de extracción resuelto.
+    var el2 = $('pia-overlay-msg'); if (el2) el2.textContent = 'Extrayendo cotas y texto exacto de los PDF (vectorial)…';
+    await Promise.all(PIA.files.map(function (f) {
+      if (/pdf/i.test(f.mime) && !f.textoVectorial) {
+        return extraerTextoVectorialPDF(f.base64).then(function (txt) { f.textoVectorial = txt; });
+      }
+      return Promise.resolve();
+    }));
+    if (tok.cancelled) { hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null; setStatus('warn', 'Generación cancelada.'); return; }
     var promptText = withAlcanceBlock(withMarketBlock(PROMPT_BASE, marketText), buildAlcanceBlock(providedKeys, hasUntagged));
     var parts = [{ text: promptText + '\n\nAPUs de referencia (reales, de tu base de datos):\n' + JSON.stringify(sampleReference()) }];
     PIA.files.forEach(function (f) {
       var label = f.tag && CAP_KEYS[f.tag] ? CAP_KEYS[f.tag] : 'sin especificar — revisa el contenido para identificar qué especialidad(es) trae';
       parts.push({ text: '\nArchivo "' + f.name + '", especialidad indicada por el usuario: ' + label });
+      if (f.textoVectorial) {
+        parts.push({ text: 'TEXTO VECTORIAL EXACTO extraído directamente del PDF "' + f.name + '" (no es lectura visual aproximada — ' +
+          'son los caracteres reales embebidos en el archivo AutoCAD/PDF: cotas, niveles, rótulos de ambiente, cuadros de columnas, etc. ' +
+          'Úsalo como FUENTE DE VERDAD cuando una cota o rótulo de aquí compita con tu interpretación visual de la imagen; cruza cada ' +
+          'número de este texto con su posición aproximada en la imagen antes de dar una medida por buena):\n' + f.textoVectorial });
+      }
       parts.push({ inline_data: { mime_type: f.mime, data: f.base64 } });
     });
     var cancelBtn = $('pia-overlay-cancel');
@@ -23295,6 +23413,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       PIA.rubros = rubros; PIA.activeTab = 'Todos'; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
       PIA.tipoProyecto = out.tipoProyecto; PIA.unidadesDetectadas = out.unidadesDetectadas; PIA.alcancePresupuestado = out.alcancePresupuestado;
       PIA.especialidadesDetectadas = out.especialidadesDetectadas;
+      PIA.elementosDetectados = out.elementosDetectados;
       // Especialidades que la IA encontró en el contenido real pero que NO correspondían a ninguna casilla que
       // el usuario llenó (ej. subió todo en un solo PDF municipal combinado) — se resalta en el banner.
       var KEY_TO_ESP = { arq: 'ARQUITECTONICO', est: 'ESTRUCTURAL', hid: 'HIDROSANITARIO', ele: 'ELECTRICO' };
@@ -23346,16 +23465,59 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     }
     var isMulti = PIA.tipoProyecto === 'VIVIENDA_PAREADA_DUPLEX' || PIA.tipoProyecto === 'CONJUNTO_VIVIENDAS_REPETIDAS' || PIA.tipoProyecto === 'EDIFICIO_MULTIFAMILIAR' || PIA.tipoProyecto === 'EDIFICIO_MIXTO';
     var hasExtra = PIA.especialidadesExtra && PIA.especialidadesExtra.length > 0;
+    var showMultiplier = isMulti && PIA.unidadesDetectadas > 1 && PIA.rubros.length;
     el.style.display = '';
-    el.className = 'pia-status on ' + (isMulti || hasExtra ? 'warn' : 'ok');
+    el.className = 'pia-status on ' + (showMultiplier ? 'danger' : (isMulti || hasExtra ? 'warn' : 'ok'));
     var espTxt = (PIA.especialidadesDetectadas && PIA.especialidadesDetectadas.length)
       ? PIA.especialidadesDetectadas.map(function (e) { return ESP_LABELS[e] || e; }).join(', ') : '';
-    el.innerHTML = '<span><b>Tipo de proyecto detectado: ' + esc(TIPO_LABELS[PIA.tipoProyecto] || 'No especificado') + '</b>' +
-      (PIA.unidadesDetectadas > 1 ? ' · ' + PIA.unidadesDetectadas + ' unidades identificadas en el dibujo' : '') +
+    var unidadTxt = PIA.tipoProyecto === 'EDIFICIO_MULTIFAMILIAR' ? 'niveles/departamentos tipo' : 'unidades';
+    var html = '<span><b>Tipo de proyecto detectado: ' + esc(TIPO_LABELS[PIA.tipoProyecto] || 'No especificado') + '</b>' +
+      (PIA.unidadesDetectadas > 1 ? ' · ' + PIA.unidadesDetectadas + ' ' + unidadTxt + ' identificadas en el dibujo' : '') +
       (PIA.alcancePresupuestado ? '<br>Se presupuestó: ' + esc(PIA.alcancePresupuestado) : '') +
       (espTxt ? '<br>Especialidades encontradas en el contenido de los archivos: ' + esc(espTxt) : '') +
-      (hasExtra ? '<br>Se amplió el alcance: encontró ' + esc(PIA.especialidadesExtra.map(function (e) { return ESP_LABELS[e] || e; }).join(', ')) + ' dentro de un archivo que no estaba etiquetado para esa especialidad (típico de un PDF municipal combinado).' : '') +
-      (isMulti ? '<br>Verifica que esto sea correcto antes de agregar al presupuesto — no se multiplicó el costo por el número de unidades.' : '') + '</span>';
+      (hasExtra ? '<br>Se amplió el alcance: encontró ' + esc(PIA.especialidadesExtra.map(function (e) { return ESP_LABELS[e] || e; }).join(', ')) + ' dentro de un archivo que no estaba etiquetado para esa especialidad (típico de un PDF municipal combinado).' : '');
+    if (showMultiplier) {
+      var cd = PIA.rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0);
+      var sub = cd * (1 + (PIA.aiuPct || 0) / 100);
+      var totalUno = sub * (1 + (PIA.ivaPct || 0) / 100);
+      var totalTodas = totalUno * PIA.unidadesDetectadas;
+      html += '<div style="margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.06);border-radius:10px">' +
+        '⚠️ <b>Este total es de 1 sola unidad</b> (' + money(totalUno) + ' con IVA). Si necesitas el costo de las ' +
+        PIA.unidadesDetectadas + ' ' + unidadTxt + ' del dibujo: <b>' + money(totalTodas) + '</b> (= ' + money(totalUno) + ' × ' + PIA.unidadesDetectadas + ').' +
+        '</div>';
+    } else if (isMulti) {
+      html += '<br>Verifica que esto sea correcto antes de agregar al presupuesto — no se multiplicó el costo por el número de unidades.';
+    }
+    el.innerHTML = html + '</span>';
+    renderElementosDetectados();
+  }
+
+  /* Cuadro de verificación "qué se analizó realmente" — conteos numéricos, no prosa, para que el usuario
+     pueda comprobar de un vistazo que sí se revisó cada ambiente, columna, puerta, baño, piso y acabado. */
+  function renderElementosDetectados() {
+    var el = $('pia-elementos-box'); if (!el) return;
+    var d = PIA.elementosDetectados;
+    if (!d) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = '';
+    function tile(label, val) { return '<div class="pia-elem-tile"><div class="pia-elem-n">' + esc(String(val)) + '</div><div class="pia-elem-l">' + esc(label) + '</div></div>'; }
+    var tiles = '';
+    tiles += tile('Ambientes identificados', d.ambientes.length);
+    tiles += tile('Columnas (ejes: ' + (d.columnas.ejes || '—') + ')', d.columnas.cantidad);
+    tiles += tile('Muro 15cm (m²)', fmt(d.muros.espesor_15cm_m2, 1));
+    tiles += tile('Muro 10cm (m²)', fmt(d.muros.espesor_10cm_m2, 1));
+    tiles += tile('Muro medianero (m²)', fmt(d.muros.medianero_m2, 1));
+    tiles += tile('Puertas (princ./int./closet)', d.puertas.principal + '/' + d.puertas.interior + '/' + d.puertas.closet);
+    tiles += tile('Ventanas', d.ventanas);
+    tiles += tile('Inodoros', d.aparatos_sanitarios.inodoro);
+    tiles += tile('Lavamanos', d.aparatos_sanitarios.lavamanos);
+    tiles += tile('Duchas', d.aparatos_sanitarios.ducha);
+    tiles += tile('Fregaderos', d.aparatos_sanitarios.fregadero);
+    tiles += tile('Pintura interior (m²)', fmt(d.pintura.interior_m2, 1));
+    tiles += tile('Pintura exterior/fachada (m²)', fmt(d.pintura.exterior_m2, 1));
+    var ambList = d.ambientes.length ? ('<div class="pia-elem-sub"><b>Ambientes:</b> ' + d.ambientes.map(function (a) { return esc(a.nombre) + (a.planta ? ' (' + esc(a.planta) + ')' : '') + ' ' + fmt(a.area_m2, 1) + 'm²'; }).join(' · ') + '</div>') : '';
+    var pisosList = d.pisos_por_tipo.length ? ('<div class="pia-elem-sub"><b>Pisos por tipo:</b> ' + d.pisos_por_tipo.map(function (p) { return esc(p.tipo) + ' ' + fmt(p.area_m2, 1) + 'm²'; }).join(' · ') + '</div>') : '';
+    el.innerHTML = '<div class="pia-elem-title">Qué se analizó en el plano (verifícalo contra tus planos)</div>' +
+      '<div class="pia-elem-grid">' + tiles + '</div>' + ambList + pisosList;
   }
 
   /* ─────────────── Tabla + totales ─────────────── */
@@ -23802,7 +23964,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, normElementos: normElementos, state: PIA };
 })();
 </script>
 

@@ -4870,6 +4870,8 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
 
           <div class="pia-actions-bottom">
             <button class="pia-btn" id="pia-export-csv-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exportar a CSV</span></button>
+            <button class="pia-btn" id="pia-export-pdf-resumen-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>PDF Resumen</span></button>
+            <button class="pia-btn" id="pia-export-pdf-apus-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg><span>PDF con APUs</span></button>
             <button class="pia-btn pia-btn-primary" id="pia-save-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>Agregar al presupuesto activo</span></button>
           </div>
         </div>
@@ -22779,8 +22781,20 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'razonable por columna (tipo aislada, dimensionada de forma conservadora según la sección de columna que sí ' +
     'ves) — nunca dejes el capítulo de Estructura sin cimentación, un presupuesto de obra gruesa sin plintos no ' +
     'sirve para nada.\n' +
-    '   • Columnas → hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo por PESO (kg), como ' +
-    'dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
+    '   • Columnas → CONTEO SISTEMÁTICO OBLIGATORIO antes de calcular nada, es el error más común y más grave: NO ' +
+    'estimes el número de columnas "a ojo" ni asumas que cada intersección de la grilla de ejes (A-1, A-2, B-1, ' +
+    'B-2...) tiene una columna — muchas intersecciones de ejes NO llevan columna (solo son referencia geométrica). ' +
+    'Haz una lista explícita de CADA columna que veas físicamente dibujada (su símbolo real: cuadrado o rectángulo ' +
+    'relleno/sombreado, normalmente más grueso que una línea de muro, a menudo con su propio rótulo C1/C2/P1 o ' +
+    'coordenada de eje), anotando su posición de eje en "memoria_calculo" (ej. "columnas en ejes A-1, A-3, B-1, ' +
+    'B-3, C-1, C-3... total 10"), y SOLO SUMA las que anotaste una por una — nunca redondees ni dupliques. Presta ' +
+    'especial atención a: (a) no contar dos veces la misma columna si aparece en dos recortes/zonas distintas de ' +
+    'la imagen que se solapan, (b) no confundir el círculo/bombilla de rótulo de un eje (el número o letra dentro ' +
+    'de un círculo al final de la línea de eje, ej. "①" o "(A)") con una columna — eso es solo una etiqueta de ' +
+    'grilla, nunca un elemento estructural, (c) si el plano trae un "cuadro de columnas" con el listado oficial, ' +
+    'ese es tu fuente PRIMARIA y DEFINITIVA del conteo, úsalo literal en vez de contar tú manualmente. Una vez que ' +
+    'tengas el conteo verificado, calcula hormigón por VOLUMEN (sección x altura x cantidad) y acero de refuerzo ' +
+    'por PESO (kg), como dos rubros separados; si hay columnas de distinta sección, sepáralas.\n' +
     '   • Vigas y cadenas → igual: hormigón por volumen y acero por peso, por nivel si aplica.\n' +
     '   • ACERO DE REFUERZO (hierro) EN TODO ELEMENTO DE HORMIGÓN ARMADO (zapatas, columnas, vigas, cadenas, ' +
     'losas, muros de contención si hay) → calcula el PESO en kg, nunca lo omitas ni lo mezcles con el hormigón en ' +
@@ -22815,6 +22829,22 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     'rubro separado; tablero(s) y acometida como rubros propios por unidad.\n' +
     '   • Pintura → por ÁREA, interior y exterior como rubros separados si ambos se aprecian.\n' +
     '   • Fachaleta/revestimientos de fachada → por ÁREA si se aprecian en el plano arquitectónico.\n' +
+    '   • TRAMITES Y PERMISOS MUNICIPALES (GAD Municipal de Ibarra) → nunca un monto único genérico "trámites ' +
+    'varios": desglosa en rubros propios, uno por cada concepto real del trámite de Aprobación de Planos ' +
+    'Arquitectónicos Definitivos del GAD-I: (1) Tasa de Servicios Administrativos, (2) FPA (Formulario de Proyecto ' +
+    'Arquitectónico), (3) IRC (Informe de Regulación/Reglamentación Cantonal), (4) Certificado de no adeudar al ' +
+    'GAD-I — estos 4 son tasas FIJAS de 2.00 USD cada una (valor oficial publicado por el GAD-I, no lo cambies); ' +
+    '(5) Certificado de gravamen del Registro de la Propiedad — estima un valor de mercado razonable (típicamente ' +
+    '10-20 USD); (6) Fondo de Garantía y aprobación de planos — su monto exacto lo calcula el Municipio según los ' +
+    'm² de construcción y NO está publicado como fórmula fija, así que ESTÍMALO de forma conservadora como un ' +
+    'rubro propio (no lo omitas) y dilo explícitamente en "memoria_calculo": "valor referencial, el GAD-I calcula ' +
+    'el monto exacto según m² de construcción al momento del trámite"; (7) Tasa de Acometida/Conexión de Agua ' +
+    'Potable y Alcantarillado (EMAPA-I) — igual, rubro propio con valor referencial de mercado, marcado como sujeto ' +
+    'a confirmación; (8) si el proyecto incluye local comercial, agrega Visto Bueno de Planos de Bomberos como ' +
+    'rubro propio. Honorarios de planos (arquitectónico/estructural/instalaciones) y del profesional NO van aquí, ' +
+    'van en "Obras Preliminares" o quedan fuera si no aplica. Si el usuario pide un cálculo de más rubros o más ' +
+    'detalle de este capítulo específicamente, puedes usar la búsqueda web (tool de Google Search) para verificar ' +
+    'valores actualizados del GAD-I antes de responder.\n' +
     'PASO 3 — ALCANCE: el bloque "ALCANCE DE ESTA CORRIDA" de arriba es tu PISO MÍNIMO garantizado (los capítulos ' +
     'que correspondan a las casillas que el usuario llenó), más los capítulos generales de obra (Trámites y ' +
     'Permisos, Obras Preliminares, Obras Complementarias y Exteriores), que SIEMPRE se estiman proporcional al ' +
@@ -23421,6 +23451,245 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     say('CSV descargado');
   }
 
+  /* ─────────────── Exportar PDF (mismo diseño/formato que el resto de la app) ───────────────
+     Reutiliza los helpers globales del sistema de PDF v2 (jsPDF + autoTable: logo, fuente Outfit,
+     portada, pie de página, y el dibujo de las secciones Equipo/Mano de Obra/Materiales), pero con
+     una portada y encabezado propios porque el presupuesto IA aún no es necesariamente un proyecto
+     guardado (no depende de S.proj/S.own). Si el rubro trae un código que sí cruza con un APU real
+     de BD.A, muestra el desglose completo (igual que en un proyecto); si es un código propuesto por
+     la IA sin match real, muestra la memoria de cálculo en su lugar — honesto, no inventa un
+     desglose de materiales que no existe. */
+  function _piaCapsPresentes() {
+    var set = {};
+    PIA.rubros.forEach(function (r) { set[r.capitulo] = true; });
+    return CAP_LABELS.filter(function (c) { return set[c]; });
+  }
+  function _piaCapTotal(nombre) {
+    return PIA.rubros.filter(function (r) { return r.capitulo === nombre; })
+      .reduce(function (a, r) { return a + subtotalOf(r); }, 0);
+  }
+  function _piaTotales() {
+    var cd = PIA.rubros.reduce(function (a, r) { return a + subtotalOf(r); }, 0);
+    var aiu = cd * (PIA.aiuPct || 0) / 100;
+    var sub = cd + aiu;
+    var iva = sub * (PIA.ivaPct || 0) / 100;
+    return { cd: cd, aiu: aiu, sub: sub, iva: iva, total: sub + iva };
+  }
+  function _piaProjName() {
+    return (S && S.proj) ? S.proj : 'Presupuesto preliminar (IA)';
+  }
+  function _piaDrawCover(doc, proj, dateStr, subtitle, t) {
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    var marginX = 14;
+    doc.setFillColor(0, 82, 255); doc.rect(0, 0, pageW, 3, 'F');
+    var bottomBlockH = 86;
+    var y = pageH - bottomBlockH;
+    _pdfV2DrawLogo(doc, marginX, y, 0.75);
+    doc.setFontSize(13.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(6, 11, 20);
+    doc.text('Build', marginX + 11, y + 4.4);
+    doc.setTextColor(0, 82, 255);
+    doc.text('Matrix', marginX + 11 + doc.getTextWidth('Build'), y + 4.4);
+    y += 14;
+    doc.setDrawColor(0, 82, 255); doc.setLineWidth(1.1);
+    doc.line(marginX, y, marginX + 15, y);
+    y += 6;
+    doc.setFontSize(8); doc.setFont('Outfit', 'bold'); doc.setTextColor(0, 82, 255);
+    doc.text(subtitle, marginX, y);
+    y += 9;
+    doc.setFontSize(21); doc.setFont('Outfit', 'bold'); doc.setTextColor(6, 11, 20);
+    doc.text(String(proj).toUpperCase(), marginX, y);
+    y += 9;
+    var colW = (pageW - marginX * 2) / 2;
+    var tipoTxt = (TIPO_LABELS[PIA.tipoProyecto] || PIA.tipoProyecto || '—');
+    var rows = [
+      [['TIPO DE PROYECTO', tipoTxt], ['ÁREA ANALIZADA', fmt(PIA.areaM2 || 0, 2) + ' m²']],
+      [['COSTO DIRECTO', fmtUSD(t.cd)], ['TOTAL CON IVA', fmtUSD(t.total)]],
+      [['ALCANCE PRESUPUESTADO', PIA.alcancePresupuestado || PIA.cobertura || '—'], null]
+    ];
+    rows.forEach(function (row, ri) {
+      row.forEach(function (m, i) {
+        if (!m) return;
+        var mx = marginX + i * colW, my = y + ri * 9.5;
+        doc.setFontSize(6.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(0, 82, 255);
+        doc.text(m[0], mx, my);
+        doc.setFontSize(9.5); doc.setFont('Outfit', 'normal'); doc.setTextColor(26, 26, 46);
+        var txt = doc.splitTextToSize(String(m[1]), colW - 4);
+        doc.text(txt[0] || '', mx, my + 4);
+      });
+    });
+    y += rows.length * 9.5 + 3.5;
+    doc.setDrawColor(225, 232, 250); doc.setLineWidth(.25);
+    doc.line(marginX, y, pageW - marginX, y);
+    y += 5;
+    doc.setFontSize(7); doc.setFont('Outfit', 'normal'); doc.setTextColor(150, 150, 150);
+    doc.text('Generado por Presupuesto Avanzado con IA · Ref. Cámara de la Construcción de Imbabura 2026 · ' + dateStr, marginX, y);
+  }
+  function _piaPageHeader(doc, proj) {
+    var pageW = doc.internal.pageSize.getWidth();
+    var marginX = 14, yh = 12;
+    _pdfV2DrawLogo(doc, marginX, yh - 2, 0.55);
+    doc.setFontSize(10.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(6, 11, 20);
+    doc.text('Build', marginX + 7.5, yh + 1.6);
+    doc.setTextColor(0, 82, 255);
+    doc.text('Matrix', marginX + 7.5 + doc.getTextWidth('Build'), yh + 1.6);
+    doc.setFontSize(8.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(6, 11, 20);
+    doc.text(String(proj).toUpperCase(), pageW - marginX, yh - 0.5, { align: 'right' });
+    doc.setFontSize(7); doc.setFont('Outfit', 'normal'); doc.setTextColor(140, 140, 140);
+    doc.text('Presupuesto Avanzado con IA', pageW - marginX, yh + 3.5, { align: 'right' });
+    doc.setDrawColor(0, 82, 255); doc.setLineWidth(.9);
+    doc.line(marginX, yh + 9, pageW - marginX, yh + 9);
+    return yh + 15;
+  }
+  function _piaBuildResumen(orientacion, elaboradoPor) {
+    var t = _piaTotales();
+    var dateStr = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' });
+    var proj = _piaProjName();
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: orientacion === 'h' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+    _pdfV2LoadFonts(doc);
+    var pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight(), marginX = 14;
+    _piaDrawCover(doc, proj, dateStr, 'PRESUPUESTO PRELIMINAR GENERADO CON IA', t);
+    doc.addPage();
+    var yHead = _piaPageHeader(doc, proj);
+    var body = [];
+    _piaCapsPresentes().forEach(function (c) {
+      var items = PIA.rubros.filter(function (r) { return r.capitulo === c; });
+      body.push([{ content: c, colSpan: 6, styles: { fillColor: [234, 240, 255], textColor: [0, 51, 160], fontStyle: 'bold', font: 'Outfit', fontSize: 8.5 } }]);
+      items.forEach(function (r) {
+        body.push([
+          { content: r.codigo || '', styles: { font: 'courier', textColor: [0, 82, 255] } },
+          r.descripcion || '', r.unidad || '', fmt(r.cantidad || 0, 2), fmtUSD(r.precio_unitario || 0), fmtUSD(subtotalOf(r))
+        ]);
+      });
+      body.push([{ content: 'SUBTOTAL  ' + c, colSpan: 5, styles: { fillColor: [238, 242, 255], textColor: [0, 51, 160], fontStyle: 'bold', font: 'Outfit', fontSize: 8.5 } },
+      { content: fmtUSD(_piaCapTotal(c)), styles: { fillColor: [238, 242, 255], textColor: [0, 51, 160], fontStyle: 'bold', font: 'Outfit', fontSize: 8.5, halign: 'right' } }]);
+    });
+    doc.autoTable({
+      startY: yHead,
+      head: [['Código', 'Descripción del rubro', 'Unidad', 'Cantidad', 'P. Unitario', 'Total USD']],
+      body: body, theme: 'plain', margin: { left: marginX, right: marginX, bottom: 16 },
+      styles: { fontSize: 8.5, font: 'Outfit', cellPadding: { top: 1.6, right: 2.5, bottom: 1.6, left: 2.5 }, textColor: [26, 26, 46], lineColor: [232, 238, 255], lineWidth: .1, valign: 'middle' },
+      headStyles: { fillColor: [0, 51, 160], textColor: [255, 255, 255], fontStyle: 'bold', font: 'Outfit', fontSize: 7.5, valign: 'middle' },
+      columnStyles: { 0: { cellWidth: 24, fontSize: 7.5 }, 2: { halign: 'center', valign: 'middle' }, 3: { halign: 'right', valign: 'middle' }, 4: { halign: 'right', valign: 'middle' }, 5: { halign: 'right', valign: 'middle' } },
+      didParseCell: function (data) { if (data.row.raw.length === 1 && data.row.raw[0].colSpan === 6) { data.cell.styles.cellPadding = { top: 2, right: 2.5, bottom: 2, left: 2.5 }; } }
+    });
+    var finY = doc.lastAutoTable.finalY + 8;
+    var finW = (pageW - marginX * 2) * 0.42, finX = pageW - marginX - finW;
+    if (finY + 55 > pageH - 14) { doc.addPage(); finY = _piaPageHeader(doc, proj); }
+    doc.setFillColor(0, 51, 160); doc.rect(finX, finY, finW, 7, 'F');
+    doc.setFontSize(7.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(255, 255, 255);
+    doc.text('RESUMEN FINANCIERO', finX + 3, finY + 4.8);
+    var finRows = [['Costo Directo', fmtUSD(t.cd)], ['A.I.U. (' + (PIA.aiuPct || 0) + '%)', fmtUSD(t.aiu)], ['Subtotal', fmtUSD(t.sub)], ['IVA (' + (PIA.ivaPct || 0) + '%)', fmtUSD(t.iva)]];
+    var fy = finY + 7;
+    doc.setFont('Outfit', 'normal'); doc.setFontSize(8.5); doc.setTextColor(26, 26, 46);
+    finRows.forEach(function (r) {
+      doc.setDrawColor(232, 238, 255); doc.setLineWidth(.2);
+      doc.line(finX, fy + 6, finX + finW, fy + 6);
+      doc.text(r[0], finX + 3, fy + 4.5);
+      doc.text(r[1], finX + finW - 3, fy + 4.5, { align: 'right' });
+      fy += 6;
+    });
+    doc.setFillColor(0, 51, 160); doc.rect(finX, fy, finW, 8, 'F');
+    doc.setFont('Outfit', 'bold'); doc.setFontSize(9.5); doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL GENERAL CON IVA', finX + 3, fy + 5.5);
+    doc.text(fmtUSD(t.total), finX + finW - 3, fy + 5.5, { align: 'right' });
+    var totalPages = doc.internal.getNumberOfPages();
+    for (var i = 2; i <= totalPages; i++) { doc.setPage(i); _pdfV2PageFooter(doc, proj, dateStr); }
+    return doc;
+  }
+  function _piaBuildAPUs(orientacion, elaboradoPor) {
+    var t = _piaTotales();
+    var dateStr = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' });
+    var proj = _piaProjName();
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: orientacion === 'h' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+    _pdfV2LoadFonts(doc);
+    var pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight(), marginX = 14, tableW = pageW - marginX * 2;
+    _piaDrawCover(doc, proj, dateStr, 'PRESUPUESTO PRELIMINAR IA — DETALLE DE RUBROS', t);
+    doc.addPage();
+    var yy = _piaPageHeader(doc, proj);
+    var isFirstItem = true;
+    _piaCapsPresentes().forEach(function (capName) {
+      var items = PIA.rubros.filter(function (r) { return r.capitulo === capName; });
+      items.forEach(function (rub) {
+        if (!isFirstItem) { _pdfV2PageFooter(doc, proj, dateStr); doc.addPage(); yy = _piaPageHeader(doc, proj); }
+        isFirstItem = false;
+        var code = rub.codigo || '';
+        var apuDef = (typeof BD !== 'undefined' && BD.A) ? BD.A[code] : null;
+        var calc = apuDef ? calcAPU(apuDef) : null;
+        var pu = rub.precio_unitario || 0, qty = rub.cantidad || 0, total = subtotalOf(rub);
+        doc.setFillColor(0, 82, 255); doc.rect(marginX, yy - 3.2, 1.3, 5, 'F');
+        doc.setFontSize(9.5); doc.setFont('Outfit', 'bold'); doc.setTextColor(6, 11, 20);
+        doc.text(String(capName).toUpperCase(), marginX + 4, yy);
+        yy += 6;
+        doc.autoTable({
+          startY: yy, head: [['CÓDIGO', 'DESCRIPCIÓN', 'UNIDAD', 'CANTIDAD', 'P.UNITARIO', 'TOTAL USD']],
+          body: [[{ content: code, styles: { font: 'courier', fontStyle: 'bold', textColor: [0, 51, 160] } },
+          { content: rub.descripcion || '', styles: { fontStyle: 'bold' } }, rub.unidad || '', fmt(qty, 2), fmtUSD(pu), fmtUSD(total)]],
+          theme: 'grid', margin: { left: marginX, right: marginX },
+          styles: { fontSize: 8.5, font: 'Outfit', cellPadding: { top: 2, right: 2.5, bottom: 2, left: 2.5 }, textColor: [26, 26, 46], lineColor: [222, 227, 238], lineWidth: .2, valign: 'middle' },
+          headStyles: { textColor: [0, 82, 255], fontStyle: 'bold', font: 'Outfit', fontSize: 7, fillColor: [255, 255, 255], lineWidth: .2, lineColor: [222, 227, 238], valign: 'middle' },
+          columnStyles: { 2: { halign: 'center', valign: 'middle' }, 3: { halign: 'center', valign: 'middle' }, 4: { halign: 'center', valign: 'middle' }, 5: { halign: 'center', valign: 'middle' } },
+          didParseCell: function (data) { if (data.section === 'head' && data.column.index >= 2) { data.cell.styles.halign = 'center'; } }
+        });
+        yy = doc.lastAutoTable.finalY + 6;
+        if (calc) {
+          var colsEq = [{ label: 'CÓDIGO', w: tableW * 0.10, code: true }, { label: 'DESCRIPCIÓN', w: tableW * 0.40 }, { label: 'CANTIDAD', w: tableW * 0.15, align: 'right' }, { label: 'TARIFA $', w: tableW * 0.13, align: 'right' }, { label: 'RENDIM.', w: tableW * 0.10, align: 'right' }, { label: 'COSTO', w: tableW * 0.12, align: 'right' }];
+          var colsMo = colsEq.map(function (c, i) { return i === 3 ? { label: 'JORNAL $', w: c.w, align: 'right' } : c; });
+          var colsMat = [{ label: 'CÓDIGO', w: colsEq[0].w, code: true }, { label: 'DESCRIPCIÓN', w: colsEq[1].w }, { label: 'UNIDAD', w: colsEq[2].w, align: 'right' }, { label: 'CANTIDAD', w: colsEq[3].w, align: 'right' }, { label: 'PRECIO $', w: colsEq[4].w, align: 'right' }, { label: 'COSTO', w: colsEq[5].w, align: 'right' }];
+          var eqRows = calc.eRows.map(function (r) { return r.isHM ? [r.code, r.desc, '', '', (r.rend * 100) + '%', fmtUSD(r.cost)] : [r.code, r.desc, fmt(r.qty, 2), fmt(r.rate, 2), fmt(r.rend, 4), fmtUSD(r.cost)]; });
+          var moRows = calc.mRows.map(function (r) { return [r.code, r.desc, fmt(r.qty, 2), fmt(r.rate, 2), fmt(r.rend, 4), fmtUSD(r.cost)]; });
+          var matRows = calc.tRows.map(function (r) { return [r.code, r.desc, r.unit || '', fmt(r.qty, 2), fmtUSD(r.price), fmtUSD(r.cost)]; });
+          yy = _pdfV2DrawAPUSection(doc, marginX, tableW, yy, '(1)', 'EQUIPO Y MAQUINARIA', eqRows.length ? eqRows : [['—', '(sin datos)', '', '', '', '']], colsEq, '', '', pageH, proj, dateStr);
+          yy = _pdfV2DrawAPUSection(doc, marginX, tableW, yy, '(2)', 'MANO DE OBRA', moRows.length ? moRows : [['—', '(sin datos)', '', '', '', '']], colsMo, '', '', pageH, proj, dateStr);
+          yy = _pdfV2DrawAPUSection(doc, marginX, tableW, yy, '(3)', 'MATERIALES', matRows.length ? matRows : [['—', '(sin datos)', '', '', '', '']], colsMat, '', '', pageH, proj, dateStr);
+        } else {
+          doc.setFillColor(245, 247, 255); doc.rect(marginX, yy, tableW, 6, 'F');
+          doc.setFontSize(7); doc.setFont('Outfit', 'bold'); doc.setTextColor(0, 82, 255);
+          doc.text('MEMORIA DE CÁLCULO (código propuesto por IA — sin APU de referencia exacto en la base)', marginX + 3, yy + 4.2);
+          yy += 6;
+          doc.setFont('Outfit', 'normal'); doc.setFontSize(8); doc.setTextColor(26, 26, 46);
+          var memLines = doc.splitTextToSize(rub.memoria_calculo || '(sin memoria de cálculo)', tableW - 6);
+          if (yy + memLines.length * 4.2 > pageH - 16) { _pdfV2PageFooter(doc, proj, dateStr); doc.addPage(); yy = _piaPageHeader(doc, proj); }
+          doc.text(memLines, marginX + 3, yy + 5);
+          yy += memLines.length * 4.2 + 4;
+        }
+        if (yy + 10 > pageH - 16) { _pdfV2PageFooter(doc, proj, dateStr); doc.addPage(); yy = _piaPageHeader(doc, proj); }
+        doc.setFillColor(0, 51, 160); doc.rect(marginX, yy, tableW, 8, 'F');
+        doc.setFontSize(9); doc.setFont('Outfit', 'bold'); doc.setTextColor(255, 255, 255);
+        doc.text('COSTO DIRECTO (CD)', marginX + 3, yy + 5.5);
+        doc.text(fmtUSD(pu), marginX + tableW - 3, yy + 5.5, { align: 'right' });
+      });
+    });
+    _pdfV2PageFooter(doc, proj, dateStr);
+    return doc;
+  }
+  function exportPIAPDFResumen() {
+    if (!PIA.rubros.length) { say('No hay rubros para exportar'); return; }
+    closeExp();
+    _pdfV2ShowOrientationModal(function (orientacion, autor) {
+      try {
+        var doc = _piaBuildResumen(orientacion, autor);
+        var nm = _piaProjName().replace(/[^a-z0-9]+/gi, '_');
+        doc.save('Presupuesto_IA_' + nm + '_' + (orientacion === 'h' ? 'horizontal' : 'vertical') + '.pdf');
+        toast('✓ PDF descargado');
+      } catch (e) { console.error('Error exportPIAPDFResumen:', e); toast('Error generando PDF: ' + e.message); }
+    });
+  }
+  function exportPIAPDFAPUs() {
+    if (!PIA.rubros.length) { say('No hay rubros para exportar'); return; }
+    closeExp();
+    _pdfV2ShowOrientationModal(function (orientacion, autor) {
+      try {
+        var doc = _piaBuildAPUs(orientacion, autor);
+        var nm = _piaProjName().replace(/[^a-z0-9]+/gi, '_');
+        doc.save('APUs_IA_' + nm + '_' + (orientacion === 'h' ? 'horizontal' : 'vertical') + '.pdf');
+        toast('✓ PDF descargado');
+      } catch (e) { console.error('Error exportPIAPDFAPUs:', e); toast('Error generando PDF: ' + e.message); }
+    });
+  }
+
   /* ─────────────── Agregar al presupuesto activo (integración real) ───────────────
      Busca o crea el capítulo del rubro en S.caps; si el código coincide con un APU
      real de BD.A usa su costo calculado (calcAPU), si no, usa el precio de la IA como
@@ -23523,6 +23792,8 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('pia-tabs').addEventListener('click', onTabClick);
     $('pia-aiu-pct').addEventListener('input', function (e) { PIA.aiuPct = Math.max(0, Number(e.target.value) || 0); renderTotals(); });
     $('pia-export-csv-btn').addEventListener('click', exportCSV);
+    $('pia-export-pdf-resumen-btn').addEventListener('click', exportPIAPDFResumen);
+    $('pia-export-pdf-apus-btn').addEventListener('click', exportPIAPDFAPUs);
     $('pia-save-btn').addEventListener('click', addToActiveProject);
     var newBtn = $('pia-new-proj-btn'); if (newBtn) newBtn.addEventListener('click', createProjectInline);
     var newInput = $('pia-new-proj-name');
@@ -23531,7 +23802,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, state: PIA };
 })();
 </script>
 

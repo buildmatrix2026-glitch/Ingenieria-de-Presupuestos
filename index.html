@@ -23423,6 +23423,36 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     };
   }
 
+  /* Segunda pasada automática: el PASO 4 del prompt le pide al modelo que se autocorrija si el costo/m2 sale
+     bajo, pero confiar solo en que el modelo "se dio cuenta" no es seguro. Por eso la app verifica el número
+     con código y, si sigue por debajo del piso real de mercado (280 USD/m2 de costo directo — el mismo rango
+     que el propio prompt usa como referencia), fuerza una segunda llamada a Gemini mostrándole el presupuesto
+     que generó y pidiéndole explícitamente que corrija cantidades/precios de los capítulos subestimados,
+     en vez de asumir que ya quedó bien. Máximo un reintento para no multiplicar costo/tiempo sin fin. */
+  var REFINE_FLOOR_PERM2 = 280;
+  async function refinarPresupuestoBarato(parts, rubrosPrevios, areaM2, perM2Previo, tok) {
+    var resumenPrevio = rubrosPrevios.map(function (r) {
+      return r.capitulo + ' | ' + r.codigo + ' | ' + r.descripcion + ' | ' + r.unidad + ' | cant=' + r.cantidad + ' | precio=' + r.precio_unitario;
+    }).join('\n');
+    var correccion = '\n\nREVISIÓN OBLIGATORIA DE UN PRESUPUESTO YA GENERADO (segunda pasada, no es la primera vez que ves este ' +
+      'plano): ya generaste un presupuesto para estos mismos planos con área total ' + areaM2.toFixed(2) + ' m², pero su costo ' +
+      'DIRECTO dio ' + perM2Previo.toFixed(2) + ' USD/m², por debajo del rango real de mercado en Ibarra, Ecuador (280-420 USD/m2 ' +
+      'de costo DIRECTO para una vivienda media-buena). Esto casi siempre significa que algún capítulo quedó con cantidades ' +
+      'incompletas o precios irreales — revisa primero Estructura de Hormigón Armado (cimentación, columnas, vigas, losa, acero: ' +
+      'es el capítulo que más se subestima) y luego Acabados (enlucidos, pisos, pintura, cielo raso). Aquí está el presupuesto ' +
+      'previo completo, un rubro por línea (capítulo | código | descripción | unidad | cantidad | precio_unitario):\n' + resumenPrevio +
+      '\n\nVuelve a revisar los planos adjuntos arriba (imágenes y texto vectorial) y corrige: aumenta cantidades que hayan ' +
+      'quedado cortas frente a la geometría real del plano (nunca inventadas sin sustento), y ajusta a precio de mercado ' +
+      'ecuatoriano actual cualquier precio unitario que esté irrealmente bajo. NO borres rubros correctos ni reduzcas nada que ' +
+      'ya esté bien — esto es una corrección hacia arriba de lo subestimado, no una regeneración desde cero. Devuelve el JSON ' +
+      'COMPLETO Y CORREGIDO con la MISMA estructura exacta de siempre (tipo_proyecto, unidades_detectadas, ' +
+      'alcance_presupuestado, especialidades_detectadas, area_m2, resumen_cobertura, elementos_detectados, rubros) — el ' +
+      'presupuesto corregido completo, nunca solo los rubros que cambiaste.';
+    var newParts = parts.concat([{ text: correccion }]);
+    var text = await callGeminiForBudget(newParts, tok);
+    return parseResponse(text);
+  }
+
   async function generatePresupuesto() {
     var count = PIA.files.length;
     if (!count) { say('Carga al menos un archivo antes de generar el presupuesto'); return; }
@@ -23490,6 +23520,34 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
 
       var cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
       var perM2 = out.areaM2 > 0 ? cd / out.areaM2 : 0;
+      var fueRefinado = false;
+      // Chequeo de costo/m2 hecho con código (no solo confiando en que el modelo se autocorrigió): si el plano
+      // arquitectónico está completo y el costo directo sale por debajo del piso real de mercado, se dispara
+      // automáticamente una segunda pasada de corrección antes de mostrarle nada al usuario.
+      var scopeLooksFull = out.especialidadesDetectadas.length >= 4 ||
+        (out.especialidadesDetectadas.length === 0 && isFullScope);
+      if (!out.truncated && scopeLooksFull && out.areaM2 > 0 && perM2 > 0 && perM2 < REFINE_FLOOR_PERM2 && !tok.cancelled) {
+        var elRefine = $('pia-overlay-msg');
+        if (elRefine) elRefine.textContent = 'Costo directo de ' + money(perM2) + '/m² es muy bajo para una obra completa: pidiendo a la IA que revise y corrija los capítulos subestimados…';
+        try {
+          var refined = await refinarPresupuestoBarato(parts, rubros, out.areaM2, perM2, tok);
+          if (refined && refined.rubros && refined.rubros.length) {
+            out = refined; rubros = refined.rubros;
+            PIA.rubros = rubros; PIA.areaM2 = out.areaM2; PIA.cobertura = out.cobertura;
+            PIA.tipoProyecto = out.tipoProyecto || PIA.tipoProyecto; PIA.unidadesDetectadas = out.unidadesDetectadas || PIA.unidadesDetectadas;
+            PIA.alcancePresupuestado = out.alcancePresupuestado || PIA.alcancePresupuestado;
+            PIA.especialidadesDetectadas = out.especialidadesDetectadas.length ? out.especialidadesDetectadas : PIA.especialidadesDetectadas;
+            PIA.elementosDetectados = out.elementosDetectados || PIA.elementosDetectados;
+            cd = round2(rubros.reduce(function (s, r) { return s + subtotalOf(r); }, 0));
+            perM2 = out.areaM2 > 0 ? cd / out.areaM2 : perM2;
+            fueRefinado = true;
+            PIA.activeTab = 'Todos';
+            renderTabs();
+            renderTable();
+            renderTipoBanner();
+          }
+        } catch (eRefine) { /* si la segunda pasada falla, se sigue con el primer resultado en vez de perder todo */ }
+      }
       // El alcance real para el mensaje final se toma de lo que la IA REALMENTE encontró
       // (especialidadesDetectadas), no de lo que el usuario etiquetó (providedKeys) — si subió todo sin
       // etiquetar, providedKeys está vacío pero el contenido puede cubrir igual las 4 especialidades.
@@ -23498,13 +23556,13 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var scopeTxt = realIsFull ? '' : (' · alcance: ' + (out.especialidadesDetectadas.length
         ? out.especialidadesDetectadas.map(function (e) { return ESP_LABELS[e] || e; }).join(' + ')
         : (providedKeys.length ? providedKeys.map(function (k) { return CAP_KEYS[k]; }).join(' + ') : 'sin especialidad determinada')));
-      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + scopeTxt + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '');
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + scopeTxt + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '') + (fueRefinado ? ' (costo directo revisado y corregido automáticamente por estar bajo)' : '');
       if (out.truncated) {
         setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los rubros de los capítulos de este alcance antes de continuar.');
       } else if (!realIsFull) {
         setStatus('ok', base + (perM2 > 0 ? ' Costo directo de lo cargado ≈ ' + money(perM2) + '/m² (es solo una parte del presupuesto total; sube los planos restantes cuando los tengas para completar el resto).' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
-      } else if (realIsFull && out.areaM2 > 0 && perM2 > 0 && perM2 < 150) {
-        setStatus('warn', base + ' El costo directo da ' + money(perM2) + '/m², un valor muy bajo para una obra completa: probablemente faltan capítulos (revisa Preliminares, Cimentación, Cubierta, Acabados). Puedes agregar rubros manualmente o volver a generar.');
+      } else if (realIsFull && out.areaM2 > 0 && perM2 > 0 && perM2 < REFINE_FLOOR_PERM2) {
+        setStatus('warn', base + ' El costo directo da ' + money(perM2) + '/m², por debajo de lo normal para una obra completa' + (fueRefinado ? ' (incluso después de la revisión automática)' : '') + ': probablemente faltan capítulos (revisa Preliminares, Cimentación, Cubierta, Acabados). Puedes agregar rubros manualmente o volver a generar.');
       } else {
         setStatus('ok', base + (perM2 > 0 ? ' Costo directo ≈ ' + money(perM2) + '/m².' : '') + ' Revisa cantidades y memoria de cálculo antes de agregarlos.');
       }

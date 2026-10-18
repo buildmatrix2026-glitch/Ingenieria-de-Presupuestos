@@ -2182,9 +2182,17 @@ input[list].anp-input { cursor:text; }
 #anp-mat-rows > div {
   grid-template-columns:11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
 }
-#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; width:100%; }
+/* Encabezado y filas deben usar EXACTAMENTE el mismo padding/box-sizing/gap para que las columnas
+   queden una debajo de la otra sin desfase — antes el encabezado tenía padding:0 2px y las filas
+   0, lo que corría sus columnas unas respecto a otras. */
+#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
+  min-width:0; width:100%; box-sizing:border-box; padding:0 2px;
+}
 .anp-scroll-wrap { overflow-x:visible; width:100%; }
 #apu-new-panel, .apu-right-col { min-width:0; }
+/* Texto que no cabe en su celda: elipsis en vez de cortarse a lo bruto, y tooltip con el valor completo */
+.anp-input { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.anp-header-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* ── INSUMOS: "Crear nuevo insumo" drawer ── */
 .ins-create-btn { margin-top:0; margin-bottom:14px; }
@@ -7765,10 +7773,17 @@ function closeRM(){$id('rmb').classList.remove('op');}
 let _imTarget={type:'',idx:0};
 function openIM(type,idx){_imTarget={type,idx};$id('im-search').value='';renderIM();$id('imb').classList.add('op');setTimeout(()=>$id('im-search').focus(),120);}
 function closeIM(){$id('imb').classList.remove('op');}
+// Tope de filas pintadas en el buscador de insumos — con miles de insumos, construir TODOS los
+// botones (y antes, un listener de click + 2 de hover POR botón) en cada tecleo era el origen del
+// lag del cursor al agregar insumos. Ahora: límite de resultados pintados + un solo listener de
+// click delegado en el contenedor (en vez de uno por fila) + el hover lo sigue dando el CSS
+// ".pi:hover" que ya existía (el mouseover/mouseout por JS era redundante y pisaba su transición).
+const IM_RENDER_LIMIT=150;
+let _imListClickBound=false;
 function renderIM(){
   const q=normSearch(($id('im-search').value||'').trim());
   const t=_imTarget.type;
-  const rows=BD.I.filter(r=>{
+  const matches=BD.I.filter(r=>{
     const fam=r[0].split('-')[0];
     if(t==='equipo'&&!['EL','EP'].includes(fam))return false;
     if(t==='mano'&&fam!=='MO')return false;
@@ -7778,22 +7793,26 @@ function renderIM(){
     const [pa,na]=a[0].split('-');const [pb,nb]=b[0].split('-');
     return pa<pb?-1:pa>pb?1:(parseInt(na)||0)-(parseInt(nb)||0);
   });
+  const rows=matches.slice(0,IM_RENDER_LIMIT);
   const list=$id('im-list');
-  list.innerHTML='';
-  if(!rows.length){list.innerHTML='<div style="padding:12px;color:var(--sld);font-size:12px">Sin resultados</div>';return;}
-  rows.forEach(function(r){
-    var btn=document.createElement('button');
-    btn.className='pi';
-    btn.style.cssText='width:100%;text-align:left;border:none;background:none;cursor:pointer;';
-    btn.innerHTML='<span class="pc" style="min-width:80px">'+esc(r[0])+'</span>'
+  if(!matches.length){list.innerHTML='<div style="padding:12px;color:var(--sld);font-size:12px">Sin resultados</div>';return;}
+  const html=rows.map(function(r){
+    return '<button type="button" class="pi" data-code="'+esc(r[0])+'" style="width:100%;text-align:left;border:none;background:none;cursor:pointer">'
+      +'<span class="pc" style="min-width:80px">'+esc(r[0])+'</span>'
       +'<span class="pd">'+hi(r[1],q)+'</span>'
       +'<span style="font-size:10px;color:var(--sld);margin:0 8px">'+esc(r[2]||'')+'</span>'
-      +'<span class="pp">'+(r[3]?fmtUSD(r[3]):'')+'</span>';
-    btn.addEventListener('click',function(){selectIM(r[0]);});
-    btn.addEventListener('mouseover',function(){btn.style.background='rgba(0,82,255,.15)';btn.style.borderColor='rgba(0,212,255,.25)';document.body.classList.add('cursor-hover');});
-    btn.addEventListener('mouseout',function(){btn.style.background='';btn.style.borderColor='';document.body.classList.remove('cursor-hover');});
-    list.appendChild(btn);
-  });
+      +'<span class="pp">'+(r[3]?fmtUSD(r[3]):'')+'</span>'
+      +'</button>';
+  }).join('')
+  + (matches.length>IM_RENDER_LIMIT ? '<div style="padding:10px 13px;color:var(--sld);font-size:11px">Mostrando '+IM_RENDER_LIMIT+' de '+matches.length+' resultados — sigue escribiendo para afinar la búsqueda</div>' : '');
+  list.innerHTML=html;
+  if(!_imListClickBound){
+    _imListClickBound=true;
+    list.addEventListener('click',function(e){
+      const btn=e.target.closest('.pi[data-code]');
+      if(btn) selectIM(btn.getAttribute('data-code'));
+    });
+  }
 }
 function selectIM(code){
   $id('imb').classList.remove('op');
@@ -10544,35 +10563,10 @@ function initAnpForm(){
       anpSel.appendChild(o);
     });
   }
-  // Populate anp-code datalist with INSUMOS (BD.I) — código + descripción
-  const dl=document.getElementById('anp-code-list');
-  if(dl && dl.childElementCount===0){
-    BD.I.forEach(i=>{
-      const op=document.createElement('option');
-      op.value=i[0];
-      op.label=i[1]+(i[2]?' ['+i[2]+']':'');
-      dl.appendChild(op);
-    });
-  }
-  // Populate row insumo datalists — filtered by type, at body level for mobile compatibility
-  const dlFilters={
-    'anp-ins-dl-equipo': i=>['EL','EP'].includes(i[0].split('-')[0]),
-    'anp-ins-dl-mano':   i=>i[0].split('-')[0]==='MO',
-    'anp-ins-dl-mat':    i=>!['EL','EP','MO'].includes(i[0].split('-')[0])
-  };
-  Object.entries(dlFilters).forEach(([dlId,filterFn])=>{
-    let d=document.getElementById(dlId);
-    if(!d){
-      d=document.createElement('datalist');
-      d.id=dlId;
-      document.body.appendChild(d);
-    }
-    if(d.childElementCount===0){
-      BD.I.filter(filterFn).forEach(i=>{
-        const op=document.createElement('option');op.value=i[0];op.label=i[1];d.appendChild(op);
-      });
-    }
-  });
+  // (Antes aquí se precargaban ~8.300 <option> en datalists "anp-code-list"/"anp-ins-dl-*" con
+  // TODOS los insumos — pero ningún campo del formulario usa list="..." para referenciarlas (el
+  // código de cada fila se elige con el buscador/modal de openIM). Eran miles de nodos DOM muertos
+  // construidos cada vez que se abría Constructor APU, sin ningún uso: se quitó por rendimiento.)
 }
 
 // Select all on focus for number inputs — works everywhere (PC, iPad, iPhone)
@@ -10870,8 +10864,8 @@ function anpRowHTML(type, idx, row) {
         onclick="openIM('${type}',${idx})"
         title="Clic para buscar insumo">
       <input class="anp-input" style="text-align:left;font-size:11.5px" placeholder="Descripción"
-        value="${esc(row.desc||'')}"
-        oninput="_anpData.${type}[${idx}].desc=this.value">
+        value="${esc(row.desc||'')}" title="${esc(row.desc||'')}"
+        oninput="_anpData.${type}[${idx}].desc=this.value;this.title=this.value">
       <input class="anp-input" style="text-align:left;font-size:11px" placeholder="Unidad" value="${esc(row.unit||'')}" oninput="_anpData.${type}[${idx}].unit=this.value">
       <input class="anp-input" type="text" inputmode="decimal" step="any" min="0" placeholder="0"
         value="${row.qty===0?'':row.qty||''}"
@@ -10894,8 +10888,8 @@ function anpRowHTML(type, idx, row) {
         onclick="openIM('${type}',${idx})"
         title="Clic para buscar insumo">
       <input class="anp-input" style="text-align:left;font-size:11.5px" placeholder="Descripción"
-        value="${esc(row.desc||'')}"
-        oninput="_anpData.${type}[${idx}].desc=this.value">
+        value="${esc(row.desc||'')}" title="${esc(row.desc||'')}"
+        oninput="_anpData.${type}[${idx}].desc=this.value;this.title=this.value">
       <input class="anp-input" type="text" inputmode="decimal" step="any" min="0" placeholder="0"
         title="Cantidad"
         value="${row.qty===0?'':row.qty||''}"

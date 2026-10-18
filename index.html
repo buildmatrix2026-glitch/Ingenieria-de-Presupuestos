@@ -7543,15 +7543,37 @@ function wireTopBarBtns(){
 function exitApp(){document.body.classList.remove('ia');sessionStorage.removeItem('bm_tab');_stopProjectsSync();}
 
 // ── Dashboard ─────────────────────────────────
+// Cuenta el numero desde 0 hasta su valor real, mismo efecto y misma duracion (550ms, easeOutCubic)
+// que el conteo de los KPIs de Gastos (animateKpi), para que Panel general y Presupuesto "suban"
+// igual al entrar a la pestana.
+function bmAnimateNum(el,target,isMoney,duration){
+  if(!el)return;
+  duration=duration||550;
+  var t0=performance.now(),myTok={};
+  el._bmTok=myTok;
+  function tick(now){
+    if(el._bmTok!==myTok)return;
+    var p=Math.min(1,(now-t0)/duration);
+    var eased=1-Math.pow(1-p,3);
+    var val=target*eased;
+    el.textContent=isMoney?fmtUSD(val):String(Math.round(val));
+    if(p<1)requestAnimationFrame(tick);
+    else el.textContent=isMoney?fmtUSD(target):String(Math.round(target));
+  }
+  requestAnimationFrame(tick);
+}
 function renderDash(){
   CAPS=getCaps();
   const {cd,total}=calcTotals();
   const nr=S.caps.reduce((a,b)=>a+b.length,0);
   $id('dg').innerHTML=`
-    <div class="card kpi"><div class="kl"><span class="pill c">TOTAL</span></div><div class="kv">${fmtUSD(total)}</div><div class="ks">Total general con IVA</div></div>
-    <div class="card kpi"><div class="kl"><span class="pill b">DIRECTO</span></div><div class="kv">${fmtUSD(cd)}</div><div class="ks">Costo directo sin AIU ni IVA</div></div>
-    <div class="card kpi"><div class="kl"><span class="pill g">RUBROS</span></div><div class="kv">${nr}</div><div class="ks">Rubros en el presupuesto activo</div></div>
+    <div class="card kpi"><div class="kl"><span class="pill c">TOTAL</span></div><div class="kv" id="dgv-total">${fmtUSD(0)}</div><div class="ks">Total general con IVA</div></div>
+    <div class="card kpi"><div class="kl"><span class="pill b">DIRECTO</span></div><div class="kv" id="dgv-cd">${fmtUSD(0)}</div><div class="ks">Costo directo sin AIU ni IVA</div></div>
+    <div class="card kpi"><div class="kl"><span class="pill g">RUBROS</span></div><div class="kv" id="dgv-nr">0</div><div class="ks">Rubros en el presupuesto activo</div></div>
     <div class="card kpi"><div class="kl"><span class="pill a">BASE</span></div><div class="kv mono" data-bm-count="pair" style="font-size:clamp(13px,1.6vw,18px);white-space:nowrap">${(typeof bmCountsPairText==='function')?bmCountsPairText():'4.157 \u00b7 2.063'}</div><div class="ks">Insumos · APUs disponibles</div></div>`;
+  bmAnimateNum($id('dgv-total'),total,true);
+  bmAnimateNum($id('dgv-cd'),cd,true);
+  bmAnimateNum($id('dgv-nr'),nr,false);
 
   CAPS=getCaps();const capTots=CAPS.map((_,i)=>capTotal(i));
   const maxC=Math.max(...capTots,1);
@@ -7581,12 +7603,18 @@ function calcTotals(){
 function calcFin(){
   const t=calcTotals();
   $id('fstrip').innerHTML=`
-    <div class="fc"><div class="fl">Costo directo</div><div class="fv">${fmtUSD(t.cd)}</div></div>
-    <div class="fc"><div class="fl">Indirectos ${S.ind||0}%</div><div class="fv">${fmtUSD(t.ind)}</div></div>
-    <div class="fc"><div class="fl">Utilidad ${S.uti||0}%</div><div class="fv">${fmtUSD(t.uti)}</div></div>
-    <div class="fc"><div class="fl">Subtotal</div><div class="fv">${fmtUSD(t.sub)}</div></div>
-    <div class="fc"><div class="fl">IVA ${S.iva||0}%</div><div class="fv">${fmtUSD(t.iva)}</div></div>
-    <div class="fc hl"><div class="fl">TOTAL GENERAL</div><div class="fv">${fmtUSD(t.total)}</div></div>`;
+    <div class="fc"><div class="fl">Costo directo</div><div class="fv" id="fv-cd">${fmtUSD(0)}</div></div>
+    <div class="fc"><div class="fl">Indirectos ${S.ind||0}%</div><div class="fv" id="fv-ind">${fmtUSD(0)}</div></div>
+    <div class="fc"><div class="fl">Utilidad ${S.uti||0}%</div><div class="fv" id="fv-uti">${fmtUSD(0)}</div></div>
+    <div class="fc"><div class="fl">Subtotal</div><div class="fv" id="fv-sub">${fmtUSD(0)}</div></div>
+    <div class="fc"><div class="fl">IVA ${S.iva||0}%</div><div class="fv" id="fv-iva">${fmtUSD(0)}</div></div>
+    <div class="fc hl"><div class="fl">TOTAL GENERAL</div><div class="fv" id="fv-total">${fmtUSD(0)}</div></div>`;
+  bmAnimateNum($id('fv-cd'),t.cd,true);
+  bmAnimateNum($id('fv-ind'),t.ind,true);
+  bmAnimateNum($id('fv-uti'),t.uti,true);
+  bmAnimateNum($id('fv-sub'),t.sub,true);
+  bmAnimateNum($id('fv-iva'),t.iva,true);
+  bmAnimateNum($id('fv-total'),t.total,true);
   $id('ctp').textContent=S.caps.reduce((a,b)=>a+b.length,0);
   persist();
 }

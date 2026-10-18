@@ -23403,11 +23403,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   ];
   function marketPrompt() {
     return 'Eres un investigador de precios de materiales de construcción en Ecuador. Busca en internet los ' +
-      'precios ACTUALES (de hoy) de los siguientes materiales, priorizando ferreterías de Ibarra (Kywi, Disensa, ' +
-      'Ferrisariato, ferreterías locales de Ibarra/Imbabura) y, si no encuentras precio local, usa el precio ' +
-      'promedio de mercado nacional ecuatoriano: ' + MARKET_ITEMS.join('; ') + '. Para cada material, responde ' +
-      'en una línea con el formato "material — precio USD (unidad) — fuente/tienda si la identificaste". Sé ' +
-      'breve y concreto, sin introducciones ni conclusiones, solo la lista de precios encontrados.';
+      'precios ACTUALES (de hoy) de los siguientes materiales, priorizando estas ferreterías/distribuidoras ' +
+      'reales de Ibarra, Imbabura, en este orden (mayor tamaño/variedad primero): Kywi Ibarra (Av. Mariano Acosta), ' +
+      'Disensa Ibarra (Cristóbal de Troya), Almacén Ferroelectrico (Av. Cristóbal de Troya), Ferricentro Comercial ' +
+      'Trejo (Av. Fray Vacas Galindo), Almacén El Perno (Av. Mariano Acosta), FerroGer (Simón Bolívar) — y si ' +
+      'ninguna de estas tiene precio público disponible, usa el precio promedio de mercado nacional ecuatoriano: ' +
+      MARKET_ITEMS.join('; ') + '. Para cada material, responde en una línea con el formato "material — precio ' +
+      'USD (unidad) — fuente/tienda si la identificaste". Sé breve y concreto, sin introducciones ni conclusiones, ' +
+      'solo la lista de precios encontrados.';
   }
   function cacheKey() { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, ''); }
   function readMarketCache() {
@@ -23439,7 +23442,10 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         signal: ctrl ? ctrl.signal : undefined,
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketPrompt() }] }], tools: [{ google_search: {} }] })
+        // temperature EN 0: esta búsqueda de precios también se guardaba en caché, pero si la caché vencía y se
+        // volvía a consultar sin temperatura fija, Google usaba su valor por defecto (no determinístico) y los
+        // precios de referencia cambiaban de una corrida a otra aunque el plano fuera el mismo.
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketPrompt() }] }], tools: [{ google_search: {} }], generationConfig: { temperature: 0 } })
       });
       if (timer) clearTimeout(timer);
       var body = await resp.json().catch(function () { return null; });

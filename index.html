@@ -2329,15 +2329,13 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   .anp-scroll-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; width: 100%; }
   #anp-info-row { grid-template-columns: 13.5fr 45fr 10.2fr 21fr 10.2fr !important; gap: 4px !important; min-width: 0; width: 100%; }
   #anp-info-row > div > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .anp-header-row { min-width: 480px; box-sizing: border-box; padding: 0 2px; }
+  .anp-header-row { box-sizing: border-box; padding: 0 2px; }
   .anp-section:has(#anp-equipo-rows) .anp-header-row,
-  .anp-section:has(#anp-mano-rows) .anp-header-row { grid-template-columns: 65px minmax(100px,1fr) 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
-  .anp-section:has(#anp-mat-rows) .anp-header-row { grid-template-columns: 65px minmax(100px,1fr) 48px 50px 58px 52px 22px !important; gap: 4px !important; }
+  .anp-section:has(#anp-mano-rows) .anp-header-row { min-width: 480px; grid-template-columns: 65px minmax(100px,1fr) 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
+  .anp-section:has(#anp-mat-rows) .anp-header-row { min-width: 460px; grid-template-columns: 65px minmax(100px,1fr) 48px 50px 58px 52px 22px !important; gap: 4px !important; }
   #anp-equipo-rows > div, #anp-mano-rows > div { min-width: 480px; box-sizing: border-box; padding: 0 2px; grid-template-columns: 65px minmax(100px,1fr) 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
   #anp-mat-rows > div { min-width: 460px; box-sizing: border-box; padding: 0 2px; grid-template-columns: 65px minmax(100px,1fr) 48px 50px 58px 52px 22px !important; gap: 4px !important; }
   .anp-section { overflow-x: visible; }
-  .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width: 0 !important; width: max-content; }
-  .anp-header-row > *, #anp-equipo-rows > div > *, #anp-mano-rows > div > *, #anp-mat-rows > div > * { min-width: 0; }
 
   /* Insumos */
   .vhh { display: grid !important; grid-template-columns: 90px 1fr 48px 70px 46px !important; gap: 6px !important; padding: 8px 12px !important; font-size: 9px !important; letter-spacing: .8px !important; }

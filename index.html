@@ -2899,6 +2899,8 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .cro-ruler{position:relative;height:100%}
 .cro-ruler-mark{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;color:var(--sld);font-family:var(--f-mo);white-space:nowrap}
 .cro-ruler-today{position:absolute;top:0;transform:translateX(-50%);font-size:9px;font-weight:700;color:#22d3ee;background:rgba(0,212,255,.14);border-radius:3px;padding:0 4px}
+.cro-cat-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--sl)}
+.cro-cat-row span:last-child{font-family:var(--f-mo);font-weight:700;color:var(--sld)}
 @media (max-width:768px){
   .cro-row-fields{width:100%}
   .cro-inp{width:118px}
@@ -3918,10 +3920,16 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
             <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance físico real</div>
             <div id="cro-kpi-real" style="font-size:22px;font-weight:700;font-family:var(--f-mo)">0%</div>
           </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px" title="Suma de tus facturas de Gastos para este proyecto — dinero realmente gastado, no asume que ese gasto ya está construido">Gastado real (facturas)</div>
+            <div id="cro-kpi-gasto" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:var(--gr)">$0,00</div>
+            <div id="cro-gasto-detail" style="font-size:10.5px;color:var(--sld);margin-top:2px">—</div>
+          </div>
           <div style="flex:1;min-width:180px">
             <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Estado</div>
             <div id="cro-kpi-status" style="font-size:13.5px;font-weight:600">—</div>
           </div>
+          <div id="cro-gasto-cats" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 18px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:2px"></div>
         </div>
 
         <!-- Curva S -->
@@ -7866,6 +7874,27 @@ function croEnsureCap(ci){ if(!S.schedule) S.schedule={}; if(!S.schedule[ci]) S.
 function croGet(ci,ri){ const cap=croEnsureCap(ci); return cap[ri] || (cap[ri]={start:'',dur:null,pct:0}); }
 function croRowCost(ci,ri){ const r=(S.caps[ci]||[])[ri]; if(!r) return 0; return (r.qty||0)*(r.pu||0); }
 
+// Gastado real según facturas del proyecto abierto (módulo "Gastos y facturas").
+// Deliberadamente NO intenta cruzar cada factura con un rubro específico (los códigos de
+// insumo de una factura no son los códigos de rubro del presupuesto — cruzarlos a ciegas
+// daría números falsos). En vez de eso, suma a nivel de PROYECTO completo, donde el dato
+// sí es exacto, y lo desglosa por categoría de gasto (que el usuario ya eligió al cargar
+// cada factura, así que también es exacta).
+function croComputeGastoReal(){
+  if(typeof window.bmGetGastosForProject!=='function'||!S.proj){
+    return {available:false,total:0,byCat:{},count:0};
+  }
+  const list=window.bmGetGastosForProject(S.proj)||[];
+  let total=0; const byCat={};
+  list.forEach(function(g){
+    const monto=g.total||0;
+    total+=monto;
+    const cat=g.categoria||'Sin categoría';
+    byCat[cat]=(byCat[cat]||0)+monto;
+  });
+  return {available:true,total,byCat,count:list.length};
+}
+
 function croSetField(ci,ri,field,val){
   const d=croGet(ci,ri);
   if(field==='start') d.start=val;
@@ -8134,6 +8163,34 @@ function croRenderKPIs(){
     } else {
       kpiStatusEl.textContent=`Atrasado ${Math.abs(diff).toFixed(1)} pts vs. lo planificado`;
       kpiStatusEl.style.color='var(--am)';
+    }
+  }
+
+  // ── Gastado real (según facturas del proyecto) ──
+  const kpiGastoEl=$id('cro-kpi-gasto'), gastoDetailEl=$id('cro-gasto-detail'), catBreakdownEl=$id('cro-gasto-cats');
+  if(kpiGastoEl){
+    const gr=croComputeGastoReal();
+    const t=calcTotals();
+    if(!gr.available){
+      kpiGastoEl.textContent='—';
+      if(gastoDetailEl) gastoDetailEl.textContent='Abre un proyecto guardado para ver esto';
+    } else if(gr.count===0){
+      kpiGastoEl.textContent=fmtUSD(0);
+      if(gastoDetailEl) gastoDetailEl.textContent='Sin facturas registradas en este proyecto todavía';
+    } else {
+      const pctOfBudget=t.cd>0?(gr.total/t.cd*100):0;
+      kpiGastoEl.textContent=fmtUSD(gr.total);
+      if(gastoDetailEl) gastoDetailEl.textContent=`${pctOfBudget.toFixed(1)}% del costo directo · ${gr.count} factura${gr.count===1?'':'s'}`;
+    }
+    if(catBreakdownEl){
+      const cats=Object.keys(gr.byCat||{}).sort(function(a,b){return gr.byCat[b]-gr.byCat[a];});
+      if(!cats.length){
+        catBreakdownEl.innerHTML='';
+      } else {
+        catBreakdownEl.innerHTML=cats.map(function(c){
+          return `<div class="cro-cat-row"><span>${esc(c)}</span><span>${fmtUSD(gr.byCat[c])}</span></div>`;
+        }).join('');
+      }
     }
   }
 }
@@ -16250,6 +16307,14 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     try { localStorage.setItem(key(), JSON.stringify(list)); return true; }
     catch (e) { say('⚠ No hay espacio para guardar el gasto en este dispositivo'); return false; }
   }
+  // Exportador de solo lectura para otros módulos (Cronograma): facturas de un proyecto específico,
+  // ordenadas por fecha. No expone save()/key() ni nada que pueda mutar el almacén de Gastos.
+  window.bmGetGastosForProject = function (proj) {
+    try {
+      return load().filter(function (g) { return g.proyecto === proj; })
+        .slice().sort(function (a, b) { return (a.fecha || '').localeCompare(b.fecha || ''); });
+    } catch (e) { return []; }
+  };
   function extraProjects() { return readKey('bm_gx_projects_' + uid()); }
   function addExtraProject(name) {
     var a = extraProjects();

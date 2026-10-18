@@ -68,10 +68,12 @@ body {
   color: var(--off-white);
   font-family: var(--font-main);
   overflow-x: clip;
-  cursor: none !important;
 }
 
-/* CURSOR PERSONALIZADO — ver estilos en sección landing */
+/* CURSOR: se quitó el cursor personalizado (el puntero nativo del sistema
+   es gratis — lo dibuja el SO/GPU fuera del hilo de la página — mientras
+   que uno hecho en JS/CSS necesita un listener de mousemove corriendo todo
+   el tiempo que la app está abierta). Nada que optimizar aquí: cero costo. */
 
 /* CANVAS DE FONDO */
 #hero-canvas {
@@ -817,20 +819,9 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--cy);outline-off
 ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,.35)}
 .mono{font-family:var(--f-mo)}
 
-/* CURSOR — posicionado con transform (GPU/compositor), nunca con left/top.
-   left/top disparan recálculo de layout de TODA la página en cada frame;
-   con el cursor moviéndose 60 veces por segundo mientras la app está
-   abierta, eso era carga continua de CPU/GPU (no solo en los cambios de
-   pestaña) — justo lo que sentías como la PC/el celular "trabajando" todo
-   el rato. El JS ahora solo actualiza las variables --mx/--my/--rx/--ry
-   (barato, no toca layout) y es el compositor el que mueve los elementos. */
-#cursor,#cursor-ring{display:none}
-@media(hover:hover) and (pointer:fine){
-  #cursor{display:block;position:fixed;left:0;top:0;width:8px;height:8px;background:var(--cy);border-radius:50%;pointer-events:none;z-index:9999;transform:translate3d(var(--mx,0px),var(--my,0px),0) translate(-50%,-50%);transition:width .15s,height .15s,background .2s;will-change:transform}
-  #cursor-ring{display:block;position:fixed;left:0;top:0;width:34px;height:34px;border:1.5px solid rgba(0,212,255,.45);border-radius:50%;pointer-events:none;z-index:9998;transform:translate3d(var(--rx,0px),var(--ry,0px),0) translate(-50%,-50%);transition:width .28s var(--eo),height .28s var(--eo),border-color .28s;will-change:transform}
-  body.cursor-hover #cursor{width:13px;height:13px}
-  body.cursor-hover #cursor-ring{width:50px;height:50px;border-color:rgba(0,212,255,.5)}
-}
+/* Cursor personalizado eliminado: #cursor/#cursor-ring quedan ocultos
+   siempre y ya no se actualizan por JS (ver más abajo). */
+#cursor,#cursor-ring{display:none!important}
 
 /* CANVAS */
 #hc{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -1260,18 +1251,8 @@ html[data-theme="dark"] .gx-scope .gx-st.err{color:#fca5a5;border-color:rgba(248
 html[data-theme="dark"] .ts{background:linear-gradient(90deg,rgba(6,182,212,.16),rgba(11,15,25,.94) 60%);border:1px solid rgba(34,211,238,.42);color:#e6fbff;border-radius:14px;
   box-shadow:inset 3px 0 0 #22d3ee,0 12px 44px rgba(0,0,0,.5),0 0 26px -10px rgba(6,182,212,.75)}
 
-/* Cursor: triángulo doble de neón (medido sobre la imagen de referencia), igual en la landing y en la app.
-   Punta = vértice superior izquierdo. Se ocultan TODOS los cursores nativos (manito, I de texto, flechas). */
-@media(hover:hover) and (pointer:fine){
-  html body,html body *,html body *::before,html body *::after{cursor:none!important}
-  html body #cursor{width:17.6px!important;height:17.6px!important;min-width:0!important;min-height:0!important;border-radius:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 11 100 100'%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='%23053f40'/%3E%3Cline x1='28.1' y1='17.1' x2='39.1' y2='27.8' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='115.4' y1='40.4' x2='100.4' y2='44.2' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cline x1='52.4' y1='104.4' x2='56.1' y2='89.1' stroke='%2396d5d6' stroke-width='1.4' stroke-opacity='.38' stroke-linecap='round'/%3E%3Cpolygon points='28.1,17.1 115.4,40.4 52.4,104.4' fill='none' stroke='%2396d5d6' stroke-width='2.8' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3Cpolygon points='45.8,34.4 91.2,46.5 58.4,79.7' fill='none' stroke='%2396d5d6' stroke-width='3' stroke-linejoin='miter' stroke-miterlimit='6'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%;
-    transform:translate3d(var(--mx,0px),var(--my,0px),0) translate(-1.1px,-1.1px);transform-origin:1.1px 1.1px;
-    filter:drop-shadow(0 0 1px rgba(120,235,240,.85)) drop-shadow(0 0 3px rgba(6,182,212,.6));
-    transition:filter .2s;will-change:transform}
-  html body.cursor-hover #cursor{width:17.6px!important;height:17.6px!important;background-color:transparent;transform:translate3d(var(--mx,0px),var(--my,0px),0) translate(-1.1px,-1.1px) scale(1.14);
-    filter:drop-shadow(0 0 1.5px rgba(150,245,250,1)) drop-shadow(0 0 5px rgba(6,182,212,.95))}
-  html body #cursor-ring{display:none!important}
-}
+/* Cursor personalizado (triángulo de neón) eliminado — se usa el cursor
+   nativo del sistema en toda la app (ver nota junto a "body{}" arriba). */
 
 /* ══════════ Fase 9: las ventanas de Panel general, Constructor APU y Grupos y rubros se ajustan a la pantalla
    igual que Insumos: la tarjeta ocupa el alto disponible, termina con su borde visible y desplaza su contenido por dentro.
@@ -2081,13 +2062,7 @@ body.ia #land { display: none !important; }
 body.ia #app { display: flex; flex-direction: column; height: calc(100svh / 1.18); overflow: hidden; }
 #app { display: none; }
 
-/* ── CURSOR: apply to full app (not only landing) ── */
-@media(hover:hover) and (pointer:fine){
-  body { cursor: none !important; }
-}
-#cursor { z-index: 2147483647 !important; }
-#cursor-ring { z-index: 2147483646 !important; }
-/* cursor-hover: see landing CSS above */
+/* Cursor nativo del sistema en toda la app — ver nota junto a "body{}" al inicio del CSS. */
 
 /* ── PRESUPUESTO: layout 2-col (capítulos + panel rubros lateral) ── */
 #v-pre .pre-layout { display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start; }
@@ -2097,19 +2072,19 @@ body.ia #app { display: flex; flex-direction: column; height: calc(100svh / 1.18
 .grp-sidebar-panel .gsp-header { padding:12px 14px 10px; border-bottom:1px solid var(--br,rgba(0,212,255,.12)); flex-shrink:0; }
 .grp-sidebar-panel .gsp-header h4 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--cy,#00D4FF); margin-bottom:8px; }
 .grp-sidebar-panel .gsp-grp-list { overflow-y:auto; flex:1; }
-.grp-btn { width:100%; text-align:left; padding:9px 14px; font-size:12px; background:none; border:none; border-bottom:1px solid rgba(0,212,255,.05); color:var(--ow,#F0F4FF); cursor:none; transition:background .15s; display:flex; justify-content:space-between; align-items:center; }
+.grp-btn { width:100%; text-align:left; padding:9px 14px; font-size:12px; background:none; border:none; border-bottom:1px solid rgba(0,212,255,.05); color:var(--ow,#F0F4FF); cursor:pointer; transition:background .15s; display:flex; justify-content:space-between; align-items:center; }
 .grp-btn:hover { background:rgba(0,82,255,.12); color:#fff; }
 .grp-btn.active { background:rgba(0,82,255,.18); color:var(--cy,#00D4FF); }
 .grp-btn .grp-badge { font-size:10px; background:rgba(0,212,255,.12); color:var(--cy,#00D4FF); padding:2px 6px; border-radius:20px; flex-shrink:0; }
 .rub-list { overflow-y:auto; flex:1; display:none; }
 .rub-list.visible { display:block; }
-.rub-item { width:100%; text-align:left; padding:8px 14px; font-size:11.5px; background:none; border:none; border-bottom:1px solid rgba(0,212,255,.04); color:var(--ow,#F0F4FF); cursor:none; transition:background .15s; display:flex; flex-direction:column; gap:2px; }
+.rub-item { width:100%; text-align:left; padding:8px 14px; font-size:11.5px; background:none; border:none; border-bottom:1px solid rgba(0,212,255,.04); color:var(--ow,#F0F4FF); cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:2px; }
 .rub-item:hover { background:rgba(0,212,255,.08); }
 .rub-item .ri-code { font-family:var(--f-mo,monospace); font-size:10px; color:var(--cy,#00D4FF); }
 .rub-item .ri-name { font-size:11.5px; line-height:1.35; }
 .rub-item .ri-price { font-size:11px; color:var(--gr); font-family:var(--f-mo,monospace); }
 .rub-item .ri-unit  { font-size:10px; color:var(--sld,#8B9CBD); }
-.gsp-back-btn { background:none; border:none; color:var(--cy,#00D4FF); font-size:11.5px; padding:8px 14px; cursor:none; text-align:left; border-bottom:1px solid var(--br,rgba(0,212,255,.12)); width:100%; display:flex; align-items:center; gap:6px; }
+.gsp-back-btn { background:none; border:none; color:var(--cy,#00D4FF); font-size:11.5px; padding:8px 14px; cursor:pointer; text-align:left; border-bottom:1px solid var(--br,rgba(0,212,255,.12)); width:100%; display:flex; align-items:center; gap:6px; }
 .gsp-back-btn:hover { background:rgba(0,212,255,.06); }
 .gsp-rub-header { padding:10px 14px; border-bottom:1px solid var(--br); font-size:11px; color:var(--sld,#8B9CBD); display:flex; justify-content:space-between; }
 
@@ -2135,7 +2110,7 @@ body.ia #app { display: flex; flex-direction: column; height: calc(100svh / 1.18
 .anp-input { background:rgba(255,255,255,.05); border:1px solid var(--br,rgba(0,212,255,.12)); border-radius:6px; color:var(--ow,#F0F4FF); font-size:12px; padding:5px 8px; width:100%; font-family:var(--f-mo,monospace); text-align:right; height:34px; box-sizing:border-box; }
 .anp-input:focus { outline:none; border-color:var(--cy,#00D4FF); }
 .anp-total { font-family:var(--f-mo,monospace); font-size:12px; color:var(--gr); text-align:right; }
-.anp-add-btn { background:rgba(0,212,255,.08); border:1px dashed rgba(0,212,255,.3); color:var(--cy); font-size:12px; padding:7px 14px; border-radius:7px; cursor:none; width:100%; margin-top:4px; transition:background .15s; }
+.anp-add-btn { background:rgba(0,212,255,.08); border:1px dashed rgba(0,212,255,.3); color:var(--cy); font-size:12px; padding:7px 14px; border-radius:7px; cursor:pointer; width:100%; margin-top:4px; transition:background .15s; }
 .anp-add-btn:hover { background:rgba(0,212,255,.15); }
 .anp-summary { background:rgba(0,82,255,.08); border:1px solid rgba(0,82,255,.2); border-radius:10px; padding:14px 16px; display:grid; grid-template-columns:1fr auto; gap:8px 20px; align-items:center; font-size:12.5px; }
 .anp-summary-total { font-size:17px; font-weight:700; color:var(--gr); font-family:var(--f-mo,monospace); }
@@ -2885,10 +2860,19 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .cro-track-empty{font-size:10.5px;color:var(--sld);padding:0 8px;line-height:18px;font-style:italic}
 .cro-bar{position:absolute;top:2px;height:14px;border-radius:4px;background:rgba(0,212,255,.18);border:1px solid rgba(34,211,238,.5);overflow:hidden}
 .cro-bar-fill{height:100%;background:rgba(34,211,238,.55)}
-.cro-ruler-wrap{position:relative;height:20px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.cro-ruler-wrap{position:relative;height:32px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
 .cro-ruler{position:relative;height:100%}
+/* La primera y última marca se anclan al borde (sin centrar) para que no
+   se corten contra el límite del contenedor; las del medio sí se centran
+   sobre su punto exacto. "HOY" vive en su propia fila (top:16px) para que
+   nunca quede pegada o superpuesta a la marca de fecha que cae en el
+   mismo punto del eje. */
 .cro-ruler-mark{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;color:var(--sld);font-family:var(--f-mo);white-space:nowrap}
-.cro-ruler-today{position:absolute;top:0;transform:translateX(-50%);font-size:9px;font-weight:700;color:#22d3ee;background:rgba(0,212,255,.14);border-radius:3px;padding:0 4px}
+.cro-ruler-mark.first{transform:none}
+.cro-ruler-mark.last{transform:translateX(-100%)}
+.cro-ruler-today{position:absolute;top:16px;transform:translateX(-50%);font-size:9px;font-weight:700;color:#22d3ee;background:rgba(0,212,255,.14);border-radius:3px;padding:0 4px;white-space:nowrap}
+.cro-ruler-today.first{transform:none}
+.cro-ruler-today.last{transform:translateX(-100%)}
 .cro-cat-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--sl)}
 .cro-cat-row span:last-child{font-family:var(--f-mo);font-weight:700;color:var(--sld)}
 @media (max-width:768px){
@@ -2923,9 +2907,6 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 </head>
 <body><svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true" focusable="false"><defs><filter id="lgGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="lgGlowBig" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
-<!-- Cursor custom — fuera de #land para que persista en la app -->
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
 
 <!-- ═══════════════════════════════════════════════════════
      LANDING PAGE — completa, envuelta en #land para el toggle
@@ -3395,71 +3376,10 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 <script>    
 gsap.registerPlugin(ScrollTrigger);
 
-/* CURSOR
-   Antes esto movía el cursor y el anillo con style.left/top: eso obliga al
-   navegador a recalcular el layout de TODA la página en cada mousemove, y
-   encima el anillo corría en un bucle requestAnimationFrame infinito (60
-   veces por segundo, PARA SIEMPRE mientras la pestaña estuviera abierta,
-   sin importar si el mouse se movía o no). Esa era la carga continua de
-   CPU/GPU que calentaba el equipo — no el cambio de pestañas, que dura
-   menos de un segundo.
-   Ahora: (1) solo se actualizan variables CSS (--mx/--my/--rx/--ry), que no
-   tocan layout, dejando que el compositor mueva los elementos vía
-   transform; (2) todo este bloque ni siquiera arranca en dispositivos sin
-   mouse (touch puro), donde el cursor igual está oculto por CSS — así el
-   celular no gasta ciclos en esto en absoluto. */
-if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  const cur = document.getElementById('cursor');
-  const ring = document.getElementById('cursor-ring');
-  const root = document.documentElement.style;
-  let mx = 0, my = 0, rx = 0, ry = 0;
-
-  // El anillo solo necesita re-pintarse mientras se está moviendo (o
-  // "poniéndose al día" tras un movimiento). Antes el requestAnimationFrame
-  // se quedaba corriendo para siempre, incluso con el mouse totalmente
-  // quieto o la pestaña en segundo plano: eso mantenía el compositor del
-  // navegador ocupado sin parar y es lo que notabas como "se pone lento"
-  // o como si la pantalla no llegara a sus 120Hz reales. Ahora el bucle
-  // se detiene en cuanto el anillo alcanza al cursor y solo se reactiva
-  // cuando vuelve a haber movimiento real del mouse.
-  let ringRunning = false;
-
-  function startRingLoop() {
-    if (ringRunning) return;
-    ringRunning = true;
-    requestAnimationFrame(loopRing);
-  }
-
-  function loopRing() {
-    rx += (mx - rx - 20) * 0.12;
-    ry += (my - ry - 20) * 0.12;
-    if (ring) { root.setProperty('--rx', rx + 'px'); root.setProperty('--ry', ry + 'px'); }
-    // Si ya está prácticamente encima del cursor, paramos: no hace falta
-    // seguir pintando 60-120 veces por segundo algo que no se mueve.
-    if (Math.abs(mx - 20 - rx) > 0.3 || Math.abs(my - 20 - ry) > 0.3) {
-      requestAnimationFrame(loopRing);
-    } else {
-      ringRunning = false;
-    }
-  }
-
-  document.addEventListener('mousemove', e => {
-    mx = e.clientX; my = e.clientY;
-    // La posición real donde se registran los clics es siempre
-    // (e.clientX, e.clientY). El CSS (var(--mx)/var(--my) + su propio
-    // translate(-1.1px,-1.1px)) se encarga de que la PUNTA de la flecha
-    // caiga exactamente ahí — no sumar ningún offset extra aquí.
-    if (cur) { root.setProperty('--mx', mx + 'px'); root.setProperty('--my', my + 'px'); }
-    startRingLoop();
-  }, { passive: true });
-
-  // Si el usuario cambia de pestaña/minimiza, no sigas animando en segundo
-  // plano al volver (el navegador ya pausa rAF en pestañas ocultas, pero
-  // dejamos el flag coherente para que no se acumulen bucles al regresar).
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) ringRunning = false;
-  });
-}
+/* Cursor personalizado eliminado por completo: ya no hay listener de
+   mousemove ni bucle requestAnimationFrame dedicados a moverlo — el
+   cursor nativo del sistema no cuesta nada (lo dibuja el SO/GPU fuera
+   del hilo de la página). */
 
 document.querySelectorAll('.magnet, button, a, .chapter-card, .feature-card, .export-card').forEach(el => {
   el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
@@ -8024,13 +7944,17 @@ function croRenderRuler(range){
     const days=Math.round((range.totalDays/marks)*i);
     const dateStr=croAddDays(range.min,days);
     const left=(days/range.totalDays)*100;
-    html+=`<span class="cro-ruler-mark" style="left:${left}%">${formatDateDisplay(dateStr)}</span>`;
+    const edgeCls=i===0?' first':(i===marks?' last':'');
+    html+=`<span class="cro-ruler-mark${edgeCls}" style="left:${left}%">${formatDateDisplay(dateStr)}</span>`;
   }
-  // Marca "HOY" si cae dentro del rango
+  // Marca "HOY" si cae dentro del rango — en su propia fila (debajo de las
+  // fechas) para que nunca se superponga visualmente con la marca de fecha
+  // que cae en el mismo punto del eje (típicamente el día de hoy mismo).
   const today=new Date().toISOString().slice(0,10);
   if(today>=range.min&&today<=range.max){
     const leftToday=(croDaysBetween(range.min,today)/range.totalDays)*100;
-    html+=`<span class="cro-ruler-today" style="left:${leftToday}%">HOY</span>`;
+    const edgeCls=leftToday<=0.5?' first':(leftToday>=99.5?' last':'');
+    html+=`<span class="cro-ruler-today${edgeCls}" style="left:${leftToday}%">HOY</span>`;
   }
   ruler.innerHTML=html;
 }
@@ -11330,7 +11254,7 @@ function anpRowHTML(type, idx, row) {
         onfocus="this.select()"
         oninput="_anpData.${type}[${idx}].rate=parseFloat(this.value)||0;anpUpdateRow('${type}',${idx});anpUpdateSummary()">
       <span class="anp-total" id="anp-row-cost-${type}-${idx}" style="font-size:11.5px;font-weight:600">${cost>0?fmtUSD(cost):'<span style="color:var(--sld)">$0,00</span>'}</span>
-      <button style="background:none;border:none;color:var(--sld);cursor:none;font-size:15px;padding:0;width:22px;text-align:center;line-height:1;transition:color .15s" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--sld)'" onclick="_anpData.${type}.splice(${idx},1);anpRenderRows('${type}');anpUpdateSummary()">×</button>
+      <button style="background:none;border:none;color:var(--sld);cursor:pointer;font-size:15px;padding:0;width:22px;text-align:center;line-height:1;transition:color .15s" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--sld)'" onclick="_anpData.${type}.splice(${idx},1);anpRenderRows('${type}');anpUpdateSummary()">×</button>
     </div>`;
   } else {
     const col4Label = isEquipo ? 'Unidad' : 'Jorna/HH';
@@ -11361,7 +11285,7 @@ function anpRowHTML(type, idx, row) {
         onfocus="this.select()"
         oninput="_anpData.${type}[${idx}].rend=parseFloat(this.value)||1;anpUpdateRow('${type}',${idx});anpUpdateSummary()">
       <span class="anp-total" id="anp-row-cost-${type}-${idx}" style="font-size:11.5px;font-weight:600">${cost>0?fmtUSD(cost):'<span style="color:var(--sld)">$0,00</span>'}</span>
-      <button style="background:none;border:none;color:var(--sld);cursor:none;font-size:15px;padding:0;width:22px;text-align:center;line-height:1;transition:color .15s" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--sld)'" onclick="_anpData.${type}.splice(${idx},1);anpRenderRows('${type}');anpUpdateSummary()">×</button>
+      <button style="background:none;border:none;color:var(--sld);cursor:pointer;font-size:15px;padding:0;width:22px;text-align:center;line-height:1;transition:color .15s" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--sld)'" onclick="_anpData.${type}.splice(${idx},1);anpRenderRows('${type}');anpUpdateSummary()">×</button>
     </div>`;
   }
 }

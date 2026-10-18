@@ -12779,6 +12779,16 @@ function _swapCaps(a, b){
     el.addEventListener('mouseleave', function(){
       rect = null;
     }, {passive: true});
+    // Si la tarjeta cambia de tamaño (ej. el Gantt crece al autocompletar rubros)
+    // mientras el cursor ya está adentro, el "mouseenter" no vuelve a disparar,
+    // así que el rect quedaba viejo (tarjeta "chica") y el brillo se iba fuera
+    // de la zona visible apenas la tarjeta crecía — por eso solo fallaba cuando
+    // había rubros. ResizeObserver invalida el rect cacheado cuando el tamaño
+    // realmente cambia (raro), sin tocar el costo de cada mousemove.
+    if(window.ResizeObserver){
+      var ro = new ResizeObserver(function(){ rect = null; });
+      ro.observe(el);
+    }
   }
 
   // Attach to all existing cards now

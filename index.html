@@ -7571,9 +7571,9 @@ function renderDash(){
     <div class="card kpi"><div class="kl"><span class="pill b">DIRECTO</span></div><div class="kv" id="dgv-cd">${fmtUSD(0)}</div><div class="ks">Costo directo sin AIU ni IVA</div></div>
     <div class="card kpi"><div class="kl"><span class="pill g">RUBROS</span></div><div class="kv" id="dgv-nr">0</div><div class="ks">Rubros en el presupuesto activo</div></div>
     <div class="card kpi"><div class="kl"><span class="pill a">BASE</span></div><div class="kv mono" data-bm-count="pair" style="font-size:clamp(13px,1.6vw,18px);white-space:nowrap">${(typeof bmCountsPairText==='function')?bmCountsPairText():'4.157 \u00b7 2.063'}</div><div class="ks">Insumos · APUs disponibles</div></div>`;
-  bmAnimateNum($id('dgv-total'),total,true);
-  bmAnimateNum($id('dgv-cd'),cd,true);
-  bmAnimateNum($id('dgv-nr'),nr,false);
+  bmAnimateNum($id('dgv-total'),total,true,1600);
+  bmAnimateNum($id('dgv-cd'),cd,true,1600);
+  bmAnimateNum($id('dgv-nr'),nr,false,1600);
 
   CAPS=getCaps();const capTots=CAPS.map((_,i)=>capTotal(i));
   const maxC=Math.max(...capTots,1);
@@ -7609,12 +7609,12 @@ function calcFin(){
     <div class="fc"><div class="fl">Subtotal</div><div class="fv" id="fv-sub">${fmtUSD(0)}</div></div>
     <div class="fc"><div class="fl">IVA ${S.iva||0}%</div><div class="fv" id="fv-iva">${fmtUSD(0)}</div></div>
     <div class="fc hl"><div class="fl">TOTAL GENERAL</div><div class="fv" id="fv-total">${fmtUSD(0)}</div></div>`;
-  bmAnimateNum($id('fv-cd'),t.cd,true);
-  bmAnimateNum($id('fv-ind'),t.ind,true);
-  bmAnimateNum($id('fv-uti'),t.uti,true);
-  bmAnimateNum($id('fv-sub'),t.sub,true);
-  bmAnimateNum($id('fv-iva'),t.iva,true);
-  bmAnimateNum($id('fv-total'),t.total,true);
+  bmAnimateNum($id('fv-cd'),t.cd,true,1600);
+  bmAnimateNum($id('fv-ind'),t.ind,true,1600);
+  bmAnimateNum($id('fv-uti'),t.uti,true,1600);
+  bmAnimateNum($id('fv-sub'),t.sub,true,1600);
+  bmAnimateNum($id('fv-iva'),t.iva,true,1600);
+  bmAnimateNum($id('fv-total'),t.total,true,1600);
   $id('ctp').textContent=S.caps.reduce((a,b)=>a+b.length,0);
   persist();
 }

@@ -2193,6 +2193,15 @@ input[list].anp-input { cursor:text; }
 #anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
   min-width:0; box-sizing:border-box; padding:0 2px;
 }
+/* LA CAUSA REAL del desfase: un <input> dentro de una celda de grid tiene un ancho mínimo
+   "automático" propio (más grande que el de la columna) que lo obliga a ensancharse pasando por
+   encima del minmax() de su columna — el <span> del título no tiene ese problema porque es solo
+   texto. Por eso las columnas de las FILAS quedaban más anchas que las del título y todo se corría.
+   min-width:0 en cada celda de grid anula ese mínimo automático y deja que mande el ancho de la
+   columna, igual para el título y para la fila. */
+#anp-info-row > *, .anp-header-row > *, #anp-equipo-rows > div > *, #anp-mano-rows > div > *, #anp-mat-rows > div > * {
+  min-width:0;
+}
 /* Texto que no cabe en su celda: elipsis en vez de cortarse a lo bruto, y tooltip con el valor completo */
 .anp-input { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .anp-header-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

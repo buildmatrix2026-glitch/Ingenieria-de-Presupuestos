@@ -2241,8 +2241,8 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   #v-pre .pre-sidebar { position: static !important; max-height: 55vh; width: 100%; }
   /* apu-layout handled by iPad-specific block below */
   .apu-right-col { min-width: 0; width: 100%; overflow-x: hidden; }
-  .anp-scroll-wrap { overflow-x: auto; width: 100%; }
-  #anp-info-row { min-width: 460px; }
+  .anp-scroll-wrap { overflow-x: visible; width: 100%; }
+  #anp-info-row { grid-template-columns:13.5% 45% 10.2% 21% 10.2% !important; min-width: 0; width: 100%; }
   #apu-new-panel { overflow-x: hidden; width: 100%; box-sizing: border-box; }
 }
 
@@ -2301,8 +2301,8 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   .apu-list-col { position: static !important; max-height: 40vh; min-width: 0; width: 100%; }
   .apu-right-col { min-width: 0; width: 100%; overflow-x: hidden; }
   #apu-new-panel { width: 100%; box-sizing: border-box; overflow-x: hidden; }
-  .anp-scroll-wrap { overflow-x: auto; width: 100%; }
-  #anp-info-row { grid-template-columns: 68px 1fr 50px 90px 56px !important; gap: 4px !important; min-width: 360px; }
+  .anp-scroll-wrap { overflow-x: visible; width: 100%; }
+  #anp-info-row { grid-template-columns: 13.5% 45% 10.2% 21% 10.2% !important; gap: 4px !important; min-width: 0; width: 100%; }
   #anp-info-row > div > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .anp-header-row { min-width: 480px; }
   .anp-section:nth-of-type(2) .anp-header-row,

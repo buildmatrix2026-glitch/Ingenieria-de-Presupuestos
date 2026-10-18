@@ -2171,25 +2171,34 @@ input[list].anp-input { cursor:text; }
 #anp-mat-rows input.anp-input { min-height:34px; padding:5px 7px; }
 
 /* ── APU: columnas en % — suman siempre 100% del ancho disponible, nunca se desbordan ni se cortan ── */
-#anp-info-row { grid-template-columns:13.5fr 45fr 10.2fr 21fr 10.2fr !important; }
-.anp-section:nth-of-type(2) .anp-header-row,
-.anp-section:nth-of-type(3) .anp-header-row,
-#anp-equipo-rows > div,
-#anp-mano-rows > div {
-  grid-template-columns:11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
-}
-.anp-section:nth-of-type(4) .anp-header-row,
-#anp-mat-rows > div {
-  grid-template-columns:11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
-}
-/* Encabezado y filas deben usar EXACTAMENTE el mismo padding/box-sizing/gap para que las columnas
-   queden una debajo de la otra sin desfase — antes el encabezado tenía padding:0 2px y las filas
-   0, lo que corría sus columnas unas respecto a otras. */
-#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
-  min-width:0; width:100%; box-sizing:border-box; padding:0 2px;
-}
+#anp-info-row { grid-template-columns:13.5fr 45fr 10.2fr 21fr 10.2fr !important; min-width:0; width:100%; box-sizing:border-box; }
 .anp-scroll-wrap { overflow-x:visible; width:100%; }
 #apu-new-panel, .apu-right-col { min-width:0; }
+
+/* Equipo/Mano de obra/Materiales: encabezado y filas desalineados "a mano" (cada uno con su propio
+   grid-template-columns, que debía coincidir en padding/gap/anchos para no desfasarse) — ahora el
+   encabezado y TODAS las filas son celdas de UNA SOLA cuadrícula compartida (cada fila pasa a
+   "display:contents" para que sus celdas se integren directo en esa cuadrícula). Así quedan
+   alineadas por construcción: es imposible que se desfasen entre sí. */
+.anp-section:nth-of-type(2) .anp-scroll-wrap,
+.anp-section:nth-of-type(3) .anp-scroll-wrap {
+  display:grid !important;
+  grid-template-columns:11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
+  column-gap:5px; row-gap:6px; align-items:center;
+}
+.anp-section:nth-of-type(4) .anp-scroll-wrap {
+  display:grid !important;
+  grid-template-columns:11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
+  column-gap:5px; row-gap:6px; align-items:center;
+}
+.anp-section:nth-of-type(2) .anp-header-row,
+.anp-section:nth-of-type(3) .anp-header-row,
+.anp-section:nth-of-type(4) .anp-header-row,
+#anp-equipo-rows, #anp-mano-rows, #anp-mat-rows,
+#anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
+  display:contents !important;
+}
+#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; }
 /* Texto que no cabe en su celda: elipsis en vez de cortarse a lo bruto, y tooltip con el valor completo */
 .anp-input { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .anp-header-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

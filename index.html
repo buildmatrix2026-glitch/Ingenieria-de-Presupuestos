@@ -2170,9 +2170,12 @@ input[list].anp-input { cursor:text; }
 #anp-mano-rows input.anp-input,
 #anp-mat-rows input.anp-input { min-height:34px; padding:5px 7px; }
 
-/* ── APU: columnas en % — suman siempre 100% del ancho disponible, nunca se desbordan ni se cortan ── */
-#anp-info-row { grid-template-columns:13.5fr 45fr 10.2fr 21fr 10.2fr !important; min-width:0; width:100%; box-sizing:border-box; }
-.anp-scroll-wrap { overflow-x:visible; width:100%; }
+/* ── APU: columnas con piso mínimo (minmax) — crecen proporcional en pantallas anchas, pero NUNCA
+   bajan de su ancho mínimo legible (así las etiquetas como "CÓDIGO APU" o "REND. GLOBAL" no se
+   parten en dos líneas ni las cajas quedan diminutas). Si aun así no caben, el contenedor scrollea
+   horizontalmente en vez de aplastar el contenido — nunca se desbordan ni se cortan. ── */
+#anp-info-row { grid-template-columns:minmax(90px,13.5fr) minmax(170px,45fr) minmax(68px,10.2fr) minmax(140px,21fr) minmax(68px,10.2fr) !important; min-width:0; width:100%; box-sizing:border-box; }
+.anp-scroll-wrap { overflow-x:auto; width:100%; }
 #apu-new-panel, .apu-right-col { min-width:0; }
 
 /* Equipo/Mano de obra/Materiales: encabezado y filas desalineados "a mano" (cada uno con su propio
@@ -2183,12 +2186,12 @@ input[list].anp-input { cursor:text; }
 .anp-section:nth-of-type(2) .anp-scroll-wrap,
 .anp-section:nth-of-type(3) .anp-scroll-wrap {
   display:grid !important;
-  grid-template-columns:11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
+  grid-template-columns:minmax(78px,11fr) minmax(170px,42.3fr) minmax(54px,7.6fr) minmax(58px,8.2fr) minmax(74px,10.4fr) minmax(58px,8.2fr) minmax(64px,9fr) minmax(24px,3.4fr) !important;
   column-gap:5px; row-gap:6px; align-items:center;
 }
 .anp-section:nth-of-type(4) .anp-scroll-wrap {
   display:grid !important;
-  grid-template-columns:11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
+  grid-template-columns:minmax(78px,11.9fr) minmax(170px,45.6fr) minmax(58px,8.8fr) minmax(60px,9.1fr) minmax(74px,11.2fr) minmax(64px,9.7fr) minmax(24px,3.6fr) !important;
   column-gap:5px; row-gap:6px; align-items:center;
 }
 .anp-section:nth-of-type(2) .anp-header-row,

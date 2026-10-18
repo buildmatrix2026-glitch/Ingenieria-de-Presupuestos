@@ -840,11 +840,10 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--cy);outline-off
 .ni.ac{box-shadow:inset 0 0 0 1px rgba(0,212,255,.12),0 0 22px -8px rgba(0,82,255,.55)}
 .ni.ac::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:60%;border-radius:3px;background:var(--cy);box-shadow:0 0 8px 1px var(--cy)}
 .mn{position:relative}
-.mn::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0px,rgba(255,255,255,.012) 1px,transparent 1px,transparent 3px);
-}
-/* (sin capa z-index en los hijos de .mn: las ventanas flotantes deben poder cubrir la barra superior) */
+/* Se quitó el overlay de líneas (repeating-linear-gradient) que vivía aquí:
+   al ser position:fixed se pintaba por ENCIMA de las tarjetas, así que
+   dejarlas 100% opacas no lo tapaba — seguía viéndose sobre cualquier
+   panel grande. Cero overlay = cero líneas, en cualquier tamaño de tarjeta. */
 .card{
   background:linear-gradient(165deg,var(--s3),var(--s2));border:1px solid var(--br);border-radius:var(--r3);
   position:relative;overflow:hidden;
@@ -3836,7 +3835,11 @@ gsap.fromTo('.chapter-card',
         </div>
 
         <!-- KPIs de avance -->
-        <div class="card" style="padding:16px 20px;margin-bottom:14px;display:flex;gap:28px;flex-wrap:wrap;align-items:center">
+        <!-- align-items:flex-start (no "center"): el bloque "Gastado real" tiene
+             una línea extra de detalle debajo, así que si se centran verticalmente
+             su título queda más arriba que los demás. Con flex-start todos los
+             títulos arrancan exactamente en la misma línea. -->
+        <div class="card" style="padding:16px 20px;margin-bottom:14px;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
           <div>
             <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance planificado (hoy)</div>
             <div id="cro-kpi-plan" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#00d4ff">0%</div>

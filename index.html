@@ -881,6 +881,11 @@ html[data-theme="dark"] #app .mo{
   box-shadow:0 0 0 1px rgba(6,182,212,.08),0 10px 28px -16px rgba(6,182,212,.28);
 }
 html[data-theme="dark"] #app .mo{box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px rgba(6,182,212,.1),0 0 28px -14px rgba(6,182,212,.32)}
+/* El Gantt del Cronograma crece mucho en alto (una fila por cada rubro), y ese degradado
+   de 180deg que usan las demás tarjetas, al estirarse sobre tanto espacio vertical, generaba
+   un "banding" de 8 bits que el navegador rellena con dithering — se ve como líneas finas
+   repetidas, solo en esta tarjeta porque es la única tan alta. Fondo plano = nada que ditherear. */
+html[data-theme="dark"] #app #cro-gantt-card{background:radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),#0d1422!important}
 html[data-theme="dark"] #app .card:hover,
 html[data-theme="dark"] #app .kpi:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 12px 32px -16px rgba(6,182,212,.42)}
 html[data-theme="dark"] #app .kpi .kl{font-family:var(--f-mo);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
@@ -3867,7 +3872,7 @@ gsap.fromTo('.chapter-card',
         </div>
 
         <!-- Gantt -->
-        <div class="card" style="padding:16px 20px">
+        <div class="card" id="cro-gantt-card" style="padding:16px 20px">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px">Diagrama de Gantt por rubro</div>
           <div class="cro-ruler-wrap"><div class="cro-ruler" id="cro-ruler"></div></div>
           <div id="cro-gantt-body"></div>

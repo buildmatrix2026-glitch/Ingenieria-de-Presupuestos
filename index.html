@@ -22628,7 +22628,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     return hit || CAP_FALLBACK;
   }
 
-  var PIA = { files: [], rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '', tipoProyecto: '', unidadesDetectadas: 0, alcancePresupuestado: '', especialidadesDetectadas: [], elementosDetectados: null };
+  var PIA = { files: [], rubros: [], activeTab: 'Todos', aiuPct: 15, ivaPct: 15, tok: null, areaM2: 0, cobertura: '', tipoProyecto: '', unidadesDetectadas: 0, alcancePresupuestado: '', especialidadesDetectadas: [], elementosDetectados: null, ultimoModeloUsado: '' };
   var ESP_LABELS = { ARQUITECTONICO: 'Arquitectónico', ESTRUCTURAL: 'Estructural', HIDROSANITARIO: 'Hidrosanitario', ELECTRICO: 'Eléctrico', CUBIERTA: 'Cubierta' };
   var TIPO_LABELS = {
     VIVIENDA_UNIFAMILIAR: 'Vivienda unifamiliar', VIVIENDA_PAREADA_DUPLEX: 'Vivienda pareada / dúplex (dos unidades adosadas)',
@@ -23370,27 +23370,45 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     catch (e) { return ''; }
   }
 
+  // Último modelo que SÍ respondió con éxito, para preferirlo en la próxima corrida (en vez de siempre arrancar
+  // por PIA_MODEL) — esto reduce cuánto "salta" de modelo en modelo cuando el principal anda con cuota agotada,
+  // que es justo lo que hace que presupuestos del MISMO plano salgan distintos entre una corrida y otra: cada
+  // modelo es una red distinta y con temperature=0 cada uno es consistente CONSIGO MISMO, pero no entre ellos.
+  function lastGoodModel() { try { return localStorage.getItem('bm_pia_last_model') || ''; } catch (e) { return ''; } }
+  function setLastGoodModel(m) { try { localStorage.setItem('bm_pia_last_model', m); } catch (e) {} }
+
   async function callGeminiForBudget(parts, tok, onRetry) {
     var key = getKey();
     if (!key) throw { code: 'NO_KEY' };
     var models = [PIA_MODEL].concat(PIA_MODEL_FALLBACKS);
+    var preferido = lastGoodModel();
+    if (preferido && models.indexOf(preferido) > 0) {
+      models = [preferido].concat(models.filter(function (m) { return m !== preferido; }));
+    }
     var backoff = [2000, 4000, 7000], lastErr = null, t0 = Date.now();
     for (var round = 0; round < 3; round++) {
+      var todosCuota = true;
       for (var i = 0; i < models.length; i++) {
         if (tok && tok.cancelled) throw { code: 'CANCEL' };
         var r = await sendOnce(models[i], parts, key, tok);
-        if (r.timeout) { lastErr = { code: 'TIMEOUT' }; continue; }
+        if (r.timeout) { lastErr = { code: 'TIMEOUT' }; todosCuota = false; continue; }
         if (r.resp.ok) {
           var text = extractText(r.body);
-          if (!text) { lastErr = { code: 'EMPTY' }; continue; }
+          if (!text) { lastErr = { code: 'EMPTY' }; todosCuota = false; continue; }
+          setLastGoodModel(models[i]);
+          PIA.ultimoModeloUsado = models[i];
           return text;
         }
         if (r.invalidKey) throw { code: 'BAD_KEY', msg: r.msg };
-        if (r.resp.status === 404) { lastErr = { code: 'NO_MODEL' }; continue; }
+        if (r.resp.status === 404) { lastErr = { code: 'NO_MODEL' }; todosCuota = false; continue; }
         if (r.resp.status === 429) { lastErr = { code: 'QUOTA', msg: r.msg }; continue; }
-        if (r.resp.status >= 500) { lastErr = { code: 'SERVER', msg: r.msg }; continue; }
+        if (r.resp.status >= 500) { lastErr = { code: 'SERVER', msg: r.msg }; todosCuota = false; continue; }
         throw { code: 'HTTP', status: r.resp.status, msg: r.msg };
       }
+      // Si TODOS los modelos (principal + respaldos) devolvieron 429 en esta ronda, es cuota agotada de verdad
+      // (por minuto o por día) — reintentar en 2-7 segundos casi nunca la libera, así que no tiene sentido gastar
+      // 3 rondas completas (hasta ~13s de espera + 18 llamadas) solo para fallar igual; se corta aquí mismo.
+      if (todosCuota) break;
       if (round < 2 && Date.now() - t0 < 240000) {
         if (onRetry) { try { onRetry(round + 1); } catch (e) {} }
         await sleep(backoff[round] || 6000);
@@ -23399,61 +23417,83 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     throw lastErr || { code: 'NO_MODEL' };
   }
 
-  /* ─────────────── Investigación de precios de mercado (Google Search grounding) ───────────────
-     Una llamada aparte, con la herramienta de búsqueda de Google activada, para cotejar precios actuales de
-     materiales clave contra ferreterías de Ibarra y el mercado nacional. Se cachea 7 días: los precios de
-     materiales no cambian de un día para otro, y así no se gasta cuota de Gemini en cada generación. Si falla
-     o no hay cuota, el presupuesto se genera igual (con la calibración de 450 USD/m2 como respaldo). */
-  var MARKET_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-  var MARKET_ITEMS = [
-    'saco de cemento 50kg', 'bloque de hormigón 15x20x40', 'varilla de acero de refuerzo fy4200 (precio por kg)',
-    'tubería PVC presión 1/2" y desagüe 110mm', 'cable eléctrico THHN #12 y #10 (precio por metro)',
-    'cerámica de piso 30x30 o similar (precio por m2)', 'pintura látex interior (precio por galón)',
-    'plancha de gypsum y perfilería para cielo raso', 'inodoro y lavamanos de línea económica/media',
-    'plancha de zinc o teja para cubierta'
+  /* ─────────────── Motor LOCAL de precios de materiales (SIN IA) ───────────────
+     El usuario pidió explícitamente sacar la IA de todo lo que no sea indispensable: leer el plano sí necesita
+     IA (interpretar geometría/dibujo), pero mirar una tabla de precios y decir "este material cuesta tanto en
+     tal ferretería" NO necesita IA — es una búsqueda en una tabla, y una tabla no tiene cuota, no cambia de
+     "modelo" entre corridas, y no falla con 429. Esta tabla vive en localStorage, el usuario la edita él mismo
+     desde el botón "Editar precios" en la ventana de ferreterías, y arranca con valores de referencia (hay que
+     corregirlos con el precio real que el usuario vea en cada ferretería — son solo un punto de partida). */
+  var PRICE_DB_KEY = 'bm_pia_price_db_v1';
+  var PRICE_DB_DEFAULT = [
+    { kw: ['cemento'], nombre: 'Saco de cemento 50kg', unidad: 'saco', precio: 8.5, tienda: 'Disensa Ibarra' },
+    { kw: ['bloque', 'hormigon', 'hormigón'], nombre: 'Bloque de hormigón 15x20x40', unidad: 'u', precio: 0.45, tienda: 'Kywi Ibarra' },
+    { kw: ['varilla', 'acero', 'refuerzo', 'fy4200'], nombre: 'Varilla de acero de refuerzo fy4200', unidad: 'kg', precio: 1.1, tienda: 'Ferricentro Comercial Trejo' },
+    { kw: ['tuberia', 'tubería', 'pvc', 'presion', 'presión'], nombre: 'Tubería PVC presión 1/2"', unidad: 'm', precio: 1.8, tienda: 'Kywi Ibarra' },
+    { kw: ['tuberia', 'tubería', 'desague', 'desagüe', 'alcantarillado'], nombre: 'Tubería PVC desagüe 110mm', unidad: 'm', precio: 6.5, tienda: 'Kywi Ibarra' },
+    { kw: ['cable', 'thhn', '12', 'electrico', 'eléctrico'], nombre: 'Cable eléctrico THHN #12', unidad: 'm', precio: 0.55, tienda: 'Almacén Ferroelectrico' },
+    { kw: ['cable', 'thhn', '10', 'electrico', 'eléctrico'], nombre: 'Cable eléctrico THHN #10', unidad: 'm', precio: 0.85, tienda: 'Almacén Ferroelectrico' },
+    { kw: ['ceramica', 'cerámica', 'porcelanato', 'piso'], nombre: 'Cerámica de piso 30x30', unidad: 'm2', precio: 9, tienda: 'Disensa Ibarra' },
+    { kw: ['pintura', 'latex', 'látex'], nombre: 'Pintura látex interior', unidad: 'galón', precio: 18, tienda: 'Kywi Ibarra' },
+    { kw: ['gypsum', 'cielo', 'raso', 'perfileria', 'perfilería'], nombre: 'Plancha de gypsum', unidad: 'plancha', precio: 9.5, tienda: 'Kywi Ibarra' },
+    { kw: ['inodoro', 'lavamanos', 'sanitario'], nombre: 'Inodoro + lavamanos línea económica', unidad: 'juego', precio: 120, tienda: 'Disensa Ibarra' },
+    { kw: ['zinc', 'teja', 'cubierta'], nombre: 'Plancha de zinc/teja para cubierta', unidad: 'm2', precio: 7.5, tienda: 'Almacén El Perno' },
+    { kw: ['enlucido', 'mortero', 'arena', 'cemento'], nombre: 'Enlucido (mortero cemento-arena)', unidad: 'm2', precio: 5.5, tienda: 'Disensa Ibarra' },
+    { kw: ['contrapiso'], nombre: 'Contrapiso de hormigón simple', unidad: 'm2', precio: 8, tienda: 'Disensa Ibarra' },
+    { kw: ['brocha', 'rodillo', 'pintura'], nombre: 'Rodillo + brocha para pintura', unidad: 'juego', precio: 6, tienda: 'Kywi Ibarra' },
+    { kw: ['puerta', 'tablero'], nombre: 'Puerta de tablero (interior)', unidad: 'u', precio: 65, tienda: 'FerroGer' },
+    { kw: ['ventana', 'aluminio', 'vidrio'], nombre: 'Ventana de aluminio y vidrio', unidad: 'm2', precio: 45, tienda: 'Almacén El Perno' },
+    { kw: ['toma', 'tomacorriente', 'interruptor', 'electrico', 'eléctrico'], nombre: 'Tomacorriente/interruptor', unidad: 'u', precio: 2.8, tienda: 'Almacén Ferroelectrico' }
   ];
-  function marketPrompt() {
-    return 'Eres un investigador de precios de materiales de construcción en Ecuador. Busca en internet los ' +
-      'precios ACTUALES (de hoy) de los siguientes materiales, priorizando estas ferreterías/distribuidoras ' +
-      'reales de Ibarra, Imbabura, en este orden (mayor tamaño/variedad primero): Kywi Ibarra (Av. Mariano Acosta), ' +
-      'Disensa Ibarra (Cristóbal de Troya), Almacén Ferroelectrico (Av. Cristóbal de Troya), Ferricentro Comercial ' +
-      'Trejo (Av. Fray Vacas Galindo), Almacén El Perno (Av. Mariano Acosta), FerroGer (Simón Bolívar) — y si ' +
-      'ninguna de estas tiene precio público disponible, usa el precio promedio de mercado nacional ecuatoriano: ' +
-      MARKET_ITEMS.join('; ') + '. Para cada material, responde en una línea con el formato "material — precio ' +
-      'USD (unidad) — fuente/tienda si la identificaste". Sé breve y concreto, sin introducciones ni conclusiones, ' +
-      'solo la lista de precios encontrados.';
-  }
-  function cacheKey(suffix) { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + (suffix || ''); }
-  function readMarketCache() {
-    var meta = readMarketCacheMeta('');
-    return meta ? meta.text : null;
-  }
-  function readMarketCacheMeta(suffix) {
-    var prefix = 'bm_pia_market_' + (suffix || '');
+  function loadPriceDB() {
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        // con suffix vacío, sólo debe matchear las entradas "bm_pia_market_<fecha>" sin sufijo adicional
-        // (la clave de ferretería-por-presupuesto usa su propio suffix "_budget_<hash>"), por eso se compara
-        // que lo que sigue al prefijo sea una fecha pura (8 dígitos) cuando suffix === ''.
-        if (!k || k.indexOf(prefix) !== 0) continue;
-        if (!suffix) { var rest = k.slice(prefix.length); if (!/^\d{8}$/.test(rest)) continue; }
-        var v = JSON.parse(localStorage.getItem(k) || 'null');
-        if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v;
-        if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
-      }
+      var raw = localStorage.getItem(PRICE_DB_KEY);
+      if (raw) { var v = JSON.parse(raw); if (Array.isArray(v) && v.length) return v; }
     } catch (e) {}
-    return null;
+    return PRICE_DB_DEFAULT.slice();
   }
-  function writeMarketCache(text, suffix) {
-    try { localStorage.setItem(cacheKey(suffix), JSON.stringify({ ts: Date.now(), text: text })); } catch (e) {}
+  function savePriceDB(db) { try { localStorage.setItem(PRICE_DB_KEY, JSON.stringify(db)); } catch (e) {} }
+
+  var STOPWORDS = { de: 1, del: 1, la: 1, el: 1, los: 1, las: 1, y: 1, en: 1, con: 1, para: 1, por: 1, un: 1, una: 1, o: 1, a: 1, incluye: 1, suministro: 1, instalacion: 1, instalación: 1 };
+  function tokenize(s) {
+    return String(s || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // quita tildes para comparar sin importar acentos
+      .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !STOPWORDS[w]; });
+  }
+  /* Busca en la tabla local la entrada cuyas palabras clave más se repiten dentro de la descripción del rubro.
+     Es un match por palabras (no exacto), así "Suministro e instalación de bloque de hormigón 15x20x40" sí
+     encuentra la entrada "bloque" aunque el texto completo no sea idéntico. */
+  function matchPriceDB(desc, db) {
+    var words = tokenize(desc);
+    if (!words.length) return null;
+    var best = null, bestScore = 0;
+    db.forEach(function (entry) {
+      var kws = (entry.kw || []).map(function (k) { return tokenize(k)[0] || k.toLowerCase(); });
+      var score = kws.filter(function (k) { return words.indexOf(k) >= 0; }).length;
+      if (score > bestScore) { bestScore = score; best = entry; }
+    });
+    return bestScore > 0 ? best : null;
   }
 
-  /* ───── Precios por ferretería SEGÚN LOS MATERIALES REALES DEL PRESUPUESTO YA GENERADO ─────
-     A diferencia de marketPrompt() (lista fija genérica, usada para calibrar el presupuesto ANTES de generarlo),
-     esto toma los rubros que la IA ya calculó para este proyecto concreto y le pide a Gemini que compare precio
-     por ferretería específica y diga cuál es la más económica para cada uno — así la ventana sirve para ir a
-     comprar, no solo para ver un precio suelto. */
+  /* Lista de ferreterías priorizadas en Ibarra — editable solo a través de la tabla de precios de arriba
+     (cambiar la "tienda" de cada material ahí es lo que decide qué ferretería aparece como recomendada). */
+  var FERR_IBARRA = [
+    { nombre: 'Kywi Ibarra', dir: 'Av. Mariano Acosta' },
+    { nombre: 'Disensa Ibarra', dir: 'Av. Cristóbal de Troya' },
+    { nombre: 'Almacén Ferroelectrico', dir: 'Av. Cristóbal de Troya' },
+    { nombre: 'Ferricentro Comercial Trejo', dir: 'Av. Fray Vacas Galindo' },
+    { nombre: 'Almacén El Perno', dir: 'Av. Mariano Acosta' },
+    { nombre: 'FerroGer', dir: 'Simón Bolívar' }
+  ];
+
+  /* Texto de calibración para el prompt del presupuesto (reemplaza la vieja investigación en vivo con Gemini):
+     se arma al instante desde la tabla local, sin ninguna llamada a la red. */
+  function genericMarketText() {
+    var db = loadPriceDB();
+    return db.map(function (e) { return e.nombre + ' — ' + fmtUSD(e.precio) + ' (' + e.unidad + ') — ' + e.tienda; }).join('\n');
+  }
+  async function getMarketResearch() { return genericMarketText(); }   // async por compatibilidad con el resto del código; ya no llama a Gemini
+
   function materialesClaveDelPresupuesto() {
     if (!PIA.rubros || !PIA.rubros.length) return [];
     var vistos = {};
@@ -23470,140 +23510,83 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       })
       .slice(0, 18);
   }
-  function marketBudgetPrompt(items) {
-    return 'Eres un investigador de precios de materiales de construcción en Ibarra, Ecuador. Para cada uno de ' +
-      'estos materiales/rubros de un presupuesto real de construcción, busca en internet el precio ACTUAL (de hoy) ' +
-      'en estas ferreterías/distribuidoras de Ibarra, Imbabura, y dime en CUÁL de ellas sale más económico: Kywi ' +
-      'Ibarra (Av. Mariano Acosta), Disensa Ibarra (Av. Cristóbal de Troya), Almacén Ferroelectrico (Av. Cristóbal ' +
-      'de Troya), Ferricentro Comercial Trejo (Av. Fray Vacas Galindo), Almacén El Perno (Av. Mariano Acosta), ' +
-      'FerroGer (Simón Bolívar). Si ninguna de ellas tiene precio público verificable para un material, usa el ' +
-      'precio promedio de mercado nacional ecuatoriano y dilo. Materiales/rubros: ' + items.join(' ||| ') + '. ' +
-      'Responde EXACTAMENTE una línea por material, con este formato fijo separado por "||" (cuatro partes, ' +
-      'ninguna vacía salvo la última): "material || tienda más económica (o \'mercado nacional\' si ninguna ' +
-      'ferretería listada tiene el dato) || precio USD y unidad || nota breve opcional (ej: otra tienda y su ' +
-      'precio si también lo encontraste)". No agregues introducción ni conclusión, solo las líneas.';
+  /* Para cada rubro del presupuesto ya generado, busca coincidencia en la tabla local y arma la fila
+     {material, tienda, precio, nota} — instantáneo, sin red, sin cuota. Si no hay coincidencia, lo dice
+     explícitamente en vez de inventar un precio. */
+  function budgetMarketRows() {
+    var db = loadPriceDB();
+    return materialesClaveDelPresupuesto().map(function (desc) {
+      var m = matchPriceDB(desc, db);
+      if (!m) return { material: desc, tienda: '', precio: '', nota: 'sin coincidencia en tu tabla de precios — agrégalo con "Editar precios"' };
+      return { material: desc, tienda: m.tienda, precio: fmtUSD(m.precio) + ' / ' + m.unidad, nota: '' };
+    });
   }
-  async function getMarketResearchForBudget(onStatus) {
-    PIA_MARKET_LAST_ERR = '';
-    var items = materialesClaveDelPresupuesto();
-    if (!items.length) { PIA_MARKET_LAST_ERR = 'NO_BUDGET'; return null; }
-    var suffix = '_budget_' + items.join('|').length + '_' + items.length; // cambia si cambian los rubros del presupuesto
-    var cached = readMarketCacheMeta(suffix);
-    if (cached) return cached.text;
-    var key = getKey();
-    if (!key) { PIA_MARKET_LAST_ERR = 'NO_KEY'; return null; }
-    if (onStatus) onStatus();
-    try {
-      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 60000) : null;
-      var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        signal: ctrl ? ctrl.signal : undefined,
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketBudgetPrompt(items) }] }], tools: [{ google_search: {} }], generationConfig: { temperature: 0 } })
+
+  function priceEditorHtml(db) {
+    return db.map(function (e, i) {
+      return '<div class="pia-ferr-row" data-i="' + i + '">' +
+        '<input type="text" class="pia-pe-nombre" value="' + esc(e.nombre) + '" placeholder="Material" style="flex:2;min-width:140px">' +
+        '<input type="text" class="pia-pe-tienda" value="' + esc(e.tienda) + '" placeholder="Ferretería" style="flex:1.3;min-width:110px">' +
+        '<input type="number" step="0.01" class="pia-pe-precio" value="' + e.precio + '" placeholder="Precio" style="width:70px">' +
+        '<input type="text" class="pia-pe-unidad" value="' + esc(e.unidad) + '" placeholder="unidad" style="width:60px">' +
+        '<input type="text" class="pia-pe-kw" value="' + esc((e.kw || []).join(', ')) + '" placeholder="palabras clave" style="flex:1.2;min-width:110px" title="Palabras que identifican este material dentro de la descripción de un rubro">' +
+        '<button type="button" class="pia-pe-del" title="Eliminar" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:16px;padding:0 4px">&times;</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  function openPriceEditor(onSaved) {
+    var db = loadPriceDB();
+    var modal = document.createElement('div');
+    modal.id = 'pia-pe-modal';
+    modal.className = 'pia-modal-overlay';
+    modal.style.zIndex = 99990;
+    modal.innerHTML = '<div class="pia-modal-box">' +
+      '<div class="pia-modal-head"><div class="pia-modal-title">Editar tabla de precios</div><button type="button" class="pia-modal-close" id="pia-pe-close">&times;</button></div>' +
+      '<div class="pia-modal-sub">Tú mantienes estos precios al día (no depende de internet ni de IA). "Palabras clave" son las que BuildMatrix busca dentro de la descripción del rubro para encontrar este material.</div>' +
+      '<div class="pia-modal-body">' +
+      '<div id="pia-pe-rows" style="display:flex;flex-direction:column;gap:6px">' + priceEditorHtml(db) + '</div>' +
+      '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">' +
+      '<button type="button" class="pia-btn" id="pia-pe-add">+ Agregar material</button>' +
+      '<button type="button" class="pia-btn" id="pia-pe-reset">Restaurar valores por defecto</button>' +
+      '<button type="button" class="pia-btn pia-btn-primary" id="pia-pe-save">Guardar</button>' +
+      '</div></div></div>';
+    document.body.appendChild(modal);
+    function close() { modal.remove(); }
+    document.getElementById('pia-pe-close').addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    var rowsEl = document.getElementById('pia-pe-rows');
+    rowsEl.addEventListener('click', function (e) {
+      if (e.target.classList.contains('pia-pe-del')) { e.target.closest('.pia-ferr-row').remove(); }
+    });
+    document.getElementById('pia-pe-add').addEventListener('click', function () {
+      var div = document.createElement('div');
+      div.innerHTML = priceEditorHtml([{ nombre: '', tienda: '', precio: 0, unidad: '', kw: [] }]);
+      rowsEl.appendChild(div.firstChild);
+    });
+    document.getElementById('pia-pe-reset').addEventListener('click', function () {
+      if (!confirm('¿Restaurar la tabla de precios a los valores por defecto? Se perderán tus cambios.')) return;
+      rowsEl.innerHTML = priceEditorHtml(PRICE_DB_DEFAULT);
+    });
+    document.getElementById('pia-pe-save').addEventListener('click', function () {
+      var rows = rowsEl.querySelectorAll('.pia-ferr-row');
+      var out = [];
+      rows.forEach(function (row) {
+        var nombre = row.querySelector('.pia-pe-nombre').value.trim();
+        if (!nombre) return;
+        var kwTxt = row.querySelector('.pia-pe-kw').value.trim();
+        out.push({
+          nombre: nombre,
+          tienda: row.querySelector('.pia-pe-tienda').value.trim(),
+          precio: parseFloat(row.querySelector('.pia-pe-precio').value) || 0,
+          unidad: row.querySelector('.pia-pe-unidad').value.trim(),
+          kw: kwTxt ? kwTxt.split(',').map(function (k) { return k.trim(); }).filter(Boolean) : tokenize(nombre).slice(0, 3)
+        });
       });
-      if (timer) clearTimeout(timer);
-      var body = await resp.json().catch(function () { return null; });
-      if (!resp.ok) {
-        var apiMsg = (body && body.error && body.error.message) || (resp.status + ' ' + resp.statusText);
-        PIA_MARKET_LAST_ERR = 'Gemini respondió con error (' + resp.status + '): ' + apiMsg;
-        try { console.error('[Ferreterías] getMarketResearchForBudget falló:', PIA_MARKET_LAST_ERR, body); } catch (e2) {}
-        return null;
-      }
-      var text = extractText(body);
-      if (!text) { PIA_MARKET_LAST_ERR = 'Gemini respondió pero sin texto de precios utilizable.'; return null; }
-      writeMarketCache(text, suffix);
-      return text;
-    } catch (e) {
-      PIA_MARKET_LAST_ERR = 'No se pudo conectar con Gemini: ' + ((e && e.message) || e);
-      try { console.error('[Ferreterías] excepción en getMarketResearchForBudget:', e); } catch (e2) {}
-      return null;
-    }
-  }
-
-  // Motivo exacto del último fallo de getMarketResearch, para que el modal de ferreterías pueda mostrar algo más
-  // útil que "sin clave o sin conexión" cuando en realidad sí hay clave y el problema es otro (cuota agotada,
-  // modelo saturado, respuesta sin JSON de precios, etc.) — se revisó esto porque el usuario reportó el mensaje
-  // genérico aunque su clave de Gemini sí estaba configurada.
-  var PIA_MARKET_LAST_ERR = '';
-  async function getMarketResearch(onStatus) {
-    PIA_MARKET_LAST_ERR = '';
-    var cached = readMarketCache();
-    if (cached) return cached;
-    var key = getKey();
-    if (!key) { PIA_MARKET_LAST_ERR = 'NO_KEY'; return null; }
-    if (onStatus) onStatus();
-    try {
-      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 45000) : null;
-      var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        signal: ctrl ? ctrl.signal : undefined,
-        // temperature EN 0: esta búsqueda de precios también se guardaba en caché, pero si la caché vencía y se
-        // volvía a consultar sin temperatura fija, Google usaba su valor por defecto (no determinístico) y los
-        // precios de referencia cambiaban de una corrida a otra aunque el plano fuera el mismo.
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketPrompt() }] }], tools: [{ google_search: {} }], generationConfig: { temperature: 0 } })
-      });
-      if (timer) clearTimeout(timer);
-      var body = await resp.json().catch(function () { return null; });
-      if (!resp.ok) {
-        var apiMsg = (body && body.error && body.error.message) || (resp.status + ' ' + resp.statusText);
-        PIA_MARKET_LAST_ERR = 'Gemini respondió con error (' + resp.status + '): ' + apiMsg;
-        try { console.error('[Ferreterías] getMarketResearch falló:', PIA_MARKET_LAST_ERR, body); } catch (e2) {}
-        return null;
-      }
-      var text = extractText(body);
-      if (!text) {
-        PIA_MARKET_LAST_ERR = 'Gemini respondió pero sin texto de precios utilizable.';
-        try { console.error('[Ferreterías] respuesta vacía:', body); } catch (e2) {}
-        return null;
-      }
-      writeMarketCache(text);
-      return text;
-    } catch (e) {
-      PIA_MARKET_LAST_ERR = 'No se pudo conectar con Gemini: ' + ((e && e.message) || e);
-      try { console.error('[Ferreterías] excepción en getMarketResearch:', e); } catch (e2) {}
-      return null;
-    }
-  }
-
-  /* Lista de ferreterías priorizadas (las mismas que usa marketPrompt para buscar precio real) — se muestra tal
-     cual aunque la búsqueda de precios falle, porque de todas formas sirve como guía de dónde cotizar. */
-  var FERR_IBARRA = [
-    { nombre: 'Kywi Ibarra', dir: 'Av. Mariano Acosta' },
-    { nombre: 'Disensa Ibarra', dir: 'Av. Cristóbal de Troya' },
-    { nombre: 'Almacén Ferroelectrico', dir: 'Av. Cristóbal de Troya' },
-    { nombre: 'Ferricentro Comercial Trejo', dir: 'Av. Fray Vacas Galindo' },
-    { nombre: 'Almacén El Perno', dir: 'Av. Mariano Acosta' },
-    { nombre: 'FerroGer', dir: 'Simón Bolívar' }
-  ];
-
-  /* Convierte el texto plano que devuelve Gemini ("material — precio USD (unidad) — fuente/tienda") en filas
-     {material, precio, fuente} para no mostrar el texto crudo apilado (mismo problema que ya resolvimos en el
-     cuadro de elementos). Si una línea no trae las 3 partes separadas por "—", se muestra igual como texto simple
-     en vez de perderla. Usado solo como respaldo genérico (sin presupuesto generado todavía). */
-  function parseMarketLines(text) {
-    if (!text) return [];
-    return String(text).split('\n').map(function (l) { return l.replace(/^[\s•\-\*\d\.\)]+/, '').trim(); })
-      .filter(function (l) { return l.length > 2; })
-      .map(function (l) {
-        var parts = l.split(/[—–]/).map(function (p) { return p.trim(); }).filter(Boolean);
-        if (parts.length >= 2) return { material: parts[0], precio: parts[1], fuente: parts[2] || '' };
-        return { material: l, precio: '', fuente: '' };
-      });
-  }
-
-  /* Convierte el formato fijo "material || tienda más económica || precio || nota" (el que pide
-     marketBudgetPrompt) en filas {material, tienda, precio, nota}. Si una línea no trae las 4 partes con "||",
-     se intenta igual con el parser genérico de arriba en vez de perder la línea. */
-  function parseMarketBudgetLines(text) {
-    if (!text) return [];
-    return String(text).split('\n').map(function (l) { return l.replace(/^[\s•\-\*\d\.\)]+/, '').trim(); })
-      .filter(function (l) { return l.length > 2; })
-      .map(function (l) {
-        if (l.indexOf('||') === -1) { var g = parseMarketLines(l)[0]; return g ? { material: g.material, tienda: g.fuente, precio: g.precio, nota: '' } : null; }
-        var parts = l.split('||').map(function (p) { return p.trim(); });
-        return { material: parts[0] || '', tienda: parts[1] || '', precio: parts[2] || '', nota: parts[3] || '' };
-      }).filter(Boolean).filter(function (r) { return r.material; });
+      savePriceDB(out);
+      close();
+      if (onSaved) onSaved();
+    });
   }
 
   function openFerreteriasModal() {
@@ -23611,80 +23594,47 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       return '<div>• <b>' + esc(f.nombre) + '</b> — ' + esc(f.dir) + '</div>';
     }).join('');
     var usandoPresupuesto = materialesClaveDelPresupuesto().length > 0;
-    var modal = document.createElement('div');
-    modal.id = 'pia-ferr-modal';
-    modal.className = 'pia-modal-overlay';
-    modal.innerHTML = '<div class="pia-modal-box">' +
-      '<div class="pia-modal-head"><div class="pia-modal-title">Ferreterías y precios de materiales (Ibarra)</div><button type="button" class="pia-modal-close" id="pia-ferr-close">&times;</button></div>' +
-      '<div class="pia-modal-sub">' + (usandoPresupuesto
-        ? 'Según los rubros de TU presupuesto actual: en cuál ferretería sale más económico cada material — se actualiza solo si el presupuesto cambia o pasan 7 días.'
-        : 'Lista genérica de referencia — genera un presupuesto primero para ver, material por material, en cuál ferretería te conviene comprar.') + '</div>' +
-      '<div class="pia-ferr-upd" id="pia-ferr-upd-txt"></div>' +
-      '<div class="pia-modal-body">' +
-      '<div class="pia-info-section"><div class="pia-info-section-title">Ferreterías priorizadas en Ibarra</div><div class="pia-ferr-stores">' + storesHtml + '</div></div>' +
-      '<div class="pia-info-section"><div class="pia-info-section-title">' + (usandoPresupuesto ? 'Dónde comprar cada material de tu presupuesto, más económico' : 'Precios actuales de referencia por material') + '</div><div class="pia-ferr-list" id="pia-ferr-rows"><div class="pia-ferr-empty">Buscando precios actuales…</div></div></div>' +
-      '</div></div>';
-    document.body.appendChild(modal);
-    function close() { modal.remove(); }
-    document.getElementById('pia-ferr-close').addEventListener('click', close);
-    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
 
-    var updEl = document.getElementById('pia-ferr-upd-txt');
-    function setUpd(ts) {
-      if (updEl) updEl.textContent = ts ? ('Última actualización: ' + new Date(ts).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) + (usandoPresupuesto ? ' · se renueva si cambia el presupuesto o pasan 7 días' : ' · se renueva cada 7 días')) : '';
-    }
-    function paintError() {
-      var rowsEl = document.getElementById('pia-ferr-rows');
-      if (!rowsEl) return;
-      var reasonTxt = PIA_MARKET_LAST_ERR === 'NO_KEY'
-        ? 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).'
-        : (PIA_MARKET_LAST_ERR || 'No se pudo obtener precios ahora.');
-      rowsEl.innerHTML = '<div class="pia-ferr-empty">' + esc(reasonTxt) + '</div>';
-    }
-
-    if (usandoPresupuesto) {
-      function paintBudget(text, ts) {
-        var rowsEl = document.getElementById('pia-ferr-rows');
-        if (!rowsEl) return;
-        setUpd(ts);
-        var rows = parseMarketBudgetLines(text);
-        if (!rows.length) return paintError();
-        rowsEl.innerHTML = rows.map(function (r) {
-          return '<div class="pia-ferr-row"><span class="pia-ferr-mat">' + esc(r.material) + '</span>' +
-            (r.tienda ? '<span class="pia-ferr-fuente"><b style="color:#00c896">' + esc(r.tienda) + '</b></span>' : '') +
-            (r.precio ? '<span class="pia-ferr-precio">' + esc(r.precio) + '</span>' : '') +
-            (r.nota ? '<div style="flex-basis:100%;font-size:10.5px;color:var(--sl);margin-top:2px">' + esc(r.nota) + '</div>' : '') +
-            '</div>';
-        }).join('');
-      }
-      var cachedB = readMarketCacheMeta('_budget_' + materialesClaveDelPresupuesto().join('|').length + '_' + materialesClaveDelPresupuesto().length);
-      if (cachedB) { paintBudget(cachedB.text, cachedB.ts); return; }
-      getMarketResearchForBudget(function () {}).then(function (text) { paintBudget(text, Date.now()); });
-      return;
-    }
-
-    function paintGeneric(text, ts) {
-      var rowsEl = document.getElementById('pia-ferr-rows');
-      if (!rowsEl) return;
-      setUpd(ts);
-      var rows = parseMarketLines(text);
-      if (!rows.length) return paintError();
-      rowsEl.innerHTML = rows.map(function (r) {
+    function render() {
+      var rows = usandoPresupuesto ? budgetMarketRows() : loadPriceDB().map(function (e) { return { material: e.nombre, tienda: e.tienda, precio: fmtUSD(e.precio) + ' / ' + e.unidad, nota: '' }; });
+      var rowsHtml = rows.length ? rows.map(function (r) {
         return '<div class="pia-ferr-row"><span class="pia-ferr-mat">' + esc(r.material) + '</span>' +
+          (r.tienda ? '<span class="pia-ferr-fuente"><b style="color:#00c896">' + esc(r.tienda) + '</b></span>' : '') +
           (r.precio ? '<span class="pia-ferr-precio">' + esc(r.precio) + '</span>' : '') +
-          (r.fuente ? '<span class="pia-ferr-fuente">' + esc(r.fuente) + '</span>' : '') + '</div>';
-      }).join('');
+          (r.nota ? '<div style="flex-basis:100%;font-size:10.5px;color:var(--sl);margin-top:2px">' + esc(r.nota) + '</div>' : '') +
+          '</div>';
+      }).join('') : '<div class="pia-ferr-empty">Tu tabla de precios está vacía. Usa "Editar precios" para agregar materiales.</div>';
+      var modal = document.createElement('div');
+      modal.id = 'pia-ferr-modal';
+      modal.className = 'pia-modal-overlay';
+      modal.innerHTML = '<div class="pia-modal-box">' +
+        '<div class="pia-modal-head"><div class="pia-modal-title">Ferreterías y precios de materiales (Ibarra)</div><button type="button" class="pia-modal-close" id="pia-ferr-close">&times;</button></div>' +
+        '<div class="pia-modal-sub">' + (usandoPresupuesto
+          ? 'Según los rubros de TU presupuesto actual: en cuál ferretería sale cada material, tomado de tu tabla local de precios (no de una búsqueda en vivo, así no depende de cuota ni de internet).'
+          : 'Tabla local de referencia — genera un presupuesto para ver la comparación material por material de TU proyecto.') + '</div>' +
+        '<div class="pia-modal-body">' +
+        '<div class="pia-info-section"><div class="pia-info-section-title">Ferreterías priorizadas en Ibarra</div><div class="pia-ferr-stores">' + storesHtml + '</div></div>' +
+        '<div class="pia-info-section"><div class="pia-info-section-title">' + (usandoPresupuesto ? 'Dónde comprar cada material de tu presupuesto' : 'Tu tabla de precios') + '</div><div class="pia-ferr-list" id="pia-ferr-rows">' + rowsHtml + '</div>' +
+        '<button type="button" class="pia-btn" id="pia-ferr-edit-btn" style="margin-top:14px">Editar precios</button>' +
+        '</div></div></div>';
+      var old = document.getElementById('pia-ferr-modal'); if (old) old.remove();
+      document.body.appendChild(modal);
+      function close() { modal.remove(); }
+      document.getElementById('pia-ferr-close').addEventListener('click', close);
+      modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+      document.getElementById('pia-ferr-edit-btn').addEventListener('click', function () {
+        close();
+        openPriceEditor(render);
+      });
     }
-    var meta = readMarketCacheMeta('');
-    if (meta) { paintGeneric(meta.text, meta.ts); return; }
-    getMarketResearch(function () {}).then(function (text) { paintGeneric(text, Date.now()); });
+    render();
   }
 
   function friendly(e) {
     var c = e && e.code;
     if (c === 'NO_KEY') return 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).';
     if (c === 'BAD_KEY') return 'Google rechazó la clave de API. Revísala en Gastos y facturas → "Clave API".';
-    if (c === 'QUOTA') return 'Se agotó la cuota gratuita de Gemini por ahora. Espera un momento e inténtalo de nuevo.';
+    if (c === 'QUOTA') return 'Se agotó la cuota GRATUITA de Gemini por ahora (error 429 de Google) — probó el modelo principal y todos los de respaldo, y ninguno tenía cuota disponible en este momento. No es un error de BuildMatrix: es un límite de solicitudes de tu clave gratuita. Espera unos minutos (si es límite por minuto) o hasta mañana (si es el límite diario), o activa facturación en Google AI Studio para quitarlo (el costo por presupuesto es muy bajo). Más info: https://ai.google.dev/gemini-api/docs/rate-limits';
     if (c === 'SERVER') return 'Los servidores de Gemini están saturados. Reintenta en un momento.';
     if (c === 'TIMEOUT') return 'La IA tardó demasiado en responder. Inténtalo de nuevo.';
     if (c === 'NETWORK') return 'No se pudo conectar con Google. Revisa tu conexión.';
@@ -23817,9 +23767,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     var tok = newTok(); PIA.tok = tok;
     showOverlay(); setStatus('');
 
-    var marketText = await getMarketResearch(function () {
-      var el = $('pia-overlay-msg'); if (el) el.textContent = 'Consultando precios actuales en ferreterías (Ibarra y mercado nacional)…';
-    });
+    var marketText = await getMarketResearch(); // tabla local de precios — instantáneo, sin red ni cuota
     if (tok.cancelled) { hideOverlay(); if (btn) btn.disabled = false; PIA.tok = null; setStatus('warn', 'Generación cancelada.'); return; }
 
     // providedKeys = especialidades que el usuario SÍ etiquetó explícitamente (mínimo garantizado). Un archivo
@@ -23911,7 +23859,12 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       var scopeTxt = realIsFull ? '' : (' · alcance: ' + (out.especialidadesDetectadas.length
         ? out.especialidadesDetectadas.map(function (e) { return ESP_LABELS[e] || e; }).join(' + ')
         : (providedKeys.length ? providedKeys.map(function (k) { return CAP_KEYS[k]; }).join(' + ') : 'sin especialidad determinada')));
-      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + scopeTxt + '.' + (marketText ? ' Precios calibrados con investigación de mercado de hoy.' : '') + (fueRefinado ? ' (costo directo revisado y corregido automáticamente por estar bajo)' : '');
+      // Se muestra SIEMPRE qué modelo de Gemini respondió esta corrida: si Google le niega cuota al modelo
+      // principal, el presupuesto lo genera un modelo de respaldo — distinto modelo, mismo plano, puede dar
+      // cantidades distintas aunque temperature esté en 0 (cada modelo es consistente consigo mismo, no entre
+      // ellos). Mostrarlo aquí hace visible la causa real cuando dos corridas del mismo plano no coinciden.
+      var modeloTxt = PIA.ultimoModeloUsado && PIA.ultimoModeloUsado !== PIA_MODEL ? ' · generado con ' + PIA.ultimoModeloUsado + ' (modelo principal sin cuota en ese momento)' : '';
+      var base = rubros.length + ' rubro' + (rubros.length === 1 ? '' : 's') + ' generados' + (out.areaM2 ? ' · área estimada ' + out.areaM2.toLocaleString('es-EC') + ' m²' : '') + scopeTxt + modeloTxt + '.' + (marketText ? ' Precios calibrados con tu tabla local de precios.' : '') + (fueRefinado ? ' (costo directo revisado y corregido automáticamente por estar bajo)' : '');
       if (out.truncated) {
         setStatus('warn', base + ' La respuesta era muy larga y pudo quedar incompleta: revisa que estén todos los rubros de los capítulos de este alcance antes de continuar.');
       } else if (!realIsFull) {

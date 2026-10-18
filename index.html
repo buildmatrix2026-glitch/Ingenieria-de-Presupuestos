@@ -2949,6 +2949,16 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .pia-info-section{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--br)}
 .pia-info-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
 .pia-info-section-title{font-size:13.5px;font-weight:800;color:#00c896;margin-bottom:12px;text-transform:uppercase;letter-spacing:.03em}
+#v-pia .pia-btn-ferr{border-color:rgba(255,180,0,.5);color:#ffb400}
+#v-pia .pia-btn-ferr:hover{background:rgba(255,180,0,.1)}
+.pia-ferr-upd{font-size:11.5px;color:var(--sl);padding:0 22px 12px;margin-top:-6px}
+.pia-ferr-list{display:flex;flex-direction:column;gap:8px}
+.pia-ferr-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 12px;border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.02)}
+.pia-ferr-mat{font-size:12.5px;color:var(--ow,#F0F4FF);flex:1}
+.pia-ferr-precio{font-size:12.5px;font-weight:700;color:#ffb400;white-space:nowrap}
+.pia-ferr-fuente{font-size:11px;color:var(--sl);white-space:nowrap}
+.pia-ferr-stores{font-size:12px;color:var(--sl);line-height:1.6;margin-bottom:14px}
+.pia-ferr-empty{font-size:12.5px;color:var(--sl);padding:10px 0}
 .pia-espacio-planta{margin-bottom:18px}
 .pia-espacio-planta-title{font-size:12.5px;font-weight:700;color:var(--sl);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--br)}
 .pia-espacio-planta-total{text-transform:none;font-weight:500;letter-spacing:0;opacity:.8}
@@ -4875,6 +4885,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         <div class="pia-actions-top">
           <button class="pia-btn pia-btn-primary" id="pia-generate-btn" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M13 2L4.5 13.5H11L10 22l9.5-13H13l1-7z"/></svg><span>Generar Presupuesto con IA</span></button>
           <button type="button" class="pia-btn pia-btn-info-proy" id="pia-info-proyecto-btn" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Información del proyecto</span></button>
+          <button type="button" class="pia-btn pia-btn-ferr" id="pia-ferreterias-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7"/><path d="M4 10v10h16V10"/><path d="M9 21V13h6v8"/></svg><span>Ferreterías y precios</span></button>
           <span class="pia-hint" id="pia-count-hint">0 de 4 planos cargados</span>
         </div>
         <div class="pia-status" id="pia-status"></div>
@@ -23414,12 +23425,16 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
   function cacheKey() { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, ''); }
   function readMarketCache() {
+    var meta = readMarketCacheMeta();
+    return meta ? meta.text : null;
+  }
+  function readMarketCacheMeta() {
     try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (k && k.indexOf('bm_pia_market_') === 0) {
           var v = JSON.parse(localStorage.getItem(k) || 'null');
-          if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v.text;
+          if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v;
           if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
         }
       }
@@ -23455,6 +23470,72 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       writeMarketCache(text);
       return text;
     } catch (e) { return null; }
+  }
+
+  /* Lista de ferreterías priorizadas (las mismas que usa marketPrompt para buscar precio real) — se muestra tal
+     cual aunque la búsqueda de precios falle, porque de todas formas sirve como guía de dónde cotizar. */
+  var FERR_IBARRA = [
+    { nombre: 'Kywi Ibarra', dir: 'Av. Mariano Acosta' },
+    { nombre: 'Disensa Ibarra', dir: 'Av. Cristóbal de Troya' },
+    { nombre: 'Almacén Ferroelectrico', dir: 'Av. Cristóbal de Troya' },
+    { nombre: 'Ferricentro Comercial Trejo', dir: 'Av. Fray Vacas Galindo' },
+    { nombre: 'Almacén El Perno', dir: 'Av. Mariano Acosta' },
+    { nombre: 'FerroGer', dir: 'Simón Bolívar' }
+  ];
+
+  /* Convierte el texto plano que devuelve Gemini ("material — precio USD (unidad) — fuente/tienda") en filas
+     {material, precio, fuente} para no mostrar el texto crudo apilado (mismo problema que ya resolvimos en el
+     cuadro de elementos). Si una línea no trae las 3 partes separadas por "—", se muestra igual como texto simple
+     en vez de perderla. */
+  function parseMarketLines(text) {
+    if (!text) return [];
+    return String(text).split('\n').map(function (l) { return l.replace(/^[\s•\-\*\d\.\)]+/, '').trim(); })
+      .filter(function (l) { return l.length > 2; })
+      .map(function (l) {
+        var parts = l.split(/[—–]/).map(function (p) { return p.trim(); }).filter(Boolean);
+        if (parts.length >= 2) return { material: parts[0], precio: parts[1], fuente: parts[2] || '' };
+        return { material: l, precio: '', fuente: '' };
+      });
+  }
+
+  function openFerreteriasModal() {
+    var storesHtml = FERR_IBARRA.map(function (f) {
+      return '<div>• <b>' + esc(f.nombre) + '</b> — ' + esc(f.dir) + '</div>';
+    }).join('');
+    var modal = document.createElement('div');
+    modal.id = 'pia-ferr-modal';
+    modal.className = 'pia-modal-overlay';
+    modal.innerHTML = '<div class="pia-modal-box">' +
+      '<div class="pia-modal-head"><div class="pia-modal-title">Ferreterías y precios de materiales (Ibarra)</div><button type="button" class="pia-modal-close" id="pia-ferr-close">&times;</button></div>' +
+      '<div class="pia-modal-sub">Dónde comprar y a qué precio referencial — se actualiza solo cada 7 días buscando en internet.</div>' +
+      '<div class="pia-ferr-upd" id="pia-ferr-upd-txt"></div>' +
+      '<div class="pia-modal-body">' +
+      '<div class="pia-info-section"><div class="pia-info-section-title">Ferreterías priorizadas en Ibarra</div><div class="pia-ferr-stores">' + storesHtml + '</div></div>' +
+      '<div class="pia-info-section"><div class="pia-info-section-title">Precios actuales de referencia por material</div><div class="pia-ferr-list" id="pia-ferr-rows"><div class="pia-ferr-empty">Buscando precios actuales…</div></div></div>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+    function close() { modal.remove(); }
+    document.getElementById('pia-ferr-close').addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+
+    var meta = readMarketCacheMeta();
+    var updEl = document.getElementById('pia-ferr-upd-txt');
+    function paint(text, ts) {
+      var rowsEl = document.getElementById('pia-ferr-rows');
+      if (!rowsEl) return; // el usuario ya cerró el modal
+      if (updEl) updEl.textContent = ts ? ('Última actualización: ' + new Date(ts).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) + ' · se renueva cada 7 días') : '';
+      var rows = parseMarketLines(text);
+      if (!rows.length) { rowsEl.innerHTML = '<div class="pia-ferr-empty">No se pudo obtener precios ahora (sin clave de Gemini configurada o sin conexión). Revisa la clave en Gastos y facturas → "Clave API".</div>'; return; }
+      rowsEl.innerHTML = rows.map(function (r) {
+        return '<div class="pia-ferr-row"><span class="pia-ferr-mat">' + esc(r.material) + '</span>' +
+          (r.precio ? '<span class="pia-ferr-precio">' + esc(r.precio) + '</span>' : '') +
+          (r.fuente ? '<span class="pia-ferr-fuente">' + esc(r.fuente) + '</span>' : '') + '</div>';
+      }).join('');
+    }
+    if (meta) { paint(meta.text, meta.ts); return; }
+    getMarketResearch(function () {}).then(function (text) {
+      paint(text, Date.now());
+    });
   }
 
   function friendly(e) {
@@ -24319,6 +24400,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
     $('pia-export-pdf-apus-btn').addEventListener('click', exportPIAPDFAPUs);
     $('pia-save-btn').addEventListener('click', addToActiveProject);
     var infoBtn = $('pia-info-proyecto-btn'); if (infoBtn) infoBtn.addEventListener('click', openInfoProyectoModal);
+    var ferrBtn = $('pia-ferreterias-btn'); if (ferrBtn) ferrBtn.addEventListener('click', openFerreteriasModal);
     var newBtn = $('pia-new-proj-btn'); if (newBtn) newBtn.addEventListener('click', createProjectInline);
     var newInput = $('pia-new-proj-name');
     if (newInput) newInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); createProjectInline(); } });
@@ -24326,7 +24408,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   }
 
   window.renderPiaModule = function () { init(); renderProjBanner(); };
-  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, normElementos: normElementos, openInfoProyectoModal: openInfoProyectoModal, state: PIA };
+  window.PIA_MODULE = { renderTable: renderTable, parseResponse: parseResponse, findOrCreateCap: findOrCreateCap, addToActiveProject: addToActiveProject, exportCSV: exportCSV, exportPIAPDFResumen: exportPIAPDFResumen, exportPIAPDFAPUs: exportPIAPDFAPUs, createProjectInline: createProjectInline, getMarketResearch: getMarketResearch, withMarketBlock: withMarketBlock, buildAlcanceBlock: buildAlcanceBlock, withAlcanceBlock: withAlcanceBlock, renderTipoBanner: renderTipoBanner, normElementos: normElementos, openInfoProyectoModal: openInfoProyectoModal, openFerreteriasModal: openFerreteriasModal, state: PIA };
 })();
 </script>
 

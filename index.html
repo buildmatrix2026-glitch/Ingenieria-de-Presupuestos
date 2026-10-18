@@ -1303,14 +1303,15 @@ html[data-theme="dark"] .ts{background:linear-gradient(90deg,rgba(6,182,212,.16)
   #dbars,#dgrps{flex:1;min-height:0;overflow-y:auto}
 }
 
-/* ── Constructor APU ── */
-#v-apu.ac{display:flex;flex-direction:column;min-height:0}
+/* ── Constructor APU (mismo patrón que Insumos: tarjeta acotada a la pantalla + scroll interno propio) ── */
+#v-apu.ac{display:flex;flex-direction:column;height:100%;min-height:0}
+.mn:has(#v-apu.ac){overflow-y:hidden;display:flex;flex-direction:column;padding-bottom:0}
 #v-apu>.vh{flex-shrink:0}
-#v-apu>div:not(.vh){display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
-#v-apu #apu-new-panel{display:flex!important;flex-direction:column;margin-bottom:0!important}
+#v-apu>div:not(.vh){flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+#v-apu #apu-new-panel{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;margin-bottom:0!important}
 #v-apu #apu-new-panel>div:first-child{flex-shrink:0}
-#v-apu #apu-new-panel>div:nth-child(2){overflow-y:visible;overflow-x:auto}
-#v-apu #ae{overflow-y:visible}
+#v-apu #apu-new-panel>div:nth-child(2){flex:1;min-height:0;height:auto!important;overflow-y:auto}
+#v-apu #ae{flex:0 1 auto;min-height:0;max-height:55%;overflow-y:auto}
 #v-apu #ae:empty{display:none}
 
 /* ── Grupos y rubros ── */
@@ -2169,20 +2170,20 @@ input[list].anp-input { cursor:text; }
 #anp-mano-rows input.anp-input,
 #anp-mat-rows input.anp-input { min-height:34px; padding:5px 7px; }
 
-/* ── APU: columnas fluidas — se ajustan a cualquier ancho/zoom sin saltos por breakpoint ── */
-#anp-info-row { grid-template-columns:minmax(70px,90px) minmax(140px,1fr) minmax(54px,68px) minmax(100px,140px) minmax(54px,68px) !important; }
+/* ── APU: columnas en % — suman siempre 100% del ancho disponible, nunca se desbordan ni se cortan ── */
+#anp-info-row { grid-template-columns:13.5% 45% 10.2% 21% 10.2% !important; }
 .anp-section:nth-of-type(2) .anp-header-row,
 .anp-section:nth-of-type(3) .anp-header-row,
 #anp-equipo-rows > div,
 #anp-mano-rows > div {
-  grid-template-columns:minmax(60px,78px) minmax(100px,1fr) minmax(42px,54px) minmax(46px,58px) minmax(60px,74px) minmax(46px,58px) minmax(52px,64px) minmax(20px,24px) !important;
+  grid-template-columns:11% 42.3% 7.6% 8.2% 10.4% 8.2% 9% 3.4% !important;
 }
 .anp-section:nth-of-type(4) .anp-header-row,
 #anp-mat-rows > div {
-  grid-template-columns:minmax(60px,78px) minmax(100px,1fr) minmax(46px,58px) minmax(48px,60px) minmax(60px,74px) minmax(52px,64px) minmax(20px,24px) !important;
+  grid-template-columns:11.9% 45.6% 8.8% 9.1% 11.2% 9.7% 3.6% !important;
 }
-#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; }
-.anp-scroll-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; width:100%; }
+.anp-scroll-wrap { overflow-x:visible; width:100%; }
 #apu-new-panel, .apu-right-col { min-width:0; }
 
 /* ── INSUMOS: "Crear nuevo insumo" drawer ── */

@@ -856,7 +856,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--cy);outline-off
 /* (sin capa z-index en los hijos de .mn: las ventanas flotantes deben poder cubrir la barra superior) */
 .card{
   background:linear-gradient(165deg,var(--s3),var(--s2));border:1px solid var(--br);border-radius:var(--r3);
-  position:relative;overflow:hidden;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  position:relative;overflow:hidden;
   transition:border-color .25s,box-shadow .25s;
 }
 .card::after{content:'';position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.5),transparent);opacity:.7}
@@ -885,15 +885,14 @@ html[data-theme="dark"] #app .card,
 html[data-theme="dark"] #app .kpi,
 html[data-theme="dark"] #app .mo{
   background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
   border:1px solid rgba(6,182,212,.35);
-  box-shadow:0 0 0 1px rgba(6,182,212,.08),0 20px 60px -24px rgba(6,182,212,.28);
+  box-shadow:0 0 0 1px rgba(6,182,212,.08),0 10px 28px -16px rgba(6,182,212,.28);
 }
-html[data-theme="dark"] #app .mo{box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 0 1px rgba(6,182,212,.1),0 0 60px -22px rgba(6,182,212,.32)}
+html[data-theme="dark"] #app .mo{box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px rgba(6,182,212,.1),0 0 28px -14px rgba(6,182,212,.32)}
 html[data-theme="dark"] #app .card:hover,
-html[data-theme="dark"] #app .kpi:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 24px 64px -22px rgba(6,182,212,.42)}
+html[data-theme="dark"] #app .kpi:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 12px 32px -16px rgba(6,182,212,.42)}
 html[data-theme="dark"] #app .kpi .kl{font-family:var(--f-mo);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
 html[data-theme="dark"] #app .kpi .kv{color:#e5faff;text-shadow:0 0 14px rgba(6,182,212,.5)}
 html[data-theme="dark"] #app .ph h3{font-family:var(--f-mo);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#67e8f9;text-shadow:0 0 10px rgba(6,182,212,.5)}
@@ -910,32 +909,29 @@ html[data-theme="dark"] #app .bt i::after,
 html[data-theme="dark"] .gx-scope{--gx-pri:#06b6d4;--gx-br:rgba(6,182,212,.28);--gx-card:#0b0f19;--gx-card2:#0f1a2e;--gx-bg:#070c15}
 html[data-theme="dark"] #v-gasp.gx-scope{--gx-pri:#8b5cf6;--gx-br:rgba(139,92,246,.30);--gx-card2:#16102e;--gx-bg:#0a0714}
 html[data-theme="dark"] .gx-scope .gx-card{
-  position:relative;border-radius:18px;padding:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  position:relative;border-radius:18px;padding:18px;
   background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(6,182,212,.11),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
   border:1px solid rgba(6,182,212,.35);
-  box-shadow:0 0 0 1px rgba(6,182,212,.08),0 20px 60px -20px rgba(6,182,212,.28);
+  box-shadow:0 0 0 1px rgba(6,182,212,.08),0 10px 28px -14px rgba(6,182,212,.28);
   transition:border-color .25s,box-shadow .25s;
 }
-html[data-theme="dark"] .gx-scope .gx-card:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 24px 64px -20px rgba(6,182,212,.42)}
+html[data-theme="dark"] .gx-scope .gx-card:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 12px 32px -14px rgba(6,182,212,.42)}
 html[data-theme="dark"] #v-gasp .gx-card{
   background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(139,92,246,.13),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
   border-color:rgba(139,92,246,.35);
-  box-shadow:0 0 0 1px rgba(139,92,246,.08),0 20px 60px -20px rgba(139,92,246,.28);
+  box-shadow:0 0 0 1px rgba(139,92,246,.08),0 10px 28px -14px rgba(139,92,246,.28);
 }
-html[data-theme="dark"] #v-gasp .gx-card:hover{border-color:rgba(139,92,246,.62);box-shadow:0 0 0 1px rgba(139,92,246,.16),0 24px 64px -20px rgba(139,92,246,.42)}
+html[data-theme="dark"] #v-gasp .gx-card:hover{border-color:rgba(139,92,246,.62);box-shadow:0 0 0 1px rgba(139,92,246,.16),0 12px 32px -14px rgba(139,92,246,.42)}
 html[data-theme="dark"] #v-gasp .mo{
   background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(139,92,246,.13),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
   border-color:rgba(139,92,246,.35);
-  box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 0 1px rgba(139,92,246,.1),0 0 60px -22px rgba(139,92,246,.34);
+  box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px rgba(139,92,246,.1),0 0 28px -14px rgba(139,92,246,.34);
 }
 /* El cuadro interno del formulario heredaba el resplandor/box-shadow morado de "#v-gasp .gx-card"
    (su selector con #id gana por especificidad a la regla genérica que debía apagarlo dentro de las
@@ -1009,10 +1005,10 @@ html[data-theme="dark"] #app .fc .fv{color:#e5faff;text-shadow:0 0 14px rgba(6,1
 html[data-theme="dark"] #app .fc.hl{background:linear-gradient(140deg,rgba(0,82,255,.34),rgba(6,182,212,.18));border-top-color:rgba(34,211,238,.7);box-shadow:inset 0 0 34px -10px rgba(6,182,212,.55)}
 html[data-theme="dark"] #app .fc.hl .fv{color:#fff;text-shadow:0 0 22px rgba(34,211,238,.6)}
 html[data-theme="dark"] #app .ca{position:relative;border-radius:16px;border:1px solid rgba(6,182,212,.28);
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));box-shadow:0 0 0 1px rgba(6,182,212,.05),0 14px 40px -26px rgba(6,182,212,.4);transition:border-color .3s,box-shadow .3s}
+  background:radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));box-shadow:0 0 0 1px rgba(6,182,212,.05),0 8px 22px -16px rgba(6,182,212,.4);transition:border-color .3s,box-shadow .3s}
 html[data-theme="dark"] #app .ca::before{content:'';position:absolute;left:0;top:14%;bottom:14%;width:3px;border-radius:0 3px 3px 0;background:#22d3ee;box-shadow:0 0 12px 1px #22d3ee;opacity:0;transition:opacity .3s}
 html[data-theme="dark"] #app .ca:hover{border-color:rgba(6,182,212,.5)}
-html[data-theme="dark"] #app .ca.op{border-color:rgba(6,182,212,.62);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 22px 56px -22px rgba(6,182,212,.5)}
+html[data-theme="dark"] #app .ca.op{border-color:rgba(6,182,212,.62);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 12px 30px -16px rgba(6,182,212,.5)}
 html[data-theme="dark"] #app .ca.op::before{opacity:1}
 html[data-theme="dark"] #app .cah:hover{background:rgba(6,182,212,.06)}
 html[data-theme="dark"] #app .cah .cname{color:#e6faff}
@@ -1021,17 +1017,17 @@ html[data-theme="dark"] #app .ca.op .cah .arr{filter:drop-shadow(0 0 5px #22d3ee
 
 /* Usuarios */
 html[data-theme="dark"] #v-admin #admin-users-list>div{position:relative;border-radius:16px!important;border-color:rgba(6,182,212,.3)!important;
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;box-shadow:0 0 0 1px rgba(6,182,212,.06),0 14px 40px -26px rgba(6,182,212,.4)!important;transition:border-color .25s,box-shadow .25s,transform .25s!important}
-html[data-theme="dark"] #v-admin #admin-users-list>div:hover{border-color:rgba(6,182,212,.6)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 22px 56px -22px rgba(6,182,212,.5)!important}
+  background:radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;box-shadow:0 0 0 1px rgba(6,182,212,.06),0 8px 22px -16px rgba(6,182,212,.4)!important;transition:border-color .25s,box-shadow .25s,transform .25s!important}
+html[data-theme="dark"] #v-admin #admin-users-list>div:hover{border-color:rgba(6,182,212,.6)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 12px 30px -16px rgba(6,182,212,.5)!important}
 html[data-theme="dark"] #v-admin .atb-main button{box-shadow:0 0 16px -8px rgba(6,182,212,.6)}
 
 /* ══════════ Rediseño: Usuarios (panel admin) y Mis proyectos — mismo lenguaje visual HUD que el resto de la app ══════════ */
 html[data-theme="dark"] #v-admin .atb-main{background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:16px;padding:5px;gap:5px!important}
-html[data-theme="dark"] #v-admin .atb-main .atab{position:relative;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .25s ease!important;overflow:hidden}
+html[data-theme="dark"] #v-admin .atb-main .atab{position:relative;transition:all .25s ease!important;overflow:hidden}
 html[data-theme="dark"] #v-admin .atb-main .atab:not(.on):hover{border-color:rgba(6,182,212,.45)!important;color:#9fd8ff!important;background:rgba(6,182,212,.07)!important}
 html[data-theme="dark"] #v-admin .atb-main .atab.on{background:linear-gradient(135deg,rgba(0,82,255,.92),rgba(8,145,178,.92))!important;border-color:rgba(34,211,238,.65)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(6,182,212,.18),0 12px 32px -12px rgba(6,182,212,.7)!important;text-shadow:0 0 10px rgba(255,255,255,.35)}
 html[data-theme="dark"] #v-admin .atb-main .atab.on svg{filter:drop-shadow(0 0 4px rgba(255,255,255,.55))}
-html[data-theme="dark"] #v-admin .adm-refresh{border-radius:12px;backdrop-filter:blur(8px);transition:all .2s}
+html[data-theme="dark"] #v-admin .adm-refresh{border-radius:12px;transition:all .2s}
 html[data-theme="dark"] #v-admin .adm-refresh:hover{border-color:rgba(6,182,212,.55);color:#9fd8ff;box-shadow:0 8px 24px -10px rgba(6,182,212,.55);transform:translateY(-1px)}
 
 /* Filtros: control segmentado en pastilla */
@@ -1049,14 +1045,13 @@ html[data-theme="dark"] #v-saved .vh h2::after{background:linear-gradient(90deg,
 html[data-theme="dark"] #v-saved .card{
   position:relative;border-radius:16px!important;
   background:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 1px,transparent 3px),
     radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),
     linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97))!important;
   border-color:rgba(6,182,212,.28)!important;
-  box-shadow:0 0 0 1px rgba(6,182,212,.05),0 14px 40px -26px rgba(6,182,212,.4)!important;
+  box-shadow:0 0 0 1px rgba(6,182,212,.05),0 8px 22px -16px rgba(6,182,212,.4)!important;
   transition:border-color .25s,box-shadow .25s,transform .25s!important;
 }
-html[data-theme="dark"] #v-saved .card:hover{border-color:rgba(6,182,212,.55)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 22px 56px -22px rgba(6,182,212,.5)!important}
+html[data-theme="dark"] #v-saved .card:hover{border-color:rgba(6,182,212,.55)!important;transform:translateY(-2px);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 12px 30px -16px rgba(6,182,212,.5)!important}
 html[data-theme="dark"] #saved-view-list button{transition:all .2s ease!important}
 html[data-theme="dark"] #saved-view-list button:hover{filter:brightness(1.18);transform:translateY(-1px)}
 
@@ -2754,14 +2749,9 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   width:100%;margin-top:22px;position:relative;overflow:hidden;border-radius:18px;
   border:1px solid rgba(6,182,212,.35);
   background:linear-gradient(180deg,rgba(11,15,25,.94),rgba(15,23,42,.97));
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  padding:22px 22px 26px;box-shadow:0 0 0 1px rgba(6,182,212,.08),0 20px 60px -20px rgba(6,182,212,.25);
+  padding:22px 22px 26px;box-shadow:0 0 0 1px rgba(6,182,212,.08),0 10px 28px -14px rgba(6,182,212,.25);
 }
-.gx-scope .gx-hud.pu{border-color:rgba(139,92,246,.35);box-shadow:0 0 0 1px rgba(139,92,246,.08),0 20px 60px -20px rgba(139,92,246,.25)}
-.gx-scope .gx-hud::before{
-  content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;z-index:0;
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 3px);
-}
+.gx-scope .gx-hud.pu{border-color:rgba(139,92,246,.35);box-shadow:0 0 0 1px rgba(139,92,246,.08),0 10px 28px -14px rgba(139,92,246,.25)}
 .gx-scope .gx-hud::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(ellipse 460px 300px at 6% 0%,rgba(6,182,212,.10),transparent 100%);

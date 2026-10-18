@@ -3623,14 +3623,19 @@ document.querySelectorAll('.stat-number[data-count]').forEach(el => {
 });
 
 /* FEATURE CARDS MOUSE GLOW */
+/* mismo arreglo que "App Cards Mouse Glow": rect cacheado en mouseenter,
+   no en cada mousemove, para no forzar reflow síncrono por cada pixel. */
 document.querySelectorAll('.feature-card').forEach(card => {
+  var rect = null;
+  card.addEventListener('mouseenter', () => { rect = card.getBoundingClientRect(); }, {passive:true});
   card.addEventListener('mousemove', e => {
-    const rect = card.getBoundingClientRect();
+    if(!rect) rect = card.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     card.style.setProperty('--mx', x + '%');
     card.style.setProperty('--my', y + '%');
-  });
+  }, {passive:true});
+  card.addEventListener('mouseleave', () => { rect = null; }, {passive:true});
 });
 
 /* HERO MOUSE GLOW */
@@ -3638,10 +3643,11 @@ document.querySelectorAll('.feature-card').forEach(card => {
   var hero = document.getElementById('hero');
   var glow = document.getElementById('hero-glow');
   if(!hero || !glow) return;
-  hero.addEventListener('mouseenter', function(){ glow.style.opacity = '1'; });
-  hero.addEventListener('mouseleave', function(){ glow.style.opacity = '0'; });
+  var rect = null;
+  hero.addEventListener('mouseenter', function(){ glow.style.opacity = '1'; rect = hero.getBoundingClientRect(); });
+  hero.addEventListener('mouseleave', function(){ glow.style.opacity = '0'; rect = null; });
   hero.addEventListener('mousemove', function(e){
-    var rect = hero.getBoundingClientRect();
+    if(!rect) rect = hero.getBoundingClientRect();
     var x = ((e.clientX - rect.left) / rect.width) * 100;
     var y = ((e.clientY - rect.top) / rect.height) * 100;
     hero.style.setProperty('--hx', x + '%');
@@ -3651,8 +3657,11 @@ document.querySelectorAll('.feature-card').forEach(card => {
 
 /* EXPORT CARDS MOUSE GLOW */
 document.querySelectorAll('.export-card').forEach(card => {
+  var rect = null;
+  card.addEventListener('mouseenter', () => { rect = card.getBoundingClientRect(); }, {passive:true});
+  card.addEventListener('mouseleave', () => { rect = null; }, {passive:true});
   card.addEventListener('mousemove', e => {
-    const rect = card.getBoundingClientRect();
+    if(!rect) rect = card.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     card.style.setProperty('--mx', x + '%');
@@ -3717,13 +3726,19 @@ gsap.fromTo('.chapter-card',
 );
 
 /* CTA GLOW PARALLAX */
-document.getElementById('cta-final').addEventListener('mousemove', e => {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * 100;
-  const y = ((e.clientY - rect.top) / rect.height) * 100;
-  document.getElementById('cta-final').style.setProperty('--cx', x + '%');
-  document.getElementById('cta-final').style.setProperty('--cy', y + '%');
-});
+(function(){
+  var ctaFinal = document.getElementById('cta-final');
+  var ctaRect = null;
+  ctaFinal.addEventListener('mouseenter', () => { ctaRect = ctaFinal.getBoundingClientRect(); }, {passive:true});
+  ctaFinal.addEventListener('mouseleave', () => { ctaRect = null; }, {passive:true});
+  ctaFinal.addEventListener('mousemove', e => {
+    if(!ctaRect) ctaRect = ctaFinal.getBoundingClientRect();
+    const x = ((e.clientX - ctaRect.left) / ctaRect.width) * 100;
+    const y = ((e.clientY - ctaRect.top) / ctaRect.height) * 100;
+    ctaFinal.style.setProperty('--cx', x + '%');
+    ctaFinal.style.setProperty('--cy', y + '%');
+  }, {passive:true});
+})();
 </script>
 
 <!-- ═══ WELCOME MODAL ═══ -->
@@ -12799,18 +12814,38 @@ function _swapCaps(a, b){
 // (handled via existing _applyProjectToBD + persist chain — S already serializes them)
 
 // ── App Cards Mouse Glow (per-card listeners, always tracks cursor) ──────────
+// ANTES: cada tarjeta (.kpi/.gc2/.ri/.export-card/.feature-card/.card —
+// prácticamente TODA la app: Panel General, Presupuesto, financieros, etc.)
+// llamaba a getBoundingClientRect() en CADA mousemove mientras el cursor
+// estaba encima. getBoundingClientRect() fuerza un recálculo de layout
+// SÍNCRONO de toda la página ("forced reflow"). Con decenas de tarjetas
+// en pantalla y el DOM grande de esta app, mover el mouse por encima de
+// cualquier tarjeta disparaba ese recálculo 60-120 veces por segundo —
+// esto es lo que se sentía como ventilador a tope y cursor lento SOLO
+// dentro de la app (en cualquier otra ventana no hay ese costo).
+// AHORA: el rect se mide UNA SOLA VEZ al entrar el cursor (mouseenter,
+// que ocurre rarísimas veces comparado con mousemove) y se reutiliza en
+// cada mousemove sin volver a tocar el layout — mismo efecto visual,
+// cero costo de reflow mientras el mouse se mueve.
 (function(){
   var SELECTORS = '.kpi, .gc2, .ri, .export-card, .feature-card, .card';
 
   function attachGlow(el){
     if(el._glowAttached) return;
     el._glowAttached = true;
+    var rect = null;
+    el.addEventListener('mouseenter', function(){
+      rect = el.getBoundingClientRect();
+    }, {passive: true});
     el.addEventListener('mousemove', function(e){
-      var rect = el.getBoundingClientRect();
+      if(!rect) rect = el.getBoundingClientRect();
       var x = ((e.clientX - rect.left) / rect.width) * 100;
       var y = ((e.clientY - rect.top) / rect.height) * 100;
       el.style.setProperty('--mx', x + '%');
       el.style.setProperty('--my', y + '%');
+    }, {passive: true});
+    el.addEventListener('mouseleave', function(){
+      rect = null;
     }, {passive: true});
   }
 
@@ -13012,7 +13047,22 @@ function confirmLogout() {
 }
 
 // ── Auth Modal Glow ───────────────────────────────────────────────────────
+// ANTES: este listener llamaba a getBoundingClientRect() en CADA mousemove,
+// en toda la app, sin importar si el modal de login estaba abierto o no.
+// getBoundingClientRect() obliga al navegador a recalcular el layout de
+// TODA la página de forma síncrona (un "forced reflow") — con el DOM grande
+// de Presupuesto/Insumos/Constructor APU, eso se repetía decenas de veces
+// por segundo cada vez que movías el mouse en cualquier parte de la app,
+// y es justo lo que se siente como ventilador a tope + cursor lento: el
+// hilo principal se la pasaba recalculando layout en vez de pintar.
+// AHORA: se revisa primero overlay.style.display (una simple lectura de
+// texto, sin costo de layout) y SOLO si el modal está realmente abierto
+// se llama a getBoundingClientRect(). El resto del tiempo (99% de las
+// veces que usas la app) este listener no hace absolutamente nada.
+var _authOverlayEl = null;
 document.addEventListener('mousemove', function(e){
+  if(!_authOverlayEl) _authOverlayEl = document.getElementById('auth-modal-overlay');
+  if(!_authOverlayEl || _authOverlayEl.style.display!=='flex') return;
   var box = document.getElementById('auth-modal-box');
   if(!box) return;
   var rect = box.getBoundingClientRect();
@@ -13020,7 +13070,7 @@ document.addEventListener('mousemove', function(e){
   var y = ((e.clientY - rect.top) / rect.height) * 100;
   box.style.setProperty('--amx', x + '%');
   box.style.setProperty('--amy', y + '%');
-});
+}, { passive: true });
 
 // ── Auth Modal ────────────────────────────────────────────────────────────
 var _bmGisInitTimer = null;

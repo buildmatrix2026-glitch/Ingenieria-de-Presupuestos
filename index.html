@@ -2173,35 +2173,26 @@ input[list].anp-input { cursor:text; }
 /* ── APU: columnas con piso mínimo (minmax) — crecen proporcional en pantallas anchas, pero NUNCA
    bajan de su ancho mínimo legible (así las etiquetas como "CÓDIGO APU" o "REND. GLOBAL" no se
    parten en dos líneas ni las cajas quedan diminutas). Si aun así no caben, el contenedor scrollea
-   horizontalmente en vez de aplastar el contenido — nunca se desbordan ni se cortan. ── */
-#anp-info-row { grid-template-columns:minmax(90px,13.5fr) minmax(170px,45fr) minmax(68px,10.2fr) minmax(140px,21fr) minmax(68px,10.2fr) !important; min-width:0; width:100%; box-sizing:border-box; }
+   horizontalmente en vez de aplastar el contenido — nunca se desbordan ni se cortan. El encabezado
+   y las filas usan el MISMO grid-template-columns, el mismo padding y el mismo box-sizing para
+   quedar exactamente alineados (sin fusionarlos en una sola cuadrícula: eso rompía los campos). ── */
+#anp-info-row { grid-template-columns:minmax(90px,13.5fr) minmax(170px,45fr) minmax(68px,10.2fr) minmax(140px,21fr) minmax(68px,10.2fr) !important; }
 .anp-scroll-wrap { overflow-x:auto; width:100%; }
 #apu-new-panel, .apu-right-col { min-width:0; }
 
-/* Equipo/Mano de obra/Materiales: encabezado y filas desalineados "a mano" (cada uno con su propio
-   grid-template-columns, que debía coincidir en padding/gap/anchos para no desfasarse) — ahora el
-   encabezado y TODAS las filas son celdas de UNA SOLA cuadrícula compartida (cada fila pasa a
-   "display:contents" para que sus celdas se integren directo en esa cuadrícula). Así quedan
-   alineadas por construcción: es imposible que se desfasen entre sí. */
-.anp-section:nth-of-type(2) .anp-scroll-wrap,
-.anp-section:nth-of-type(3) .anp-scroll-wrap {
-  display:grid !important;
-  grid-template-columns:minmax(78px,11fr) minmax(170px,42.3fr) minmax(54px,7.6fr) minmax(58px,8.2fr) minmax(74px,10.4fr) minmax(58px,8.2fr) minmax(64px,9fr) minmax(24px,3.4fr) !important;
-  column-gap:5px; row-gap:6px; align-items:center;
-}
-.anp-section:nth-of-type(4) .anp-scroll-wrap {
-  display:grid !important;
-  grid-template-columns:minmax(78px,11.9fr) minmax(170px,45.6fr) minmax(58px,8.8fr) minmax(60px,9.1fr) minmax(74px,11.2fr) minmax(64px,9.7fr) minmax(24px,3.6fr) !important;
-  column-gap:5px; row-gap:6px; align-items:center;
-}
 .anp-section:nth-of-type(2) .anp-header-row,
 .anp-section:nth-of-type(3) .anp-header-row,
-.anp-section:nth-of-type(4) .anp-header-row,
-#anp-equipo-rows, #anp-mano-rows, #anp-mat-rows,
-#anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
-  display:contents !important;
+#anp-equipo-rows > div,
+#anp-mano-rows > div {
+  grid-template-columns:minmax(78px,11fr) minmax(170px,42.3fr) minmax(54px,7.6fr) minmax(58px,8.2fr) minmax(74px,10.4fr) minmax(58px,8.2fr) minmax(64px,9fr) minmax(24px,3.4fr) !important;
 }
-#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; }
+.anp-section:nth-of-type(4) .anp-header-row,
+#anp-mat-rows > div {
+  grid-template-columns:minmax(78px,11.9fr) minmax(170px,45.6fr) minmax(58px,8.8fr) minmax(60px,9.1fr) minmax(74px,11.2fr) minmax(64px,9.7fr) minmax(24px,3.6fr) !important;
+}
+#anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div {
+  min-width:0; box-sizing:border-box; padding:0 2px;
+}
 /* Texto que no cabe en su celda: elipsis en vez de cortarse a lo bruto, y tooltip con el valor completo */
 .anp-input { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .anp-header-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

@@ -3434,11 +3434,8 @@ document.querySelectorAll('.magnet, button, a, .chapter-card, .feature-card, .ex
     });
   }
 
-  var landEl = document.getElementById('land');
+  var running = false;
   function tick() {
-    // Esta animación es solo decorativa para la landing page: si ya no se ve (el usuario entró
-    // a la app), se salta todo el cálculo pesado en vez de seguir consumiendo CPU para siempre.
-    if (landEl && landEl.offsetParent === null) { requestAnimationFrame(tick); return; }
     ctx.clearRect(0, 0, W, H);
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy;
@@ -3481,9 +3478,24 @@ document.querySelectorAll('.magnet, button, a, .chapter-card, .feature-card, .ex
       }
     }
     ctx.globalAlpha = 1;
-    requestAnimationFrame(tick);
+    if (running) requestAnimationFrame(tick);
   }
-  tick();
+  function start() { if (running) return; running = true; requestAnimationFrame(tick); }
+  function stop() { running = false; }
+  // Antes, al entrar a la app, este bucle de requestAnimationFrame seguía pidiéndose a sí mismo
+  // 60-144 veces por segundo PARA SIEMPRE (solo se saltaba el cálculo pesado, pero igual pedía
+  // el siguiente fotograma) — eso le quita una porción de cada fotograma al navegador sin parar,
+  // que es justo lo que se siente como que el cursor o la app no llegan a la frecuencia real de
+  // la pantalla (sus Hz/FPS reales). Con IntersectionObserver el bucle se DETIENE del todo en
+  // cuanto este canvas deja de verse (display:none al entrar a la app, ver #land/#hc arriba) y
+  // solo vuelve a arrancar si se ve de nuevo (al cerrar sesión) — cero trabajo mientras está oculto.
+  if (typeof IntersectionObserver !== 'undefined') {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) start(); else stop(); });
+    }, { threshold: 0 }).observe(canvas);
+  } else {
+    start();
+  }
 })();
 
 /* HERO ENTRANCE */
@@ -10394,6 +10406,7 @@ function exportExcel(){
   const ctx=c.getContext('2d');let W,H,pts=[];
   function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
   function mkPts(){pts=Array.from({length:Math.min(80,Math.floor(W*H/18000))},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.4+.6}));}
+  let running=false;
   function draw(){
     ctx.clearRect(0,0,W,H);
     for(let i=0;i<pts.length;i++){
@@ -10405,9 +10418,25 @@ function exportExcel(){
         if(d<130){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle=`rgba(0,82,255,${.18*(1-d/130)})`;ctx.lineWidth=.7;ctx.stroke();}
       }
     }
-    requestAnimationFrame(draw);
+    if(running)requestAnimationFrame(draw);
   }
-  resize();mkPts();draw();
+  function start(){if(running)return;running=true;requestAnimationFrame(draw);}
+  function stop(){running=false;}
+  resize();mkPts();
+  // Este canvas ("#hc") NO tenía ningún freno: seguía calculando 80 partículas y hasta ~3.160
+  // comparaciones de distancia entre ellas, 60-144 veces por segundo, PARA SIEMPRE — incluso con
+  // la pestaña "Presupuesto IA" o cualquier otra abierta, con este canvas invisible (display:none
+  // en cuanto se entra a la app, ver body.ia #hc arriba). Ese cálculo pesado corriendo sin parar
+  // de fondo es la causa más probable del uso alto de GPU y de que el cursor no vaya a la
+  // frecuencia real de la pantalla. Con IntersectionObserver el bucle se detiene del todo en
+  // cuanto el canvas queda oculto y solo retoma si vuelve a verse (al cerrar sesión).
+  if (typeof IntersectionObserver !== 'undefined') {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) start(); else stop(); });
+    }, { threshold: 0 }).observe(c);
+  } else {
+    start();
+  }
   window.addEventListener('resize',()=>{resize();mkPts();});
 })();
 

@@ -2171,16 +2171,16 @@ input[list].anp-input { cursor:text; }
 #anp-mat-rows input.anp-input { min-height:34px; padding:5px 7px; }
 
 /* ── APU: columnas en % — suman siempre 100% del ancho disponible, nunca se desbordan ni se cortan ── */
-#anp-info-row { grid-template-columns:13.5% 45% 10.2% 21% 10.2% !important; }
+#anp-info-row { grid-template-columns:13.5fr 45fr 10.2fr 21fr 10.2fr !important; }
 .anp-section:nth-of-type(2) .anp-header-row,
 .anp-section:nth-of-type(3) .anp-header-row,
 #anp-equipo-rows > div,
 #anp-mano-rows > div {
-  grid-template-columns:11% 42.3% 7.6% 8.2% 10.4% 8.2% 9% 3.4% !important;
+  grid-template-columns:11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
 }
 .anp-section:nth-of-type(4) .anp-header-row,
 #anp-mat-rows > div {
-  grid-template-columns:11.9% 45.6% 8.8% 9.1% 11.2% 9.7% 3.6% !important;
+  grid-template-columns:11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
 }
 #anp-info-row, .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width:0; width:100%; }
 .anp-scroll-wrap { overflow-x:visible; width:100%; }
@@ -2242,7 +2242,7 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   /* apu-layout handled by iPad-specific block below */
   .apu-right-col { min-width: 0; width: 100%; overflow-x: hidden; }
   .anp-scroll-wrap { overflow-x: visible; width: 100%; }
-  #anp-info-row { grid-template-columns:13.5% 45% 10.2% 21% 10.2% !important; min-width: 0; width: 100%; }
+  #anp-info-row { grid-template-columns:13.5fr 45fr 10.2fr 21fr 10.2fr !important; min-width: 0; width: 100%; }
   #apu-new-panel { overflow-x: hidden; width: 100%; box-sizing: border-box; }
 }
 
@@ -2302,7 +2302,7 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   .apu-right-col { min-width: 0; width: 100%; overflow-x: hidden; }
   #apu-new-panel { width: 100%; box-sizing: border-box; overflow-x: hidden; }
   .anp-scroll-wrap { overflow-x: visible; width: 100%; }
-  #anp-info-row { grid-template-columns: 13.5% 45% 10.2% 21% 10.2% !important; gap: 4px !important; min-width: 0; width: 100%; }
+  #anp-info-row { grid-template-columns: 13.5fr 45fr 10.2fr 21fr 10.2fr !important; gap: 4px !important; min-width: 0; width: 100%; }
   #anp-info-row > div > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .anp-header-row { min-width: 480px; }
   .anp-section:nth-of-type(2) .anp-header-row,
@@ -2355,34 +2355,34 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
     overflow-x: hidden !important;
   }
 
-  /* 2. All scroll wraps scrollable */
-  .anp-scroll-wrap { overflow-x: auto !important; }
+  /* 2. All scroll wraps: nunca forzar scroll, las columnas en % ya caben siempre */
+  .anp-scroll-wrap { overflow-x: visible !important; }
 
-  /* 3. EQUIPO & MANO — desktop columns on BOTH headers and JS-rendered rows */
+  /* 3. EQUIPO & MANO — columnas en % — suman 100%, nunca se salen del encuadre */
   .anp-section:nth-of-type(2) .anp-header-row,
   #anp-equipo-rows > div,
   .anp-section:nth-of-type(3) .anp-header-row,
   #anp-mano-rows > div {
     display: grid !important;
-    grid-template-columns: 78px 1fr 54px 58px 74px 58px 64px 24px !important;
+    grid-template-columns: 11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
     gap: 5px !important;
-    min-width: 520px !important;
+    min-width: 0 !important;
   }
 
-  /* 4. MATERIALES — desktop columns */
+  /* 4. MATERIALES — columnas en % */
   .anp-section:nth-of-type(4) .anp-header-row,
   #anp-mat-rows > div {
     display: grid !important;
-    grid-template-columns: 78px 1fr 58px 60px 74px 64px 24px !important;
+    grid-template-columns: 11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;
     gap: 5px !important;
-    min-width: 450px !important;
+    min-width: 0 !important;
   }
 
-  /* 5. Info row — desktop size */
+  /* 5. Info row — columnas en % */
   #anp-info-row {
-    grid-template-columns: 90px 1fr 68px 140px 68px !important;
+    grid-template-columns: 13.5fr 45fr 10.2fr 21fr 10.2fr !important;
     gap: 8px !important;
-    min-width: 520px !important;
+    min-width: 0 !important;
   }
 
   /* 6. Financial strip: 3 top + 3 bottom */

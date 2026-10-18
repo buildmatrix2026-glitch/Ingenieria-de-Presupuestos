@@ -2879,6 +2879,31 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 .gx-scope .gx-pm-summary{font-size:12px;color:var(--gx-tx2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gx-br)}
 .gx-scope .gx-pm-summary b{color:var(--gx-tx);font-family:'JetBrains Mono',monospace}
 
+/* ── Cronograma (BETA): Gantt + Curva S ─────────────────────────────── */
+.cro-empty{padding:40px 20px;text-align:center;color:var(--sld);font-size:13px}
+.cro-cap-head{display:flex;justify-content:space-between;align-items:center;padding:10px 4px 6px;margin-top:10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12.5px;font-weight:700;color:var(--sl)}
+.cro-cap-head:first-child{margin-top:0}
+.cro-cap-tot{font-family:var(--f-mo);color:var(--gr);font-weight:700}
+.cro-row{display:flex;flex-direction:column;gap:6px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.04)}
+.cro-row-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cro-row-desc{flex:1;min-width:140px;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cro-row-fields{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cro-inp{height:30px;padding:0 8px;font-size:11.5px;width:134px}
+.cro-inp-sm{width:56px;text-align:right;font-family:var(--f-mo)}
+.cro-row-cost{font-family:var(--f-mo);font-size:12px;font-weight:700;color:var(--gr);min-width:70px;text-align:right}
+.cro-track{position:relative;height:18px;background:rgba(255,255,255,.03);border-radius:5px;overflow:hidden}
+.cro-track-empty{font-size:10.5px;color:var(--sld);padding:0 8px;line-height:18px;font-style:italic}
+.cro-bar{position:absolute;top:2px;height:14px;border-radius:4px;background:rgba(0,212,255,.18);border:1px solid rgba(34,211,238,.5);overflow:hidden}
+.cro-bar-fill{height:100%;background:rgba(34,211,238,.55)}
+.cro-ruler-wrap{position:relative;height:20px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.cro-ruler{position:relative;height:100%}
+.cro-ruler-mark{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;color:var(--sld);font-family:var(--f-mo);white-space:nowrap}
+.cro-ruler-today{position:absolute;top:0;transform:translateX(-50%);font-size:9px;font-weight:700;color:#22d3ee;background:rgba(0,212,255,.14);border-radius:3px;padding:0 4px}
+@media (max-width:768px){
+  .cro-row-fields{width:100%}
+  .cro-inp{width:118px}
+}
+
 </style>
 
 <!-- ── Auth simulado (Firebase removido) ──────────────────────────────── -->
@@ -3802,6 +3827,7 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
       <div class="slab">Módulos</div>
       <button class="ni ac" data-v="dash" onclick="go('dash')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Panel general</button>
       <button class="ni" data-v="pre" onclick="go('pre')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/></svg>Presupuesto<span class="ct" id="ctp">0</span></button>
+      <button class="ni" data-v="cro" onclick="go('cro')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/></svg>Cronograma<span class="ct" style="background:rgba(0,212,255,.16);color:#22d3ee">BETA</span></button>
       <button class="ni" data-v="apu" onclick="go('apu')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Constructor APU<span class="ct" data-bm-count="apu">2.063</span></button>
       <button class="ni" data-v="ins" onclick="go('ins')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>Insumos<span class="ct" data-bm-count="ins">4.157</span></button>
       <button class="ni" data-v="grp" onclick="go('grp')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21V12h6v9"/></svg>Grupos y rubros<span class="ct" data-bm-count="grp">75</span></button>
@@ -3871,6 +3897,45 @@ document.getElementById('cta-final').addEventListener('mousemove', e => {
         <div class="fs" id="fstrip"></div>
         <!-- Tabla de capítulos — ancho completo -->
         <div id="caps"></div>
+      </div>
+      <div class="vw" id="v-cro">
+        <div class="vh"><div><h2>Cronograma de obra <span style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#22d3ee;background:rgba(0,212,255,.14);border:1px solid rgba(34,211,238,.35);border-radius:5px;padding:3px 7px;vertical-align:middle;margin-left:6px">BETA</span></h2><div class="sub">Programa en el tiempo los rubros de tu presupuesto y visualiza la curva de avance</div></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="date" class="inp" id="cro-proj-start" title="Fecha de inicio del proyecto (para autocompletar)" style="width:150px">
+            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="croAutoFill()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>Autocompletar
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs de avance -->
+        <div class="card" style="padding:16px 20px;margin-bottom:14px;display:flex;gap:28px;flex-wrap:wrap;align-items:center">
+          <div>
+            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance planificado (hoy)</div>
+            <div id="cro-kpi-plan" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#00d4ff">0%</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance físico real</div>
+            <div id="cro-kpi-real" style="font-size:22px;font-weight:700;font-family:var(--f-mo)">0%</div>
+          </div>
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Estado</div>
+            <div id="cro-kpi-status" style="font-size:13.5px;font-weight:600">—</div>
+          </div>
+        </div>
+
+        <!-- Curva S -->
+        <div class="card" style="padding:16px 20px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Curva S — Costo planificado acumulado</div>
+          <div style="position:relative;height:230px"><canvas id="cro-scurve-canvas"></canvas></div>
+        </div>
+
+        <!-- Gantt -->
+        <div class="card" style="padding:16px 20px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Diagrama de Gantt por rubro</div>
+          <div class="cro-ruler-wrap"><div class="cro-ruler" id="cro-ruler"></div></div>
+          <div id="cro-gantt-body"></div>
+        </div>
       </div>
       <div class="vw" id="v-apu">
         <div class="vh"><div><h2>Constructor APU</h2><div class="sub">Edita los análisis de precios unitarios con recálculo en vivo</div></div>
@@ -6053,6 +6118,7 @@ function _restoreBD(){
 }
 // S se inicializa aquí, después de _BD_ORIG, para que el snapshot sea siempre limpio
 let S = loadState();
+if(!S.schedule) S.schedule = {}; // Cronograma (beta): {ci: {ri: {start:'YYYY-MM-DD', dur:Number(dias), pct:Number(0-100)}}}
 let _timers = {};
 let curAPU = null;
 let pickerSection = null;
@@ -6209,7 +6275,7 @@ function calcAPU(a){
 // ── Persistence ───────────────────────────────
 function defaultState(){
   return{own:'',proj:'',date:'',
-    ind:10,uti:14,iva:15,caps:CAPS_DEFAULT.map(()=>[]),capNames:[],capNums:[],customInsumos:[]};
+    ind:10,uti:14,iva:15,caps:CAPS_DEFAULT.map(()=>[]),capNames:[],capNums:[],schedule:{},customInsumos:[]};
 }
 function loadState(){
   // Solo restaura el estado S desde sesión — NO modifica BD.I/BD.G/BD.A
@@ -6274,6 +6340,7 @@ function go(v){
   const mn=document.querySelector('.mn');if(mn)mn.scrollTop=0;
   if(v==='dash')renderDash();
   else if(v==='pre')renderBudget();
+  else if(v==='cro')renderCronograma();
   else if(v==='apu'){renderAL();setTimeout(initInsAPUPanel,80);}
   else if(v==='ins')renderIns();
   else if(v==='grp')renderGG();
@@ -6332,7 +6399,7 @@ function _silentSaveProject(){
     });
     var cg=BD.G.map(function(g){ return {n:g.n,p:g.p||'',r:g.r.map(function(r){return r.slice();})}; });
     var entry={name:S.proj,ts:ts,own:S.own||'',date:S.date||'',caps:S.caps,
-      capNames:S.capNames||[],capNums:S.capNums||[],
+      capNames:S.capNames||[],capNums:S.capNums||[],schedule:S.schedule||{},
       ind:S.ind,uti:S.uti,iva:S.iva,
       customAPU:S.customAPU,customInsumos:S.customInsumos||[],customGroups:cg};
     // ── Totales "congelados" en el propio entry, calculados AHORA de S.caps real ──
@@ -6602,7 +6669,7 @@ function saveProject(){
   const customGroups = BD.G.map(function(g){
     return {n:g.n, p:g.p||'', r:g.r.map(function(r){ return r.slice(); })};
   });
-  const entry = {name, ts, own: S.own||'', date: S.date||'', caps: S.caps, capNames: S.capNames||[], capNums: S.capNums||[], ind: S.ind, uti: S.uti, iva: S.iva, customAPU: S.customAPU||{}, customInsumos: S.customInsumos||[], customGroups: customGroups};
+  const entry = {name, ts, own: S.own||'', date: S.date||'', caps: S.caps, capNames: S.capNames||[], capNums: S.capNums||[], schedule: S.schedule||{}, ind: S.ind, uti: S.uti, iva: S.iva, customAPU: S.customAPU||{}, customInsumos: S.customInsumos||[], customGroups: customGroups};
   // Totales "congelados" ya mismo, igual que en _silentSaveProject — ver ese comentario.
   var _tPreview2 = _calcProjTotals(entry);
   entry.totalRubros = _tPreview2.rubros;
@@ -6670,6 +6737,7 @@ function _bmApplyLoadedProject(p){
   S.caps=p.caps||CAPS_DEFAULT.map(()=>[]);
   S.capNames=p.capNames||[];
   S.capNums=p.capNums||[];
+  S.schedule=p.schedule||{};
   // Limpiar vista de grupos para evitar datos stale del proyecto anterior
   var _gdet = document.getElementById('gdet');
   var _ghome = document.getElementById('ghome');
@@ -7160,6 +7228,7 @@ function _bootProject(){
     S.own=_p.own||''; S.proj=_p.name; S.date=_p.date||'';
     S.ind=_p.ind??null; S.uti=_p.uti??null; S.iva=_p.iva??null;
     S.caps=_p.caps||CAPS_DEFAULT.map(function(){return[];});S.capNames=_p.capNames||[];S.capNums=_p.capNums||[];
+    S.schedule=_p.schedule||{};
     S.customAPU=_p.customAPU||{};
     S.customInsumos=_p.customInsumos||[];
   }
@@ -7532,6 +7601,7 @@ function enterAppTo(tab){
         S.ind=_p.ind??null; S.uti=_p.uti??null; S.iva=_p.iva??null;
         S.caps=_p.caps||CAPS_DEFAULT.map(function(){return[];});
         S.capNames=_p.capNames||[]; S.capNums=_p.capNums||[];
+        S.schedule=_p.schedule||{};
         S.customAPU=_p.customAPU||{};
         S.customInsumos=_p.customInsumos||[];
       } else {
@@ -7780,7 +7850,311 @@ function addRubroToCap(ci,rub){
   closeRM();
   toast(`${rub[0]} agregado al capítulo ${ci}`);
 }
-async function resetBudget(){if(!await BM_CONFIRM('¿Vaciar presupuesto completo?'))return;S.caps=CAPS_DEFAULT.map(()=>[]);S.capNames=[];S.capNums=[];S.own='';S.proj='';S.date='';S.ind=10;S.uti=14;S.iva=15;$id('pown').value='';$id('pname').value='';$id('pdate').value='';$id('pind').value=10;$id('puti').value=14;$id('piva').value=15;$id('tpn').textContent='';document.getElementById('tp-header').style.display='none';persist();renderBudget();toast('Presupuesto vaciado');}
+async function resetBudget(){if(!await BM_CONFIRM('¿Vaciar presupuesto completo?'))return;S.caps=CAPS_DEFAULT.map(()=>[]);S.capNames=[];S.capNums=[];S.schedule={};S.own='';S.proj='';S.date='';S.ind=10;S.uti=14;S.iva=15;$id('pown').value='';$id('pname').value='';$id('pdate').value='';$id('pind').value=10;$id('puti').value=14;$id('piva').value=15;$id('tpn').textContent='';document.getElementById('tp-header').style.display='none';persist();renderBudget();toast('Presupuesto vaciado');}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── CRONOGRAMA (BETA): Gantt + Curva S ──────────────────────────────────────
+// Datos: S.schedule = { [ci]: { [ri]: { start:'YYYY-MM-DD', dur:Number(días), pct:Number(0-100) } } }
+// Se persiste igual que S.caps (sessionStorage vía persist(), y se incluyó en
+// todos los puntos de guardado/carga de proyecto — ver _bmApplyLoadedProject,
+// _silentSaveProject, saveProject, exportProjViewPDF, defaultState, resetBudget).
+// ══════════════════════════════════════════════════════════════════════════
+var _croSCurveChart = null;
+const CRO_DEFAULT_DUR = 5; // días por defecto al autocompletar un rubro sin duración
+
+function croEnsureCap(ci){ if(!S.schedule) S.schedule={}; if(!S.schedule[ci]) S.schedule[ci]={}; return S.schedule[ci]; }
+function croGet(ci,ri){ const cap=croEnsureCap(ci); return cap[ri] || (cap[ri]={start:'',dur:null,pct:0}); }
+function croRowCost(ci,ri){ const r=(S.caps[ci]||[])[ri]; if(!r) return 0; return (r.qty||0)*(r.pu||0); }
+
+function croSetField(ci,ri,field,val){
+  const d=croGet(ci,ri);
+  if(field==='start') d.start=val;
+  else if(field==='dur') d.dur=Math.max(0,parseInt(val)||0);
+  else if(field==='pct') d.pct=Math.max(0,Math.min(100,parseFloat(val)||0));
+  persist();
+  croRenderGantt();
+  croRenderSCurve();
+  croRenderKPIs();
+}
+
+function croAddDays(dateStr,days){
+  const dt=new Date(dateStr+'T00:00:00');
+  dt.setDate(dt.getDate()+days);
+  return dt.toISOString().slice(0,10);
+}
+function croDaysBetween(a,b){
+  return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+}
+
+// Autocompleta fechas vacías encadenando los rubros en orden (capítulo por capítulo),
+// cada uno empieza cuando termina el anterior. No pisa fechas ya puestas a mano.
+async function croAutoFill(){
+  const startInput=$id('cro-proj-start');
+  const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
+  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio, encadenándolos uno tras otro desde '+formatDateDisplay(projStart)+'. Los rubros que ya tienen fecha puesta a mano NO se tocan. ¿Continuar?')) return;
+  const CAPS=getCaps();
+  let cursor=projStart;
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    for(let ri=0;ri<rows.length;ri++){
+      const d=croGet(ci,ri);
+      if(!d.dur) d.dur=CRO_DEFAULT_DUR;
+      if(!d.start){
+        d.start=cursor;
+      }
+      cursor=croAddDays(d.start,d.dur);
+    }
+  }
+  persist();
+  renderCronograma();
+  toast('Cronograma autocompletado');
+}
+
+// Rango de fechas total del proyecto (mínimo inicio, máximo fin) entre todos los rubros programados
+function croComputeRange(){
+  const CAPS=getCaps();
+  let min=null,max=null;
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    for(let ri=0;ri<rows.length;ri++){
+      const d=(S.schedule[ci]||{})[ri];
+      if(!d||!d.start||!d.dur) continue;
+      const end=croAddDays(d.start,d.dur);
+      if(!min||d.start<min) min=d.start;
+      if(!max||end>max) max=end;
+    }
+  }
+  if(!min||!max){
+    const today=new Date().toISOString().slice(0,10);
+    return {min:today,max:croAddDays(today,30),totalDays:30};
+  }
+  return {min,max,totalDays:Math.max(1,croDaysBetween(min,max))};
+}
+
+function croRenderGantt(){
+  const wrap=$id('cro-gantt-body');
+  if(!wrap) return;
+  const CAPS=getCaps();
+  const range=croComputeRange();
+  let html='';
+  let anyRow=false;
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    if(!rows.length) continue;
+    anyRow=true;
+    const capTot=capTotal(ci);
+    html+=`<div class="cro-cap-head"><span>${esc(CAPS[ci])}</span><span class="cro-cap-tot">${fmtUSD(capTot)}</span></div>`;
+    rows.forEach(function(r,ri){
+      const d=croGet(ci,ri);
+      const cost=croRowCost(ci,ri);
+      let barLeft=0,barWidth=0,hasBar=false;
+      if(d.start&&d.dur){
+        const offsetDays=croDaysBetween(range.min,d.start);
+        barLeft=Math.max(0,(offsetDays/range.totalDays)*100);
+        barWidth=Math.max(0.6,(d.dur/range.totalDays)*100);
+        hasBar=true;
+      }
+      const pct=d.pct||0;
+      html+=`<div class="cro-row">
+        <div class="cro-row-info">
+          <div class="cro-row-desc" title="${esc(r.desc||'')}">${esc(r.desc||r.code||'')}</div>
+          <div class="cro-row-fields">
+            <input type="date" class="inp cro-inp" value="${d.start||''}" onchange="croSetField(${ci},${ri},'start',this.value)" title="Fecha inicio">
+            <input type="text" inputmode="numeric" class="inp cro-inp cro-inp-sm" placeholder="días" value="${d.dur||''}" onchange="croSetField(${ci},${ri},'dur',this.value)" title="Duración en días">
+            <input type="text" inputmode="decimal" class="inp cro-inp cro-inp-sm" placeholder="%" value="${d.pct||''}" onchange="croSetField(${ci},${ri},'pct',this.value)" title="% avance físico real">
+            <span class="cro-row-cost">${fmtUSD(cost)}</span>
+          </div>
+        </div>
+        <div class="cro-track">
+          ${hasBar?`<div class="cro-bar" style="left:${barLeft}%;width:${barWidth}%" title="${d.start} → ${croAddDays(d.start,d.dur)}"><div class="cro-bar-fill" style="width:${pct}%"></div></div>`:`<div class="cro-track-empty">Sin fecha — ingresa inicio y duración</div>`}
+        </div>
+      </div>`;
+    });
+  }
+  if(!anyRow){
+    wrap.innerHTML='<div class="cro-empty">Tu presupuesto todavía no tiene rubros. Agrega rubros en la pestaña Presupuesto y vuelve aquí para programarlos en el tiempo.</div>';
+    $id('cro-ruler').innerHTML='';
+    return;
+  }
+  wrap.innerHTML=html;
+  croRenderRuler(range);
+}
+
+function croRenderRuler(range){
+  const ruler=$id('cro-ruler');
+  if(!ruler) return;
+  // Hasta 6 marcas de fecha repartidas en el ancho de la línea de tiempo
+  const marks=6;
+  let html='';
+  for(let i=0;i<=marks;i++){
+    const days=Math.round((range.totalDays/marks)*i);
+    const dateStr=croAddDays(range.min,days);
+    const left=(days/range.totalDays)*100;
+    html+=`<span class="cro-ruler-mark" style="left:${left}%">${formatDateDisplay(dateStr)}</span>`;
+  }
+  // Marca "HOY" si cae dentro del rango
+  const today=new Date().toISOString().slice(0,10);
+  if(today>=range.min&&today<=range.max){
+    const leftToday=(croDaysBetween(range.min,today)/range.totalDays)*100;
+    html+=`<span class="cro-ruler-today" style="left:${leftToday}%">HOY</span>`;
+  }
+  ruler.innerHTML=html;
+}
+
+// Curva S: costo acumulado PLANIFICADO por día, repartiendo el costo de cada rubro
+// linealmente a lo largo de su duración (método estándar de curva S por devengo).
+function croComputeSeriesData(){
+  const CAPS=getCaps();
+  const range=croComputeRange();
+  const totalDays=range.totalDays;
+  const daily=new Array(totalDays+1).fill(0);
+  let totalPlanned=0;
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    for(let ri=0;ri<rows.length;ri++){
+      const d=(S.schedule[ci]||{})[ri];
+      if(!d||!d.start||!d.dur) continue;
+      const cost=croRowCost(ci,ri);
+      if(!cost) continue;
+      totalPlanned+=cost;
+      const offsetDays=croDaysBetween(range.min,d.start);
+      const perDay=cost/Math.max(1,d.dur);
+      for(let k=0;k<d.dur;k++){
+        const idx=offsetDays+k;
+        if(idx>=0&&idx<=totalDays) daily[idx]+=perDay;
+      }
+    }
+  }
+  // Acumulado
+  const cum=[]; let run=0;
+  for(let i=0;i<daily.length;i++){ run+=daily[i]; cum.push(run); }
+  // Muestreo a máx. ~40 puntos para que el chart no se sature con proyectos largos
+  const maxPoints=40;
+  const step=Math.max(1,Math.ceil(cum.length/maxPoints));
+  const labels=[],values=[];
+  for(let i=0;i<cum.length;i+=step){
+    labels.push(formatDateDisplay(croAddDays(range.min,i)));
+    values.push(cum[i]);
+  }
+  if((cum.length-1)%step!==0){
+    labels.push(formatDateDisplay(croAddDays(range.min,cum.length-1)));
+    values.push(cum[cum.length-1]);
+  }
+  return {labels,values,totalPlanned,range};
+}
+
+function croRenderSCurve(){
+  const canvas=$id('cro-scurve-canvas');
+  if(!canvas||typeof Chart==='undefined') return;
+  const {labels,values}=croComputeSeriesData();
+  const ctx=canvas.getContext('2d');
+  if(_croSCurveChart){
+    _croSCurveChart.data.labels=labels;
+    _croSCurveChart.data.datasets[0].data=values;
+    _croSCurveChart.update();
+    return;
+  }
+  const grad=ctx.createLinearGradient(0,0,0,230);
+  grad.addColorStop(0,'#00d4ff55'); grad.addColorStop(1,'#00d4ff00');
+  _croSCurveChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:labels,datasets:[{label:'Costo planificado acumulado',data:values,borderColor:'#00d4ff',backgroundColor:grad,borderWidth:2.5,pointRadius:2,pointBackgroundColor:'#00d4ff',pointBorderColor:'#0b0f19',fill:true,tension:0.3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:420,easing:'easeOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#0b0f19',titleColor:'#fff',bodyColor:'#00d4ff',borderColor:'#00d4ff',borderWidth:1,padding:10,
+          titleFont:{family:'JetBrains Mono'},bodyFont:{family:'JetBrains Mono'},
+          callbacks:{label:function(c){return fmtUSD(c.parsed.y);}}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a94a6',font:{family:'JetBrains Mono',size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+        y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a94a6',font:{family:'JetBrains Mono',size:10},callback:function(v){return '$'+v;}}}
+      }
+    }
+  });
+}
+
+// KPIs: avance financiero planificado a HOY (interpolado de la curva) vs avance físico real
+// reportado a mano (promedio ponderado por costo de los % de cada rubro)
+function croRenderKPIs(){
+  const kpiPlanEl=$id('cro-kpi-plan'), kpiRealEl=$id('cro-kpi-real'), kpiStatusEl=$id('cro-kpi-status');
+  if(!kpiPlanEl) return;
+  const {totalPlanned,range}=croComputeSeriesData();
+  const today=new Date().toISOString().slice(0,10);
+  let plannedToday=0;
+  if(totalPlanned>0){
+    if(today<=range.min) plannedToday=0;
+    else if(today>=range.max) plannedToday=totalPlanned;
+    else{
+      const daysElapsed=croDaysBetween(range.min,today);
+      // recomputar acumulado exacto a hoy (sin muestreo) para precisión del KPI
+      const CAPS=getCaps();
+      let sum=0;
+      for(let ci=0;ci<CAPS.length;ci++){
+        const rows=S.caps[ci]||[];
+        for(let ri=0;ri<rows.length;ri++){
+          const d=(S.schedule[ci]||{})[ri];
+          if(!d||!d.start||!d.dur) continue;
+          const cost=croRowCost(ci,ri);
+          if(!cost) continue;
+          const offset=croDaysBetween(range.min,d.start);
+          const elapsedInRow=Math.max(0,Math.min(d.dur,daysElapsed-offset));
+          sum+=cost*(elapsedInRow/d.dur);
+        }
+      }
+      plannedToday=sum;
+    }
+  }
+  const pctPlanToday=totalPlanned>0?(plannedToday/totalPlanned*100):0;
+  // Avance físico real ponderado por costo
+  const CAPS=getCaps();
+  let costWithPct=0, weightedPct=0;
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    for(let ri=0;ri<rows.length;ri++){
+      const d=(S.schedule[ci]||{})[ri];
+      const cost=croRowCost(ci,ri);
+      if(!cost) continue;
+      if(d&&d.pct){ costWithPct+=cost; weightedPct+=cost*(d.pct/100); }
+    }
+  }
+  const pctRealToday=costWithPct>0?(weightedPct/costWithPct*100):0;
+  kpiPlanEl.textContent=pctPlanToday.toFixed(1)+'%';
+  kpiRealEl.textContent=pctRealToday.toFixed(1)+'%';
+  if(kpiStatusEl){
+    const diff=pctRealToday-pctPlanToday;
+    if(costWithPct===0){
+      kpiStatusEl.textContent='Sin datos de avance real todavía';
+      kpiStatusEl.style.color='var(--sld)';
+    } else if(diff>=-2){
+      kpiStatusEl.textContent='En línea con lo planificado';
+      kpiStatusEl.style.color='var(--gr)';
+    } else {
+      kpiStatusEl.textContent=`Atrasado ${Math.abs(diff).toFixed(1)} pts vs. lo planificado`;
+      kpiStatusEl.style.color='var(--am)';
+    }
+  }
+}
+
+function renderCronograma(){
+  const wrap=$id('cro-gantt-body');
+  if(!wrap) return; // vista aún no montada en el DOM (seguridad)
+  croRenderGantt();
+  if(typeof Chart==='undefined'){
+    // Chart.js todavía no terminó de cargar (red lenta) — reintenta un par de veces sin bloquear la UI
+    var _croChartRetries=0;
+    var _croChartWait=setInterval(function(){
+      _croChartRetries++;
+      if(typeof Chart!=='undefined'){ clearInterval(_croChartWait); croRenderSCurve(); }
+      else if(_croChartRetries>20) clearInterval(_croChartWait);
+    },250);
+  } else {
+    croRenderSCurve();
+  }
+  croRenderKPIs();
+}
 
 // ── Rubro modal ───────────────────────────────
 function openRM(ci){addCapIdx=ci;$id('rmt').textContent=`Agregar a: ${getCaps()[ci]}`;$id('rs').value='';renderRM();$id('rmb').classList.add('op');setTimeout(()=>$id('rs').focus(),120);}
@@ -9059,6 +9433,7 @@ function importJSON(inp){
         var entry={
           name:S.proj,ts:Date.now(),own:S.own||'',date:S.date||'',
           caps:S.caps,ind:S.ind,uti:S.uti,iva:S.iva,
+          schedule:S.schedule||{},
           customAPU:S.customAPU,customInsumos:S.customInsumos,
           customGroups:d.customGroups||[]
         };
@@ -13791,6 +14166,7 @@ function _loadEntryIntoSession(p, userName) {
   S.caps     = p.caps     || CAPS_DEFAULT.map(function(){ return []; });
   S.capNames = p.capNames || [];
   S.capNums  = p.capNums  || [];
+  S.schedule = p.schedule || {};
   S.customAPU     = p.customAPU     || {};
   S.customInsumos = p.customInsumos || [];
   _applyProjectToBD(p);
@@ -13913,7 +14289,7 @@ function exportProjViewPDF() {
   var prevS = JSON.parse(JSON.stringify({
     proj: S.proj, own: S.own, date: S.date,
     ind: S.ind, uti: S.uti, iva: S.iva,
-    caps: S.caps, capNames: S.capNames, capNums: S.capNums,
+    caps: S.caps, capNames: S.capNames, capNums: S.capNums, schedule: S.schedule || {},
     customAPU: S.customAPU || {}, customInsumos: S.customInsumos || []
   }));
 
@@ -13921,7 +14297,7 @@ function exportProjViewPDF() {
     _restoreBD();
     S.proj = prevS.proj; S.own = prevS.own; S.date = prevS.date;
     S.ind = prevS.ind; S.uti = prevS.uti; S.iva = prevS.iva;
-    S.caps = prevS.caps; S.capNames = prevS.capNames; S.capNums = prevS.capNums;
+    S.caps = prevS.caps; S.capNames = prevS.capNames; S.capNums = prevS.capNums; S.schedule = prevS.schedule;
     S.customAPU = prevS.customAPU; S.customInsumos = prevS.customInsumos;
     _applyProjectToBD(prevS);
     clearTimeout(_exportingPDFWatchdog);

@@ -2326,16 +2326,18 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   .apu-list-col { position: static !important; max-height: 40vh; min-width: 0; width: 100%; }
   .apu-right-col { min-width: 0; width: 100%; overflow-x: hidden; }
   #apu-new-panel { width: 100%; box-sizing: border-box; overflow-x: hidden; }
-  .anp-scroll-wrap { overflow-x: visible; width: 100%; }
+  .anp-scroll-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; width: 100%; }
   #anp-info-row { grid-template-columns: 13.5fr 45fr 10.2fr 21fr 10.2fr !important; gap: 4px !important; min-width: 0; width: 100%; }
   #anp-info-row > div > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .anp-header-row { min-width: 480px; }
+  .anp-header-row { min-width: 480px; box-sizing: border-box; padding: 0 2px; }
   .anp-section:has(#anp-equipo-rows) .anp-header-row,
-  .anp-section:has(#anp-mano-rows) .anp-header-row { grid-template-columns: 65px 1fr 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
-  .anp-section:has(#anp-mat-rows) .anp-header-row { grid-template-columns: 65px 1fr 48px 50px 58px 52px 22px !important; gap: 4px !important; }
-  #anp-equipo-rows > div, #anp-mano-rows > div { min-width: 480px; grid-template-columns: 65px 1fr 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
-  #anp-mat-rows > div { min-width: 460px; grid-template-columns: 65px 1fr 48px 50px 58px 52px 22px !important; gap: 4px !important; }
+  .anp-section:has(#anp-mano-rows) .anp-header-row { grid-template-columns: 65px minmax(100px,1fr) 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
+  .anp-section:has(#anp-mat-rows) .anp-header-row { grid-template-columns: 65px minmax(100px,1fr) 48px 50px 58px 52px 22px !important; gap: 4px !important; }
+  #anp-equipo-rows > div, #anp-mano-rows > div { min-width: 480px; box-sizing: border-box; padding: 0 2px; grid-template-columns: 65px minmax(100px,1fr) 44px 48px 58px 52px 52px 22px !important; gap: 4px !important; }
+  #anp-mat-rows > div { min-width: 460px; box-sizing: border-box; padding: 0 2px; grid-template-columns: 65px minmax(100px,1fr) 48px 50px 58px 52px 22px !important; gap: 4px !important; }
   .anp-section { overflow-x: visible; }
+  .anp-header-row, #anp-equipo-rows > div, #anp-mano-rows > div, #anp-mat-rows > div { min-width: 0 !important; width: max-content; }
+  .anp-header-row > *, #anp-equipo-rows > div > *, #anp-mano-rows > div > *, #anp-mat-rows > div > * { min-width: 0; }
 
   /* Insumos */
   .vhh { display: grid !important; grid-template-columns: 90px 1fr 48px 70px 46px !important; gap: 6px !important; padding: 8px 12px !important; font-size: 9px !important; letter-spacing: .8px !important; }
@@ -2384,9 +2386,9 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   .anp-scroll-wrap { overflow-x: visible !important; }
 
   /* 3. EQUIPO & MANO — columnas en % — suman 100%, nunca se salen del encuadre */
-  .anp-section:nth-of-type(2) .anp-header-row,
+  .anp-section:has(#anp-equipo-rows) .anp-header-row,
   #anp-equipo-rows > div,
-  .anp-section:nth-of-type(3) .anp-header-row,
+  .anp-section:has(#anp-mano-rows) .anp-header-row,
   #anp-mano-rows > div {
     display: grid !important;
     grid-template-columns: 11fr 42.3fr 7.6fr 8.2fr 10.4fr 8.2fr 9fr 3.4fr !important;
@@ -2395,7 +2397,7 @@ html, body { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
   }
 
   /* 4. MATERIALES — columnas en % */
-  .anp-section:nth-of-type(4) .anp-header-row,
+  .anp-section:has(#anp-mat-rows) .anp-header-row,
   #anp-mat-rows > div {
     display: grid !important;
     grid-template-columns: 11.9fr 45.6fr 8.8fr 9.1fr 11.2fr 9.7fr 3.6fr !important;

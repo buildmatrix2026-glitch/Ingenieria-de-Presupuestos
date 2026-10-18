@@ -881,6 +881,21 @@ html[data-theme="dark"] #app .mo{
   box-shadow:0 0 0 1px rgba(6,182,212,.08),0 10px 28px -16px rgba(6,182,212,.28);
 }
 html[data-theme="dark"] #app .mo{box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px rgba(6,182,212,.1),0 0 28px -14px rgba(6,182,212,.32)}
+/* Causa real y comprobada (comparación de color exacto, no a ojo): el brillo cian de la
+   esquina de cada tarjeta ("radial-gradient...transparent 60%") calcula ese 60% sobre el
+   tamaño de LA PROPIA tarjeta. En una tarjeta corta se desvanece en pocos cientos de px y
+   casi no se nota; el Gantt mide miles de px de alto (una fila por rubro), así que ese 60%
+   cae muy lejos de la pantalla y el brillo nunca llega a desvanecerse — tiñe toda la tarjeta
+   de cian/verdoso en vez de solo la esquina, por eso se ve "distinta" a las demás.
+   Arreglo: fijar el radio del brillo en píxeles (no en % del tamaño de la tarjeta), igual
+   de grande que en cualquier tarjeta normal, para que SIEMPRE se desvanezca rápido sin
+   importar cuán alto crezca el Gantt. El resto del fondo (degradado base) queda intacto,
+   idéntico al de las demás tarjetas. */
+html[data-theme="dark"] #app #cro-gantt-card{
+  background:
+    radial-gradient(420px circle at 0% 0%,rgba(6,182,212,.10),transparent 100%),
+    linear-gradient(180deg,rgba(11,15,25,1),rgba(15,23,42,1))!important;
+}
 html[data-theme="dark"] #app .card:hover,
 html[data-theme="dark"] #app .kpi:hover{border-color:rgba(6,182,212,.6);box-shadow:0 0 0 1px rgba(6,182,212,.16),0 12px 32px -16px rgba(6,182,212,.42)}
 html[data-theme="dark"] #app .kpi .kl{font-family:var(--f-mo);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
@@ -3867,7 +3882,7 @@ gsap.fromTo('.chapter-card',
         </div>
 
         <!-- Gantt -->
-        <div class="card" style="padding:16px 20px">
+        <div class="card" id="cro-gantt-card" style="padding:16px 20px">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px">Diagrama de Gantt por rubro</div>
           <div class="cro-ruler-wrap"><div class="cro-ruler" id="cro-ruler"></div></div>
           <div id="cro-gantt-body"></div>

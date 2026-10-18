@@ -23423,33 +23423,114 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       'USD (unidad) — fuente/tienda si la identificaste". Sé breve y concreto, sin introducciones ni conclusiones, ' +
       'solo la lista de precios encontrados.';
   }
-  function cacheKey() { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, ''); }
+  function cacheKey(suffix) { return 'bm_pia_market_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + (suffix || ''); }
   function readMarketCache() {
-    var meta = readMarketCacheMeta();
+    var meta = readMarketCacheMeta('');
     return meta ? meta.text : null;
   }
-  function readMarketCacheMeta() {
+  function readMarketCacheMeta(suffix) {
+    var prefix = 'bm_pia_market_' + (suffix || '');
     try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
-        if (k && k.indexOf('bm_pia_market_') === 0) {
-          var v = JSON.parse(localStorage.getItem(k) || 'null');
-          if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v;
-          if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
-        }
+        // con suffix vacío, sólo debe matchear las entradas "bm_pia_market_<fecha>" sin sufijo adicional
+        // (la clave de ferretería-por-presupuesto usa su propio suffix "_budget_<hash>"), por eso se compara
+        // que lo que sigue al prefijo sea una fecha pura (8 dígitos) cuando suffix === ''.
+        if (!k || k.indexOf(prefix) !== 0) continue;
+        if (!suffix) { var rest = k.slice(prefix.length); if (!/^\d{8}$/.test(rest)) continue; }
+        var v = JSON.parse(localStorage.getItem(k) || 'null');
+        if (v && v.ts && Date.now() - v.ts < MARKET_TTL_MS) return v;
+        if (v) { try { localStorage.removeItem(k); } catch (e) {} }   // vencido: se limpia
       }
     } catch (e) {}
     return null;
   }
-  function writeMarketCache(text) {
-    try { localStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), text: text })); } catch (e) {}
+  function writeMarketCache(text, suffix) {
+    try { localStorage.setItem(cacheKey(suffix), JSON.stringify({ ts: Date.now(), text: text })); } catch (e) {}
   }
 
+  /* ───── Precios por ferretería SEGÚN LOS MATERIALES REALES DEL PRESUPUESTO YA GENERADO ─────
+     A diferencia de marketPrompt() (lista fija genérica, usada para calibrar el presupuesto ANTES de generarlo),
+     esto toma los rubros que la IA ya calculó para este proyecto concreto y le pide a Gemini que compare precio
+     por ferretería específica y diga cuál es la más económica para cada uno — así la ventana sirve para ir a
+     comprar, no solo para ver un precio suelto. */
+  function materialesClaveDelPresupuesto() {
+    if (!PIA.rubros || !PIA.rubros.length) return [];
+    var vistos = {};
+    return PIA.rubros
+      .slice()
+      .sort(function (a, b) { return subtotalOf(b) - subtotalOf(a); })
+      .map(function (r) { return (r.descripcion || '').replace(/\s+/g, ' ').trim(); })
+      .filter(function (d) {
+        if (!d || d === '(sin descripción)') return false;
+        var key = d.toLowerCase();
+        if (vistos[key]) return false;
+        vistos[key] = true;
+        return true;
+      })
+      .slice(0, 18);
+  }
+  function marketBudgetPrompt(items) {
+    return 'Eres un investigador de precios de materiales de construcción en Ibarra, Ecuador. Para cada uno de ' +
+      'estos materiales/rubros de un presupuesto real de construcción, busca en internet el precio ACTUAL (de hoy) ' +
+      'en estas ferreterías/distribuidoras de Ibarra, Imbabura, y dime en CUÁL de ellas sale más económico: Kywi ' +
+      'Ibarra (Av. Mariano Acosta), Disensa Ibarra (Av. Cristóbal de Troya), Almacén Ferroelectrico (Av. Cristóbal ' +
+      'de Troya), Ferricentro Comercial Trejo (Av. Fray Vacas Galindo), Almacén El Perno (Av. Mariano Acosta), ' +
+      'FerroGer (Simón Bolívar). Si ninguna de ellas tiene precio público verificable para un material, usa el ' +
+      'precio promedio de mercado nacional ecuatoriano y dilo. Materiales/rubros: ' + items.join(' ||| ') + '. ' +
+      'Responde EXACTAMENTE una línea por material, con este formato fijo separado por "||" (cuatro partes, ' +
+      'ninguna vacía salvo la última): "material || tienda más económica (o \'mercado nacional\' si ninguna ' +
+      'ferretería listada tiene el dato) || precio USD y unidad || nota breve opcional (ej: otra tienda y su ' +
+      'precio si también lo encontraste)". No agregues introducción ni conclusión, solo las líneas.';
+  }
+  async function getMarketResearchForBudget(onStatus) {
+    PIA_MARKET_LAST_ERR = '';
+    var items = materialesClaveDelPresupuesto();
+    if (!items.length) { PIA_MARKET_LAST_ERR = 'NO_BUDGET'; return null; }
+    var suffix = '_budget_' + items.join('|').length + '_' + items.length; // cambia si cambian los rubros del presupuesto
+    var cached = readMarketCacheMeta(suffix);
+    if (cached) return cached.text;
+    var key = getKey();
+    if (!key) { PIA_MARKET_LAST_ERR = 'NO_KEY'; return null; }
+    if (onStatus) onStatus();
+    try {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 60000) : null;
+      var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + PIA_MODEL + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: marketBudgetPrompt(items) }] }], tools: [{ google_search: {} }], generationConfig: { temperature: 0 } })
+      });
+      if (timer) clearTimeout(timer);
+      var body = await resp.json().catch(function () { return null; });
+      if (!resp.ok) {
+        var apiMsg = (body && body.error && body.error.message) || (resp.status + ' ' + resp.statusText);
+        PIA_MARKET_LAST_ERR = 'Gemini respondió con error (' + resp.status + '): ' + apiMsg;
+        try { console.error('[Ferreterías] getMarketResearchForBudget falló:', PIA_MARKET_LAST_ERR, body); } catch (e2) {}
+        return null;
+      }
+      var text = extractText(body);
+      if (!text) { PIA_MARKET_LAST_ERR = 'Gemini respondió pero sin texto de precios utilizable.'; return null; }
+      writeMarketCache(text, suffix);
+      return text;
+    } catch (e) {
+      PIA_MARKET_LAST_ERR = 'No se pudo conectar con Gemini: ' + ((e && e.message) || e);
+      try { console.error('[Ferreterías] excepción en getMarketResearchForBudget:', e); } catch (e2) {}
+      return null;
+    }
+  }
+
+  // Motivo exacto del último fallo de getMarketResearch, para que el modal de ferreterías pueda mostrar algo más
+  // útil que "sin clave o sin conexión" cuando en realidad sí hay clave y el problema es otro (cuota agotada,
+  // modelo saturado, respuesta sin JSON de precios, etc.) — se revisó esto porque el usuario reportó el mensaje
+  // genérico aunque su clave de Gemini sí estaba configurada.
+  var PIA_MARKET_LAST_ERR = '';
   async function getMarketResearch(onStatus) {
+    PIA_MARKET_LAST_ERR = '';
     var cached = readMarketCache();
     if (cached) return cached;
     var key = getKey();
-    if (!key) return null;
+    if (!key) { PIA_MARKET_LAST_ERR = 'NO_KEY'; return null; }
     if (onStatus) onStatus();
     try {
       var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
@@ -23464,12 +23545,25 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       });
       if (timer) clearTimeout(timer);
       var body = await resp.json().catch(function () { return null; });
-      if (!resp.ok) return null;
+      if (!resp.ok) {
+        var apiMsg = (body && body.error && body.error.message) || (resp.status + ' ' + resp.statusText);
+        PIA_MARKET_LAST_ERR = 'Gemini respondió con error (' + resp.status + '): ' + apiMsg;
+        try { console.error('[Ferreterías] getMarketResearch falló:', PIA_MARKET_LAST_ERR, body); } catch (e2) {}
+        return null;
+      }
       var text = extractText(body);
-      if (!text) return null;
+      if (!text) {
+        PIA_MARKET_LAST_ERR = 'Gemini respondió pero sin texto de precios utilizable.';
+        try { console.error('[Ferreterías] respuesta vacía:', body); } catch (e2) {}
+        return null;
+      }
       writeMarketCache(text);
       return text;
-    } catch (e) { return null; }
+    } catch (e) {
+      PIA_MARKET_LAST_ERR = 'No se pudo conectar con Gemini: ' + ((e && e.message) || e);
+      try { console.error('[Ferreterías] excepción en getMarketResearch:', e); } catch (e2) {}
+      return null;
+    }
   }
 
   /* Lista de ferreterías priorizadas (las mismas que usa marketPrompt para buscar precio real) — se muestra tal
@@ -23486,7 +23580,7 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
   /* Convierte el texto plano que devuelve Gemini ("material — precio USD (unidad) — fuente/tienda") en filas
      {material, precio, fuente} para no mostrar el texto crudo apilado (mismo problema que ya resolvimos en el
      cuadro de elementos). Si una línea no trae las 3 partes separadas por "—", se muestra igual como texto simple
-     en vez de perderla. */
+     en vez de perderla. Usado solo como respaldo genérico (sin presupuesto generado todavía). */
   function parseMarketLines(text) {
     if (!text) return [];
     return String(text).split('\n').map(function (l) { return l.replace(/^[\s•\-\*\d\.\)]+/, '').trim(); })
@@ -23498,44 +23592,92 @@ const GEMINI_MODEL_FALLBACKS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'ge
       });
   }
 
+  /* Convierte el formato fijo "material || tienda más económica || precio || nota" (el que pide
+     marketBudgetPrompt) en filas {material, tienda, precio, nota}. Si una línea no trae las 4 partes con "||",
+     se intenta igual con el parser genérico de arriba en vez de perder la línea. */
+  function parseMarketBudgetLines(text) {
+    if (!text) return [];
+    return String(text).split('\n').map(function (l) { return l.replace(/^[\s•\-\*\d\.\)]+/, '').trim(); })
+      .filter(function (l) { return l.length > 2; })
+      .map(function (l) {
+        if (l.indexOf('||') === -1) { var g = parseMarketLines(l)[0]; return g ? { material: g.material, tienda: g.fuente, precio: g.precio, nota: '' } : null; }
+        var parts = l.split('||').map(function (p) { return p.trim(); });
+        return { material: parts[0] || '', tienda: parts[1] || '', precio: parts[2] || '', nota: parts[3] || '' };
+      }).filter(Boolean).filter(function (r) { return r.material; });
+  }
+
   function openFerreteriasModal() {
     var storesHtml = FERR_IBARRA.map(function (f) {
       return '<div>• <b>' + esc(f.nombre) + '</b> — ' + esc(f.dir) + '</div>';
     }).join('');
+    var usandoPresupuesto = materialesClaveDelPresupuesto().length > 0;
     var modal = document.createElement('div');
     modal.id = 'pia-ferr-modal';
     modal.className = 'pia-modal-overlay';
     modal.innerHTML = '<div class="pia-modal-box">' +
       '<div class="pia-modal-head"><div class="pia-modal-title">Ferreterías y precios de materiales (Ibarra)</div><button type="button" class="pia-modal-close" id="pia-ferr-close">&times;</button></div>' +
-      '<div class="pia-modal-sub">Dónde comprar y a qué precio referencial — se actualiza solo cada 7 días buscando en internet.</div>' +
+      '<div class="pia-modal-sub">' + (usandoPresupuesto
+        ? 'Según los rubros de TU presupuesto actual: en cuál ferretería sale más económico cada material — se actualiza solo si el presupuesto cambia o pasan 7 días.'
+        : 'Lista genérica de referencia — genera un presupuesto primero para ver, material por material, en cuál ferretería te conviene comprar.') + '</div>' +
       '<div class="pia-ferr-upd" id="pia-ferr-upd-txt"></div>' +
       '<div class="pia-modal-body">' +
       '<div class="pia-info-section"><div class="pia-info-section-title">Ferreterías priorizadas en Ibarra</div><div class="pia-ferr-stores">' + storesHtml + '</div></div>' +
-      '<div class="pia-info-section"><div class="pia-info-section-title">Precios actuales de referencia por material</div><div class="pia-ferr-list" id="pia-ferr-rows"><div class="pia-ferr-empty">Buscando precios actuales…</div></div></div>' +
+      '<div class="pia-info-section"><div class="pia-info-section-title">' + (usandoPresupuesto ? 'Dónde comprar cada material de tu presupuesto, más económico' : 'Precios actuales de referencia por material') + '</div><div class="pia-ferr-list" id="pia-ferr-rows"><div class="pia-ferr-empty">Buscando precios actuales…</div></div></div>' +
       '</div></div>';
     document.body.appendChild(modal);
     function close() { modal.remove(); }
     document.getElementById('pia-ferr-close').addEventListener('click', close);
     modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
 
-    var meta = readMarketCacheMeta();
     var updEl = document.getElementById('pia-ferr-upd-txt');
-    function paint(text, ts) {
+    function setUpd(ts) {
+      if (updEl) updEl.textContent = ts ? ('Última actualización: ' + new Date(ts).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) + (usandoPresupuesto ? ' · se renueva si cambia el presupuesto o pasan 7 días' : ' · se renueva cada 7 días')) : '';
+    }
+    function paintError() {
       var rowsEl = document.getElementById('pia-ferr-rows');
-      if (!rowsEl) return; // el usuario ya cerró el modal
-      if (updEl) updEl.textContent = ts ? ('Última actualización: ' + new Date(ts).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) + ' · se renueva cada 7 días') : '';
+      if (!rowsEl) return;
+      var reasonTxt = PIA_MARKET_LAST_ERR === 'NO_KEY'
+        ? 'Falta la clave de Gemini. Configúrala en Gastos y facturas → "Clave API" (se comparte con este módulo).'
+        : (PIA_MARKET_LAST_ERR || 'No se pudo obtener precios ahora.');
+      rowsEl.innerHTML = '<div class="pia-ferr-empty">' + esc(reasonTxt) + '</div>';
+    }
+
+    if (usandoPresupuesto) {
+      function paintBudget(text, ts) {
+        var rowsEl = document.getElementById('pia-ferr-rows');
+        if (!rowsEl) return;
+        setUpd(ts);
+        var rows = parseMarketBudgetLines(text);
+        if (!rows.length) return paintError();
+        rowsEl.innerHTML = rows.map(function (r) {
+          return '<div class="pia-ferr-row"><span class="pia-ferr-mat">' + esc(r.material) + '</span>' +
+            (r.tienda ? '<span class="pia-ferr-fuente"><b style="color:#00c896">' + esc(r.tienda) + '</b></span>' : '') +
+            (r.precio ? '<span class="pia-ferr-precio">' + esc(r.precio) + '</span>' : '') +
+            (r.nota ? '<div style="flex-basis:100%;font-size:10.5px;color:var(--sl);margin-top:2px">' + esc(r.nota) + '</div>' : '') +
+            '</div>';
+        }).join('');
+      }
+      var cachedB = readMarketCacheMeta('_budget_' + materialesClaveDelPresupuesto().join('|').length + '_' + materialesClaveDelPresupuesto().length);
+      if (cachedB) { paintBudget(cachedB.text, cachedB.ts); return; }
+      getMarketResearchForBudget(function () {}).then(function (text) { paintBudget(text, Date.now()); });
+      return;
+    }
+
+    function paintGeneric(text, ts) {
+      var rowsEl = document.getElementById('pia-ferr-rows');
+      if (!rowsEl) return;
+      setUpd(ts);
       var rows = parseMarketLines(text);
-      if (!rows.length) { rowsEl.innerHTML = '<div class="pia-ferr-empty">No se pudo obtener precios ahora (sin clave de Gemini configurada o sin conexión). Revisa la clave en Gastos y facturas → "Clave API".</div>'; return; }
+      if (!rows.length) return paintError();
       rowsEl.innerHTML = rows.map(function (r) {
         return '<div class="pia-ferr-row"><span class="pia-ferr-mat">' + esc(r.material) + '</span>' +
           (r.precio ? '<span class="pia-ferr-precio">' + esc(r.precio) + '</span>' : '') +
           (r.fuente ? '<span class="pia-ferr-fuente">' + esc(r.fuente) + '</span>' : '') + '</div>';
       }).join('');
     }
-    if (meta) { paint(meta.text, meta.ts); return; }
-    getMarketResearch(function () {}).then(function (text) {
-      paint(text, Date.now());
-    });
+    var meta = readMarketCacheMeta('');
+    if (meta) { paintGeneric(meta.text, meta.ts); return; }
+    getMarketResearch(function () {}).then(function (text) { paintGeneric(text, Date.now()); });
   }
 
   function friendly(e) {

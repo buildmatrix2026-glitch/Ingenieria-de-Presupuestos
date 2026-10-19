@@ -1011,10 +1011,10 @@ html[data-theme="dark"] #app .fc.hl{background:linear-gradient(140deg,rgba(0,82,
 html[data-theme="dark"] #app .fc.hl .fv{color:#fff;text-shadow:0 0 22px rgba(34,211,238,.6)}
 html[data-theme="dark"] #app .ca{position:relative;border-radius:16px;border:1px solid rgba(6,182,212,.28);
   background:radial-gradient(circle at 0% 0%,rgba(6,182,212,.10),transparent 60%),linear-gradient(180deg,rgba(11,15,25,1),rgba(15,23,42,1));box-shadow:0 0 0 1px rgba(6,182,212,.05),0 8px 22px -16px rgba(6,182,212,.4);transition:border-color .3s,box-shadow .3s}
-html[data-theme="dark"] #app .ca::before{content:'';position:absolute;left:0;top:14%;bottom:14%;width:3px;border-radius:0 3px 3px 0;background:#22d3ee;box-shadow:0 0 12px 1px #22d3ee;opacity:0;transition:opacity .3s}
 html[data-theme="dark"] #app .ca:hover{border-color:rgba(6,182,212,.5)}
 html[data-theme="dark"] #app .ca.op{border-color:rgba(6,182,212,.62);box-shadow:0 0 0 1px rgba(6,182,212,.14),0 12px 30px -16px rgba(6,182,212,.5)}
-html[data-theme="dark"] #app .ca.op::before{opacity:1}
+html[data-theme="dark"] #app .cab{position:relative}
+html[data-theme="dark"] #app .cab::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 3px 3px 0;background:#22d3ee;box-shadow:0 0 12px 1px #22d3ee}
 html[data-theme="dark"] #app .cah:hover{background:rgba(6,182,212,.06)}
 html[data-theme="dark"] #app .cah .cname{color:#e6faff}
 html[data-theme="dark"] #app .cah .ctot{color:#67e8f9;text-shadow:0 0 12px rgba(6,182,212,.5)}
@@ -2908,6 +2908,7 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 @media (max-width:768px){
   .cro-row-fields{width:100%;flex-wrap:wrap}
   .cro-inp{width:118px!important;flex:0 0 118px!important}
+  .cro-inp-date{width:142px!important;flex:0 0 142px!important}
   .cro-row-cost{margin-left:0}
 }
 
@@ -3785,7 +3786,7 @@ gsap.fromTo('.chapter-card',
       <div class="slab">Módulos</div>
       <button class="ni ac" data-v="dash" onclick="go('dash')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Panel general</button>
       <button class="ni" data-v="pre" onclick="go('pre')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/></svg>Presupuesto<span class="ct" id="ctp">0</span></button>
-      <button class="ni" data-v="cro" onclick="go('cro')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/></svg>Cronograma<span class="ct" style="background:rgba(0,212,255,.16);color:#22d3ee">BETA</span></button>
+      <button class="ni" data-v="cro" onclick="go('cro')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/></svg>Cronograma</button>
       <button class="ni" data-v="apu" onclick="go('apu')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Constructor APU<span class="ct" data-bm-count="apu">2.063</span></button>
       <button class="ni" data-v="ins" onclick="go('ins')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>Insumos<span class="ct" data-bm-count="ins">4.157</span></button>
       <button class="ni" data-v="grp" onclick="go('grp')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21V12h6v9"/></svg>Grupos y rubros<span class="ct" data-bm-count="grp">75</span></button>
@@ -3857,7 +3858,7 @@ gsap.fromTo('.chapter-card',
         <div id="caps"></div>
       </div>
       <div class="vw" id="v-cro">
-        <div class="vh"><div><h2>Cronograma de obra <span style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#22d3ee;background:rgba(0,212,255,.14);border:1px solid rgba(34,211,238,.35);border-radius:5px;padding:3px 7px;vertical-align:middle;margin-left:6px">BETA</span></h2><div class="sub">Programa en el tiempo los rubros de tu presupuesto y visualiza la curva de avance</div></div>
+        <div class="vh"><div><h2>Cronograma de obra</h2><div class="sub">Programa en el tiempo los rubros de tu presupuesto y visualiza la curva de avance</div></div>
           <div style="display:flex;gap:8px;align-items:center">
             <input type="date" class="inp" id="cro-proj-start" title="Fecha de inicio del proyecto (para autocompletar)" style="width:150px">
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="croAutoFill()">
@@ -7861,17 +7862,45 @@ function croSetField(ci,ri,field,val){
   else if(field==='dur') d.dur=Math.max(0,parseInt(val)||0);
   else if(field==='pct') d.pct=Math.max(0,Math.min(100,parseFloat(val)||0));
   persist();
-  // croRenderGantt() reconstruye TODA la lista (reemplaza el HTML de cada fila, incluido
-  // el <input> que acabas de tocar). En celular, el selector nativo de fecha ("date picker")
-  // todavía está en pleno cierre justo cuando dispara este "change" — si reconstruimos el
-  // DOM en ese mismo instante, le cortamos el cierre al picker a medias y se ve como que
-  // "se cierra solo". Lo pasamos a la siguiente vuelta del navegador (requestAnimationFrame)
-  // para que el picker termine de cerrarse primero, y recién ahí reconstruimos la lista.
-  requestAnimationFrame(function(){
-    croRenderGantt();
-    croRenderSCurve();
-    croRenderKPIs();
-  });
+  // IMPORTANTE: nunca llamamos aquí a croRenderGantt() completo. Esa función reemplaza
+  // el innerHTML de TODA la lista de filas, lo que destruye el <input> que el usuario
+  // acaba de tocar. En celular (sobre todo iPad/iOS) eso corta la interacción con el
+  // selector nativo de fecha a mitad de camino y se ve como que "se cierra solo" o
+  // "se cierra sin dejar elegir". En vez de reconstruir todo, solo actualizamos las
+  // barras del Gantt/costos/curva en su lugar, sin tocar los campos de entrada.
+  croRenderSCurve();
+  croRenderKPIs();
+  croUpdateBars();
+}
+
+// Actualiza las barras del Gantt, la regla de fechas y los costos de cada fila
+// SIN reconstruir los <input> (evita destruir el campo que el usuario está usando).
+function croUpdateBars(){
+  const wrap=$id('cro-gantt-body');
+  if(!wrap) return;
+  const CAPS=getCaps();
+  const range=croComputeRange();
+  for(let ci=0;ci<CAPS.length;ci++){
+    const rows=S.caps[ci]||[];
+    for(let ri=0;ri<rows.length;ri++){
+      const track=$id(`cro-track-${ci}-${ri}`);
+      if(!track) continue;
+      const d=croGet(ci,ri);
+      const cost=croRowCost(ci,ri);
+      const costEl=$id(`cro-row-cost-${ci}-${ri}`);
+      if(costEl) costEl.textContent=fmtUSD(cost);
+      if(d.start&&d.dur){
+        const offsetDays=croDaysBetween(range.min,d.start);
+        const barLeft=Math.max(0,(offsetDays/range.totalDays)*100);
+        const barWidth=Math.max(0.6,(d.dur/range.totalDays)*100);
+        const pct=d.pct||0;
+        track.innerHTML=`<div class="cro-bar" style="left:${barLeft}%;width:${barWidth}%" title="${d.start} → ${croAddDays(d.start,d.dur)}"><div class="cro-bar-fill" style="width:${pct}%"></div></div>`;
+      } else {
+        track.innerHTML='<div class="cro-track-empty">Sin fecha — ingresa inicio y duración</div>';
+      }
+    }
+  }
+  croRenderRuler(range);
 }
 
 function croAddDays(dateStr,days){
@@ -7952,17 +7981,17 @@ function croRenderGantt(){
         hasBar=true;
       }
       const pct=d.pct||0;
-      html+=`<div class="cro-row">
+      html+=`<div class="cro-row" id="cro-row-${ci}-${ri}">
         <div class="cro-row-info">
           <div class="cro-row-desc" title="${esc(r.desc||'')}">${esc(r.desc||r.code||'')}</div>
           <div class="cro-row-fields">
-            <input type="date" class="inp cro-inp" value="${d.start||''}" onchange="croSetField(${ci},${ri},'start',this.value)" title="Fecha inicio">
+            <input type="date" class="inp cro-inp cro-inp-date" value="${d.start||''}" onchange="croSetField(${ci},${ri},'start',this.value)" title="Fecha inicio">
             <input type="text" inputmode="numeric" class="inp cro-inp cro-inp-sm" placeholder="días" value="${d.dur||''}" onchange="croSetField(${ci},${ri},'dur',this.value)" title="Duración en días">
             <input type="text" inputmode="decimal" class="inp cro-inp cro-inp-sm" placeholder="%" value="${d.pct||''}" onchange="croSetField(${ci},${ri},'pct',this.value)" title="% avance físico real">
-            <span class="cro-row-cost">${fmtUSD(cost)}</span>
+            <span class="cro-row-cost" id="cro-row-cost-${ci}-${ri}">${fmtUSD(cost)}</span>
           </div>
         </div>
-        <div class="cro-track">
+        <div class="cro-track" id="cro-track-${ci}-${ri}">
           ${hasBar?`<div class="cro-bar" style="left:${barLeft}%;width:${barWidth}%" title="${d.start} → ${croAddDays(d.start,d.dur)}"><div class="cro-bar-fill" style="width:${pct}%"></div></div>`:`<div class="cro-track-empty">Sin fecha — ingresa inicio y duración</div>`}
         </div>
       </div>`;

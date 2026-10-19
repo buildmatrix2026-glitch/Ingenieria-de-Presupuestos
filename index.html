@@ -2867,6 +2867,22 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 
 /* ── Cronograma (BETA): Gantt + Curva S ─────────────────────────────── */
 .cro-empty{padding:40px 20px;text-align:center;color:var(--sld);font-size:13px}
+.cro-kpi-grid{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.1fr 1.3fr}
+.cro-kpi-cell{padding:16px 18px;border-right:1px solid rgba(255,255,255,.07)}
+.cro-kpi-cell:last-of-type{border-right:none}
+.cro-kpi-lbl{font-size:10px;color:var(--sld);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;line-height:1.3}
+.cro-kpi-val{font-size:21px;font-weight:700;font-family:var(--f-mo)}
+.cro-kpi-sub{font-size:10px;color:var(--sld);margin-top:3px}
+.cro-kpi-status-cell{display:flex;flex-direction:column;justify-content:center}
+@media(max-width:860px){
+  .cro-kpi-grid{grid-template-columns:1fr 1fr}
+  .cro-kpi-cell{border-bottom:1px solid rgba(255,255,255,.07)}
+  .cro-kpi-cell:nth-child(2n){border-right:none}
+}
+@media(max-width:480px){
+  .cro-kpi-grid{grid-template-columns:1fr}
+  .cro-kpi-cell{border-right:none}
+}
 .cro-cap-head{display:flex;justify-content:space-between;align-items:center;padding:10px 4px 6px;margin-top:10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12.5px;font-weight:700;color:var(--sl)}
 .cro-cap-head:first-child{margin-top:0}
 .cro-cap-tot{font-family:var(--f-mo);color:var(--gr);font-weight:700}
@@ -3869,38 +3885,39 @@ gsap.fromTo('.chapter-card',
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="croAutoFill()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>Autocompletar
             </button>
+            <button class="btn" style="padding:9px 16px;font-size:12.5px" onclick="exportCronogramaPDF()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Exportar
+            </button>
           </div>
         </div>
 
-        <!-- KPIs de avance -->
-        <!-- align-items:flex-start (no "center"): el bloque "Gastado real" tiene
-             una línea extra de detalle debajo, así que si se centran verticalmente
-             su título queda más arriba que los demás. Con flex-start todos los
-             títulos arrancan exactamente en la misma línea. -->
-        <div class="card" style="padding:16px 20px;margin-bottom:14px;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
-          <div>
-            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px" title="Duración total entre el inicio del primer rubro programado y el fin del último">Duración estimada de obra</div>
-            <div id="cro-kpi-dur" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#a78bfa">—</div>
-            <div id="cro-dur-detail" style="font-size:10.5px;color:var(--sld);margin-top:2px">—</div>
+        <!-- KPIs de avance — grid con divisores verticales, cada celda con su propio
+             padding así quedan parejas (altura y arranque del título) sin importar que
+             alguna traiga una línea extra de detalle debajo. -->
+        <div class="card cro-kpi-grid" style="padding:0;margin-bottom:14px;overflow:hidden">
+          <div class="cro-kpi-cell">
+            <div class="cro-kpi-lbl" title="Duración total entre el inicio del primer rubro programado y el fin del último">Duración estimada de obra</div>
+            <div id="cro-kpi-dur" class="cro-kpi-val" style="color:#a78bfa">—</div>
+            <div id="cro-dur-detail" class="cro-kpi-sub">—</div>
           </div>
-          <div>
-            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance planificado (hoy)</div>
-            <div id="cro-kpi-plan" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#00d4ff">0%</div>
+          <div class="cro-kpi-cell">
+            <div class="cro-kpi-lbl">Avance planificado (hoy)</div>
+            <div id="cro-kpi-plan" class="cro-kpi-val" style="color:#00d4ff">0%</div>
           </div>
-          <div>
-            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance físico real</div>
-            <div id="cro-kpi-real" style="font-size:22px;font-weight:700;font-family:var(--f-mo)">0%</div>
+          <div class="cro-kpi-cell">
+            <div class="cro-kpi-lbl">Avance físico real</div>
+            <div id="cro-kpi-real" class="cro-kpi-val">0%</div>
           </div>
-          <div>
-            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px" title="Suma de tus facturas de Gastos para este proyecto — dinero realmente gastado, no asume que ese gasto ya está construido">Gastado real (facturas)</div>
-            <div id="cro-kpi-gasto" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:var(--gr)">$0,00</div>
-            <div id="cro-gasto-detail" style="font-size:10.5px;color:var(--sld);margin-top:2px">—</div>
+          <div class="cro-kpi-cell">
+            <div class="cro-kpi-lbl" title="Suma de tus facturas de Gastos para este proyecto — dinero realmente gastado, no asume que ese gasto ya está construido">Gastado real (facturas)</div>
+            <div id="cro-kpi-gasto" class="cro-kpi-val" style="color:var(--gr)">$0,00</div>
+            <div id="cro-gasto-detail" class="cro-kpi-sub">—</div>
           </div>
-          <div style="flex:1;min-width:180px">
-            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Estado</div>
+          <div class="cro-kpi-cell cro-kpi-status-cell">
+            <div class="cro-kpi-lbl">Estado</div>
             <div id="cro-kpi-status" style="font-size:13.5px;font-weight:600">—</div>
           </div>
-          <div id="cro-gasto-cats" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 18px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:2px"></div>
+          <div id="cro-gasto-cats" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 18px;border-top:1px solid rgba(255,255,255,.06);padding:10px 18px 0"></div>
         </div>
 
         <!-- Curva S -->
@@ -10080,7 +10097,8 @@ function _pdfV2DrawLogo(doc,x,y,scale){
 }
 
 // ── Portada compartida — idéntica en los 3 PDFs, bloque pegado abajo ──
-function _pdfV2DrawCover(doc, proj, dateStr, subtitle, extraMeta, elaboradoPor){
+function _pdfV2DrawCover(doc, proj, dateStr, subtitle, extraMeta, elaboradoPor, metaLabels){
+  metaLabels = metaLabels || ['COSTO DIRECTO','TOTAL CON IVA'];
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const marginX = 14;
@@ -10111,7 +10129,7 @@ function _pdfV2DrawCover(doc, proj, dateStr, subtitle, extraMeta, elaboradoPor){
 
   const colW = (pageW - marginX*2) / 2;
   const row1 = [['PROPIETARIO', S.own||'—'], ['FECHA', S.date||dateStr]];
-  const row2 = [['COSTO DIRECTO', extraMeta?extraMeta.cd:''], ['TOTAL CON IVA', extraMeta?extraMeta.total:'']];
+  const row2 = [[metaLabels[0], extraMeta?extraMeta.cd:''], [metaLabels[1], extraMeta?extraMeta.total:'']];
   const rows = [row1];
   if (extraMeta) rows.push(row2);
   if (hasAuthor) rows.push([['ELABORADO POR', elaboradoPor.trim()], null]);
@@ -10410,6 +10428,111 @@ function _pdfV2DrawAPUSection(doc, marginX, tableW, yy, numIcon, title, rows, co
   return yy;
 }
 
+// ══════════════════════════════════════════════════════════
+// PDF CRONOGRAMA — portada + resumen de plazos + tabla de rubros programados
+// Mismo lenguaje visual que el PDF Resumen y el PDF APUs (portada, header,
+// footer y tipografía BuildMatrix compartidos vía las funciones _pdfV2*).
+// ══════════════════════════════════════════════════════════
+function _pdfV2BuildCronograma(orientacion, elaboradoPor){
+  CAPS=getCaps();
+  const range=croComputeRange();
+  const totalDays=range.totalDays;
+  const months=Math.round((totalDays/30.44)*10)/10;
+  const durStr=(months.toFixed(1).replace('.0',''))+' meses ('+totalDays+' días)';
+  const dateStr=new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'long',year:'numeric'});
+  const proj=S.proj||'Sin nombre';
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: orientacion==='h'?'landscape':'portrait', unit:'mm', format:'a4' });
+  _pdfV2LoadFonts(doc);
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginX = 14;
+
+  _pdfV2DrawCover(doc, proj, dateStr, 'CRONOGRAMA DE OBRA', {cd:durStr, total:formatDateDisplay(range.max)}, elaboradoPor, ['DURACIÓN ESTIMADA','FECHA DE FINALIZACIÓN']);
+
+  doc.addPage();
+  let yHead = _pdfV2PageHeader(doc, proj);
+
+  // ── Caja resumen de plazos (mismo lenguaje visual que "RESUMEN FINANCIERO") ──
+  const boxW = pageW - marginX*2;
+  doc.setFillColor(0,51,160);
+  doc.rect(marginX, yHead, boxW, 7, 'F');
+  doc.setFontSize(7.5); doc.setFont('Outfit','bold'); doc.setTextColor(255,255,255);
+  doc.text('RESUMEN DE PLAZOS', marginX+3, yHead+4.8);
+  let by=yHead+7;
+  const infoRows=[
+    ['Fecha de inicio', formatDateDisplay(range.min)],
+    ['Fecha estimada de finalización', formatDateDisplay(range.max)],
+    ['Duración total estimada', durStr]
+  ];
+  doc.setFont('Outfit','normal'); doc.setFontSize(8.5); doc.setTextColor(26,26,46);
+  infoRows.forEach(r=>{
+    doc.setDrawColor(232,238,255); doc.setLineWidth(.2);
+    doc.line(marginX, by+6, marginX+boxW, by+6);
+    doc.text(r[0], marginX+3, by+4.5);
+    doc.text(r[1], marginX+boxW-3, by+4.5, {align:'right'});
+    by+=6;
+  });
+  by+=6;
+
+  // ── Tabla de rubros programados, agrupada por capítulo (mismo estilo que PDF Resumen) ──
+  const body=[];
+  let anyRow=false;
+  getCaps().forEach((c,ci)=>{
+    const items=S.caps[ci]||[]; if(!items.length) return;
+    const scheduled=items.filter((r,ri)=>{ const d=(S.schedule[ci]||{})[ri]; return d&&d.start&&d.dur; });
+    if(!scheduled.length) return;
+    anyRow=true;
+    const capN=(S.capNums&&S.capNums[ci]!=null)?S.capNums[ci]:ci+1;
+    body.push([{content:'CAP. '+capN+'  —  '+c, colSpan:6, styles:{fillColor:[234,240,255],textColor:[0,51,160],fontStyle:'bold',font:'Outfit',fontSize:8.5}}]);
+    items.forEach((r,ri)=>{
+      const d=(S.schedule[ci]||{})[ri];
+      if(!d||!d.start||!d.dur) return;
+      body.push([
+        {content:r.code||'', styles:{font:'courier',textColor:[0,82,255]}},
+        r.desc||'',
+        formatDateDisplay(d.start),
+        String(d.dur)+' días',
+        formatDateDisplay(croAddDays(d.start,d.dur)),
+        (d.pct||0).toFixed(0)+'%'
+      ]);
+    });
+  });
+
+  if(!anyRow){
+    doc.setFont('Outfit','normal'); doc.setFontSize(9.5); doc.setTextColor(140,140,140);
+    doc.text('Todavía no hay rubros programados en el Cronograma.', marginX, by+6);
+  } else {
+    doc.autoTable({
+      startY: by,
+      head: [['Código','Descripción del rubro','Inicio','Duración','Fin','Avance']],
+      body: body,
+      theme: 'plain',
+      margin: {left:marginX, right:marginX, bottom:16},
+      styles: {fontSize:8.5, font:'Outfit', cellPadding:{top:1.6,right:2.5,bottom:1.6,left:2.5}, textColor:[26,26,46], lineColor:[232,238,255], lineWidth:.1, valign:'middle'},
+      headStyles: {fillColor:[0,51,160], textColor:[255,255,255], fontStyle:'bold', font:'Outfit', fontSize:7.5, valign:'middle'},
+      columnStyles: {
+        0:{cellWidth:22, fontSize:7.5},
+        2:{halign:'center'},
+        3:{halign:'center'},
+        4:{halign:'center'},
+        5:{halign:'right'}
+      },
+      didParseCell: function(data){
+        if(data.row.raw.length===1 && data.row.raw[0].colSpan===6){ data.cell.styles.cellPadding={top:2,right:2.5,bottom:2,left:2.5}; }
+      }
+    });
+  }
+
+  const totalPages = doc.internal.getNumberOfPages();
+  for(let i=2;i<=totalPages;i++){
+    doc.setPage(i);
+    _pdfV2PageFooter(doc, proj, dateStr);
+  }
+
+  return doc;
+}
+
 function _pdfV2BuildAPUs(orientacion, elaboradoPor){
   CAPS=getCaps();
   const t=calcTotals();
@@ -10567,6 +10690,20 @@ function exportPDFRubrosV2(){
       toast('✓ PDF descargado');
     }catch(e){
       console.error('Error exportPDFRubrosV2:', e);
+      toast('Error generando PDF: '+e.message);
+    }
+  });
+}
+
+function exportCronogramaPDF(){
+  _pdfV2ShowOrientationModal(function(orientacion, autor){
+    try{
+      const doc = _pdfV2BuildCronograma(orientacion, autor);
+      const projName=(S.proj||'presupuesto').replace(/[^a-z0-9]+/gi,'_');
+      doc.save('Cronograma_'+projName+'_'+(orientacion==='h'?'horizontal':'vertical')+'.pdf');
+      toast('✓ PDF descargado');
+    }catch(e){
+      console.error('Error exportCronogramaPDF:', e);
       toast('Error generando PDF: '+e.message);
     }
   });

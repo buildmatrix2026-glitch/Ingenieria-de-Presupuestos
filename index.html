@@ -3879,6 +3879,11 @@ gsap.fromTo('.chapter-card',
              títulos arrancan exactamente en la misma línea. -->
         <div class="card" style="padding:16px 20px;margin-bottom:14px;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
           <div>
+            <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px" title="Duración total entre el inicio del primer rubro programado y el fin del último">Duración estimada de obra</div>
+            <div id="cro-kpi-dur" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#a78bfa">—</div>
+            <div id="cro-dur-detail" style="font-size:10.5px;color:var(--sld);margin-top:2px">—</div>
+          </div>
+          <div>
             <div style="font-size:10.5px;color:var(--sld);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px">Avance planificado (hoy)</div>
             <div id="cro-kpi-plan" style="font-size:22px;font-weight:700;font-family:var(--f-mo);color:#00d4ff">0%</div>
           </div>
@@ -7947,8 +7952,11 @@ const CRO_RENDIMIENTOS = {
   'pto':2,'punto':2,'puntos':2,
   'hora':1/8,'horas':1/8,'hr':1/8,'hrs':1/8,
   'dia':1,'dias':1,'día':1,'días':1,
-  'glb':1,'global':1,
   'viaje':1,'viajes':1,
+  // "glb"/"global" (típico de trámites y permisos) NO tiene un rendimiento fijo
+  // real — un permiso puede tardar un día o varias semanas según el trámite.
+  // Lo dejamos fuera de esta tabla a propósito para que caiga en la escala por
+  // costo de abajo, que da más variedad que ponerle "1 día" a todos por igual.
 };
 // Quita tildes para poder comparar "metro cúbico" con "metro cubico", etc.
 function croNormUnit(s){
@@ -7978,7 +7986,7 @@ function croEstimateDuration(ci,ri){
 async function croAutoFill(){
   const startInput=$id('cro-proj-start');
   const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
-  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio, encadenándolos uno tras otro desde '+formatDateDisplay(projStart)+'. La duración de cada rubro se estima según su cantidad/unidad (o su costo si la unidad no es reconocible) — son días orientativos, ajústalos luego a mano según tu cuadrilla real. Los rubros que ya tienen fecha o días puestos a mano NO se tocan. ¿Continuar?')) return;
+  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio, encadenándolos uno tras otro desde '+formatDateDisplay(projStart)+'. La duración de cada rubro se estima según su cantidad/unidad (o su costo si la unidad no es reconocible) — son días orientativos, ajústalos luego a mano según tu cuadrilla real. El % de avance de todos los rubros se pondrá en 100%. Los rubros que ya tienen fecha o días puestos a mano NO se tocan en esos campos. ¿Continuar?')) return;
   const CAPS=getCaps();
   let cursor=projStart;
   for(let ci=0;ci<CAPS.length;ci++){
@@ -7989,6 +7997,7 @@ async function croAutoFill(){
       if(!d.start){
         d.start=cursor;
       }
+      d.pct=100;
       cursor=croAddDays(d.start,d.dur);
     }
   }
@@ -8177,6 +8186,23 @@ function croRenderKPIs(){
   const kpiPlanEl=$id('cro-kpi-plan'), kpiRealEl=$id('cro-kpi-real'), kpiStatusEl=$id('cro-kpi-status');
   if(!kpiPlanEl) return;
   const {totalPlanned,range}=croComputeSeriesData();
+
+  // ── Duración estimada total de la obra (desde el inicio del primer rubro
+  // programado hasta el fin del último) — en meses y días para que sea fácil de leer ──
+  const kpiDurEl=$id('cro-kpi-dur'), durDetailEl=$id('cro-dur-detail');
+  if(kpiDurEl){
+    const anyScheduled=totalPlanned>0;
+    if(!anyScheduled){
+      kpiDurEl.textContent='—';
+      if(durDetailEl) durDetailEl.textContent='Programa rubros o usa Autocompletar';
+    } else {
+      const totalDays=range.totalDays;
+      const months=totalDays/30.44; // promedio de días por mes calendario
+      const monthsRound=Math.round(months*10)/10;
+      kpiDurEl.textContent=monthsRound.toFixed(1).replace('.0','')+' meses';
+      if(durDetailEl) durDetailEl.textContent=`${totalDays} días · ${formatDateDisplay(range.min)} → ${formatDateDisplay(range.max)}`;
+    }
+  }
   const today=new Date().toISOString().slice(0,10);
   let plannedToday=0;
   if(totalPlanned>0){

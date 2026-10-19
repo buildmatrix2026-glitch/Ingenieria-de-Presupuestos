@@ -7933,17 +7933,59 @@ function croDaysBetween(a,b){
 
 // Autocompleta fechas vacías encadenando los rubros en orden (capítulo por capítulo),
 // cada uno empieza cuando termina el anterior. No pisa fechas ya puestas a mano.
+// Rendimientos de referencia (cantidad por día) por tipo de unidad, para estimar
+// cuánto debería tomar cada rubro en vez de ponerle el mismo número de días a todos.
+// Son valores promedio orientativos de construcción en general — el usuario puede
+// y debe ajustar manualmente los días de cualquier rubro según su propia cuadrilla.
+const CRO_RENDIMIENTOS = {
+  'm2':20,'m²':20,'metro2':20,'metros2':20,'metro cuadrado':20,
+  'm3':8,'m³':8,'metro3':8,'metros3':8,'metro cubico':8,
+  'm':15,'ml':15,'metro':15,'metros':15,'metro lineal':15,'metros lineales':15,
+  'kg':120,'kilogramo':120,'kilogramos':120,
+  'ton':3,'tn':3,'tonelada':3,'toneladas':3,
+  'u':4,'und':4,'unid':4,'unidad':4,'unidades':4,'pza':4,'pieza':4,'piezas':4,
+  'pto':2,'punto':2,'puntos':2,
+  'hora':1/8,'horas':1/8,'hr':1/8,'hrs':1/8,
+  'dia':1,'dias':1,'día':1,'días':1,
+  'glb':1,'global':1,
+  'viaje':1,'viajes':1,
+};
+// Quita tildes para poder comparar "metro cúbico" con "metro cubico", etc.
+function croNormUnit(s){
+  return (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+// Estima los días de un rubro: si su unidad es reconocible, usa cantidad÷rendimiento;
+// si no (o no tiene cantidad), cae a una escala por costo del rubro (más caro = más días).
+function croEstimateDuration(ci,ri){
+  const rows=S.caps[ci]||[];
+  const r=rows[ri];
+  if(!r) return CRO_DEFAULT_DUR;
+  const qty=parseFloat(r.qty)||0;
+  const unit=croNormUnit(r.unit);
+  const rate=CRO_RENDIMIENTOS[unit];
+  if(qty>0 && rate){
+    return Math.max(1,Math.min(60,Math.ceil(qty/rate)));
+  }
+  const cost=qty*(parseFloat(r.pu)||0);
+  if(cost<=50) return 1;
+  if(cost<=150) return 2;
+  if(cost<=400) return 3;
+  if(cost<=1000) return 5;
+  if(cost<=3000) return 8;
+  if(cost<=8000) return 15;
+  return 25;
+}
 async function croAutoFill(){
   const startInput=$id('cro-proj-start');
   const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
-  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio, encadenándolos uno tras otro desde '+formatDateDisplay(projStart)+'. Los rubros que ya tienen fecha puesta a mano NO se tocan. ¿Continuar?')) return;
+  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio, encadenándolos uno tras otro desde '+formatDateDisplay(projStart)+'. La duración de cada rubro se estima según su cantidad/unidad (o su costo si la unidad no es reconocible) — son días orientativos, ajústalos luego a mano según tu cuadrilla real. Los rubros que ya tienen fecha o días puestos a mano NO se tocan. ¿Continuar?')) return;
   const CAPS=getCaps();
   let cursor=projStart;
   for(let ci=0;ci<CAPS.length;ci++){
     const rows=S.caps[ci]||[];
     for(let ri=0;ri<rows.length;ri++){
       const d=croGet(ci,ri);
-      if(!d.dur) d.dur=CRO_DEFAULT_DUR;
+      if(!d.dur) d.dur=croEstimateDuration(ci,ri);
       if(!d.start){
         d.start=cursor;
       }
@@ -7952,7 +7994,7 @@ async function croAutoFill(){
   }
   persist();
   renderCronograma();
-  toast('Cronograma autocompletado');
+  toast('Cronograma autocompletado con duraciones estimadas por rubro');
 }
 
 // Rango de fechas total del proyecto (mínimo inicio, máximo fin) entre todos los rubros programados

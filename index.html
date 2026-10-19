@@ -10488,7 +10488,7 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
   ];
   const gap=4;
   const chipW=(pageW-marginX*2-gap*(chips.length-1))/chips.length;
-  const chipH=20;
+  const chipH=17;
   chips.forEach((c,i)=>{
     const cx=marginX+i*(chipW+gap);
     doc.setDrawColor(228,233,248); doc.setLineWidth(.3);
@@ -10499,9 +10499,9 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
     doc.setFontSize(6.3); doc.setFont('Outfit','bold'); doc.setTextColor(120,120,135);
     doc.text(c[0], cx+6, y+7, {maxWidth:chipW-9});
     doc.setFontSize(13); doc.setFont('Outfit','bold'); doc.setTextColor(26,26,46);
-    doc.text(c[1], cx+6, y+15.5);
+    doc.text(c[1], cx+6, y+14.3);
   });
-  y += chipH+10;
+  y += chipH+8;
 
   // ── Curva S ──
   doc.setFontSize(10); doc.setFont('Outfit','bold'); doc.setTextColor(6,11,20);
@@ -10509,11 +10509,15 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
   y += 3;
   doc.setDrawColor(0,82,255); doc.setLineWidth(.8);
   doc.line(marginX, y, marginX+22, y);
-  y += 7;
+  y += 8;
 
-  const chartH = pageH*0.34;
-  const chartW = pageW - marginX*2 - 2;
-  const chartX = marginX+2;
+  // chartX deja una columna propia a la izquierda para los montos del eje Y, separada
+  // del área del gráfico — así la etiqueta "HOY" (que vive DENTRO del área del gráfico)
+  // nunca se superpone con el monto más alto del eje, como pasaba antes.
+  const chartH = pageH*0.29;
+  const yLabelColW = 17;
+  const chartX = marginX+yLabelColW;
+  const chartW = pageW - marginX*2 - yLabelColW;
   const chartY = y;
   const values = sd.values, labels = sd.labels;
   const maxVal = Math.max.apply(null, values.concat([1]));
@@ -10523,7 +10527,7 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
     const gy = chartY + chartH - (chartH*g/gridN);
     doc.line(chartX, gy, chartX+chartW, gy);
     doc.setFontSize(6); doc.setFont('Outfit','normal'); doc.setTextColor(150,150,150);
-    doc.text(fmtUSD(maxVal*g/gridN), chartX, gy-1);
+    doc.text(fmtUSD(maxVal*g/gridN), chartX-2, gy-1, {align:'right'});
   }
   const n=values.length;
   const pts = values.map(function(v,i){
@@ -10536,17 +10540,20 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
   doc.setFillColor(0,82,255);
   pts.forEach(function(p,i){ if(i%2===0 || i===pts.length-1) doc.circle(p[0], p[1], .6, 'F'); });
 
-  // Marca "HOY"
+  // Marca "HOY" — la línea va exactamente en la fecha de hoy, pero la etiqueta se
+  // recorta (clamp) para que nunca se salga del área del gráfico ni tape el monto
+  // más alto del eje Y (que ahora vive en su propia columna, fuera de esta área).
   if(today>=range.min && today<=range.max){
     const tx = chartX + chartW*(croDaysBetween(range.min,today)/Math.max(1,range.totalDays));
     doc.setDrawColor(239,68,68); doc.setLineWidth(.5);
     doc.setLineDashPattern([1,1],0);
     doc.line(tx, chartY, tx, chartY+chartH);
     doc.setLineDashPattern([],0);
+    const badgeX = Math.min(Math.max(tx, chartX+5), chartX+chartW-5);
     doc.setFillColor(239,68,68);
-    doc.roundedRect(tx-5, chartY-4.5, 10, 4, .8, .8, 'F');
+    doc.roundedRect(badgeX-5, chartY-4.5, 10, 4, .8, .8, 'F');
     doc.setFontSize(5.5); doc.setFont('Outfit','bold'); doc.setTextColor(255,255,255);
-    doc.text('HOY', tx, chartY-1.6, {align:'center'});
+    doc.text('HOY', badgeX, chartY-1.6, {align:'center'});
   }
 
   // Etiquetas de fecha bajo el eje X (muestreo a ~6 marcas)
@@ -10558,34 +10565,54 @@ function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
     const align = m===0?'left':(m===xMarks?'right':'center');
     doc.text(labels[idx]||'', lx, chartY+chartH+5, {align:align});
   }
-  y = chartY+chartH+14;
+  y = chartY+chartH+13;
 
-  // ── Costo planificado por capítulo (barras horizontales) ──
+  // ── Costo por capítulo (presupuesto total, no solo lo programado) — barras horizontales ──
+  // Nombre distinto a la Curva S a propósito: esta barra suma el presupuesto COMPLETO de
+  // cada capítulo (incluya o no rubros ya programados), así que su total es el Costo
+  // Directo del proyecto, no el "Costo total planificado" de arriba (que solo cuenta
+  // los rubros que ya tienen fecha). Por eso siempre deben aparecer TODOS los capítulos
+  // — si no caben todos como fila propia, se agrupan los más chicos en "Otros" para que
+  // la suma de las barras nunca quede por debajo del total real.
   doc.setFontSize(10); doc.setFont('Outfit','bold'); doc.setTextColor(6,11,20);
-  doc.text('COSTO PLANIFICADO POR CAPÍTULO', marginX, y);
+  doc.text('COSTO POR CAPÍTULO (PRESUPUESTO TOTAL)', marginX, y);
   y += 3;
   doc.setDrawColor(0,82,255); doc.setLineWidth(.8);
   doc.line(marginX, y, marginX+22, y);
   y += 7;
 
-  const capRows = getCaps().map(function(c,ci){ return {name:c, total:capTotal(ci)}; }).filter(function(r){ return r.total>0; }).sort(function(a,b){ return b.total-a.total; });
-  const maxCap = Math.max.apply(null, capRows.map(function(r){ return r.total; }).concat([1]));
-  const barAreaW = pageW - marginX*2 - 46;
-  const rowH = 7.4;
-  const spaceLeft = pageH - 16 - y;
+  let capRows = getCaps().map(function(c,ci){ return {name:c, total:capTotal(ci)}; }).filter(function(r){ return r.total>0; }).sort(function(a,b){ return b.total-a.total; });
+  const capTotalSum = capRows.reduce(function(s,r){ return s+r.total; }, 0);
+  const rowH = 7;
+  const labelColW=46;
+  const barAreaW = pageW - marginX*2 - labelColW - 24;
+  const spaceLeft = (pageH-12) - y - rowH; // deja lugar para la fila de TOTAL
   const maxRows = Math.max(1, Math.floor(spaceLeft/rowH));
-  capRows.slice(0, maxRows).forEach(function(r){
-    doc.setFontSize(7); doc.setFont('Outfit','normal'); doc.setTextColor(26,26,46);
-    doc.text(String(r.name), marginX, y+4.6, {maxWidth:40});
+  if(capRows.length > maxRows){
+    const kept = capRows.slice(0, maxRows-1);
+    const restante = capRows.slice(maxRows-1);
+    const restTotal = restante.reduce(function(s,r){ return s+r.total; }, 0);
+    capRows = kept.concat([{name:'Otros capítulos ('+restante.length+')', total:restTotal, otros:true}]);
+  }
+  const maxCap = Math.max.apply(null, capRows.map(function(r){ return r.total; }).concat([1]));
+  capRows.forEach(function(r){
+    doc.setFontSize(7); doc.setFont('Outfit', r.otros?'bold':'normal'); doc.setTextColor(r.otros?90:26, r.otros?90:26, r.otros?100:46);
+    doc.text(String(r.name), marginX, y+4.4, {maxWidth:labelColW-2});
     const bw = Math.max(1.5, barAreaW*(r.total/maxCap));
     doc.setFillColor(236,240,252);
-    doc.roundedRect(marginX+42, y, barAreaW, 4.6, 1, 1, 'F');
-    doc.setFillColor(0,82,255);
-    doc.roundedRect(marginX+42, y, bw, 4.6, 1, 1, 'F');
-    doc.setFontSize(6.8); doc.setFont('Outfit','bold'); doc.setTextColor(26,26,46);
-    doc.text(fmtUSD(r.total), marginX+42+barAreaW+2, y+4.3);
+    doc.roundedRect(marginX+labelColW, y, barAreaW, 4.4, 1, 1, 'F');
+    doc.setFillColor.apply(doc, r.otros?[160,170,195]:[0,82,255]);
+    doc.roundedRect(marginX+labelColW, y, bw, 4.4, 1, 1, 'F');
+    doc.setFontSize(6.6); doc.setFont('Outfit','bold'); doc.setTextColor(26,26,46);
+    doc.text(fmtUSD(r.total), marginX+labelColW+barAreaW+2, y+4.1);
     y += rowH;
   });
+  doc.setDrawColor(228,233,248); doc.setLineWidth(.3);
+  doc.line(marginX, y+1, pageW-marginX, y+1);
+  y += 4.5;
+  doc.setFontSize(7.5); doc.setFont('Outfit','bold'); doc.setTextColor(0,51,160);
+  doc.text('TOTAL COSTO DIRECTO', marginX, y+3);
+  doc.text(fmtUSD(capTotalSum), pageW-marginX, y+3, {align:'right'});
 }
 
 function _pdfV2BuildCronograma(orientacion, elaboradoPor){

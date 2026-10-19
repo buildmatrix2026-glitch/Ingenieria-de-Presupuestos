@@ -10433,6 +10433,161 @@ function _pdfV2DrawAPUSection(doc, marginX, tableW, yy, numIcon, title, rows, co
 // Mismo lenguaje visual que el PDF Resumen y el PDF APUs (portada, header,
 // footer y tipografía BuildMatrix compartidos vía las funciones _pdfV2*).
 // ══════════════════════════════════════════════════════════
+// Dibuja un polígono relleno a partir de una lista de puntos [x,y] (jsPDF solo
+// soporta deltas relativos al punto inicial, así que los calculamos aquí).
+function _pdfV2FillPoly(doc, points, fillRGB){
+  if(points.length<2) return;
+  const start=points[0];
+  const deltas=[];
+  for(let i=1;i<points.length;i++) deltas.push([points[i][0]-points[i-1][0], points[i][1]-points[i-1][1]]);
+  doc.setFillColor(fillRGB[0],fillRGB[1],fillRGB[2]);
+  doc.lines(deltas, start[0], start[1], [1,1], 'F', true);
+}
+// Dibuja la línea (no rellena) que une una lista de puntos [x,y].
+function _pdfV2StrokePoly(doc, points){
+  if(points.length<2) return;
+  const start=points[0];
+  const deltas=[];
+  for(let i=1;i<points.length;i++) deltas.push([points[i][0]-points[i-1][0], points[i][1]-points[i-1][1]]);
+  doc.lines(deltas, start[0], start[1], [1,1], 'S', false);
+}
+
+// ══════════════════════════════════════════════════════════
+// Página "panorama" del Cronograma: chips de KPI + Curva S (con área degradada
+// y marca de HOY) + barras de costo planificado por capítulo — todo en una
+// sola hoja, con el mismo lenguaje visual (azul BuildMatrix) que el resto.
+// ══════════════════════════════════════════════════════════
+function _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr){
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginX = 14;
+  let y = _pdfV2PageHeader(doc, proj);
+
+  const sd = croComputeSeriesData(); // {labels, values, totalPlanned, range}
+  const totalPlanned = sd.totalPlanned;
+  const today = new Date().toISOString().slice(0,10);
+  let plannedToday=0;
+  if(totalPlanned>0){
+    if(today<=range.min) plannedToday=0;
+    else if(today>=range.max) plannedToday=totalPlanned;
+    else {
+      const idx=Math.min(sd.values.length-1, Math.round((croDaysBetween(range.min,today)/Math.max(1,range.totalDays))*(sd.values.length-1)));
+      plannedToday=sd.values[idx];
+    }
+  }
+  const pctPlanToday = totalPlanned>0?(plannedToday/totalPlanned*100):0;
+  let rubrosProgramados=0;
+  getCaps().forEach((c,ci)=>{ (S.caps[ci]||[]).forEach((r,ri)=>{ const d=(S.schedule[ci]||{})[ri]; if(d&&d.start&&d.dur) rubrosProgramados++; }); });
+
+  // ── Fila de chips KPI ──
+  const chips=[
+    ['DURACIÓN ESTIMADA', durStr, [167,139,250]],
+    ['COSTO TOTAL PLANIFICADO', fmtUSD(totalPlanned), [0,212,255]],
+    ['AVANCE PLANIFICADO A HOY', pctPlanToday.toFixed(1)+'%', [52,211,153]],
+    ['RUBROS PROGRAMADOS', String(rubrosProgramados), [250,204,21]]
+  ];
+  const gap=4;
+  const chipW=(pageW-marginX*2-gap*(chips.length-1))/chips.length;
+  const chipH=20;
+  chips.forEach((c,i)=>{
+    const cx=marginX+i*(chipW+gap);
+    doc.setDrawColor(228,233,248); doc.setLineWidth(.3);
+    doc.setFillColor(248,250,255);
+    doc.roundedRect(cx, y, chipW, chipH, 2, 2, 'FD');
+    doc.setFillColor(c[2][0],c[2][1],c[2][2]);
+    doc.roundedRect(cx, y, 2.4, chipH, 1, 1, 'F');
+    doc.setFontSize(6.3); doc.setFont('Outfit','bold'); doc.setTextColor(120,120,135);
+    doc.text(c[0], cx+6, y+7, {maxWidth:chipW-9});
+    doc.setFontSize(13); doc.setFont('Outfit','bold'); doc.setTextColor(26,26,46);
+    doc.text(c[1], cx+6, y+15.5);
+  });
+  y += chipH+10;
+
+  // ── Curva S ──
+  doc.setFontSize(10); doc.setFont('Outfit','bold'); doc.setTextColor(6,11,20);
+  doc.text('CURVA S — COSTO PLANIFICADO ACUMULADO', marginX, y);
+  y += 3;
+  doc.setDrawColor(0,82,255); doc.setLineWidth(.8);
+  doc.line(marginX, y, marginX+22, y);
+  y += 7;
+
+  const chartH = pageH*0.34;
+  const chartW = pageW - marginX*2 - 2;
+  const chartX = marginX+2;
+  const chartY = y;
+  const values = sd.values, labels = sd.labels;
+  const maxVal = Math.max.apply(null, values.concat([1]));
+  const gridN=4;
+  doc.setDrawColor(236,240,252); doc.setLineWidth(.15);
+  for(let g=0; g<=gridN; g++){
+    const gy = chartY + chartH - (chartH*g/gridN);
+    doc.line(chartX, gy, chartX+chartW, gy);
+    doc.setFontSize(6); doc.setFont('Outfit','normal'); doc.setTextColor(150,150,150);
+    doc.text(fmtUSD(maxVal*g/gridN), chartX, gy-1);
+  }
+  const n=values.length;
+  const pts = values.map(function(v,i){
+    return [chartX+(chartW*i/Math.max(1,n-1)), chartY+chartH-(chartH*v/maxVal)];
+  });
+  const poly = pts.concat([[chartX+chartW, chartY+chartH],[chartX, chartY+chartH]]);
+  _pdfV2FillPoly(doc, poly, [205,236,255]);
+  doc.setDrawColor(0,82,255); doc.setLineWidth(.9);
+  _pdfV2StrokePoly(doc, pts);
+  doc.setFillColor(0,82,255);
+  pts.forEach(function(p,i){ if(i%2===0 || i===pts.length-1) doc.circle(p[0], p[1], .6, 'F'); });
+
+  // Marca "HOY"
+  if(today>=range.min && today<=range.max){
+    const tx = chartX + chartW*(croDaysBetween(range.min,today)/Math.max(1,range.totalDays));
+    doc.setDrawColor(239,68,68); doc.setLineWidth(.5);
+    doc.setLineDashPattern([1,1],0);
+    doc.line(tx, chartY, tx, chartY+chartH);
+    doc.setLineDashPattern([],0);
+    doc.setFillColor(239,68,68);
+    doc.roundedRect(tx-5, chartY-4.5, 10, 4, .8, .8, 'F');
+    doc.setFontSize(5.5); doc.setFont('Outfit','bold'); doc.setTextColor(255,255,255);
+    doc.text('HOY', tx, chartY-1.6, {align:'center'});
+  }
+
+  // Etiquetas de fecha bajo el eje X (muestreo a ~6 marcas)
+  doc.setFontSize(6); doc.setFont('Outfit','normal'); doc.setTextColor(140,140,140);
+  const xMarks=6;
+  for(let m=0; m<=xMarks; m++){
+    const idx=Math.round((labels.length-1)*m/xMarks);
+    const lx=chartX+(chartW*m/xMarks);
+    const align = m===0?'left':(m===xMarks?'right':'center');
+    doc.text(labels[idx]||'', lx, chartY+chartH+5, {align:align});
+  }
+  y = chartY+chartH+14;
+
+  // ── Costo planificado por capítulo (barras horizontales) ──
+  doc.setFontSize(10); doc.setFont('Outfit','bold'); doc.setTextColor(6,11,20);
+  doc.text('COSTO PLANIFICADO POR CAPÍTULO', marginX, y);
+  y += 3;
+  doc.setDrawColor(0,82,255); doc.setLineWidth(.8);
+  doc.line(marginX, y, marginX+22, y);
+  y += 7;
+
+  const capRows = getCaps().map(function(c,ci){ return {name:c, total:capTotal(ci)}; }).filter(function(r){ return r.total>0; }).sort(function(a,b){ return b.total-a.total; });
+  const maxCap = Math.max.apply(null, capRows.map(function(r){ return r.total; }).concat([1]));
+  const barAreaW = pageW - marginX*2 - 46;
+  const rowH = 7.4;
+  const spaceLeft = pageH - 16 - y;
+  const maxRows = Math.max(1, Math.floor(spaceLeft/rowH));
+  capRows.slice(0, maxRows).forEach(function(r){
+    doc.setFontSize(7); doc.setFont('Outfit','normal'); doc.setTextColor(26,26,46);
+    doc.text(String(r.name), marginX, y+4.6, {maxWidth:40});
+    const bw = Math.max(1.5, barAreaW*(r.total/maxCap));
+    doc.setFillColor(236,240,252);
+    doc.roundedRect(marginX+42, y, barAreaW, 4.6, 1, 1, 'F');
+    doc.setFillColor(0,82,255);
+    doc.roundedRect(marginX+42, y, bw, 4.6, 1, 1, 'F');
+    doc.setFontSize(6.8); doc.setFont('Outfit','bold'); doc.setTextColor(26,26,46);
+    doc.text(fmtUSD(r.total), marginX+42+barAreaW+2, y+4.3);
+    y += rowH;
+  });
+}
+
 function _pdfV2BuildCronograma(orientacion, elaboradoPor){
   CAPS=getCaps();
   const range=croComputeRange();
@@ -10449,6 +10604,10 @@ function _pdfV2BuildCronograma(orientacion, elaboradoPor){
   const marginX = 14;
 
   _pdfV2DrawCover(doc, proj, dateStr, 'CRONOGRAMA DE OBRA', {cd:durStr, total:formatDateDisplay(range.max)}, elaboradoPor, ['DURACIÓN ESTIMADA','FECHA DE FINALIZACIÓN']);
+
+  // ── Página de panorama: chips de KPI + Curva S + costo por capítulo, todo en una sola hoja ──
+  doc.addPage();
+  _pdfV2DrawCronogramaDashboard(doc, proj, dateStr, range, durStr);
 
   doc.addPage();
   let yHead = _pdfV2PageHeader(doc, proj);

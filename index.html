@@ -2910,6 +2910,7 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   .cro-inp{width:118px!important;flex:0 0 118px!important}
   .cro-inp-date{width:142px!important;flex:0 0 142px!important}
   .cro-row-cost{margin-left:0}
+  #v-cro .vh>div[style*="display:flex"]{flex-wrap:wrap}
 }
 
 </style>
@@ -3860,7 +3861,11 @@ gsap.fromTo('.chapter-card',
       <div class="vw" id="v-cro">
         <div class="vh"><div><h2>Cronograma de obra</h2><div class="sub">Programa en el tiempo los rubros de tu presupuesto y visualiza la curva de avance</div></div>
           <div style="display:flex;gap:8px;align-items:center">
-            <input type="date" class="inp" id="cro-proj-start" title="Fecha de inicio del proyecto (para autocompletar)" style="width:150px">
+            <div class="inp" style="position:relative;display:flex;align-items:center;gap:6px;width:150px;flex:0 0 150px;padding:9px 10px;box-sizing:border-box;cursor:pointer;overflow:hidden">
+              <span style="display:inline-flex;flex-shrink:0;color:#67e8f9" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>
+              <span id="cro-proj-start-txt" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;color:rgba(139,156,189,.68)">dd/mm/aaaa</span>
+              <input type="date" id="cro-proj-start" title="Fecha de inicio del proyecto (para autocompletar)" onchange="croUpdateProjStartText(this.value)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;cursor:pointer;margin:0;padding:0">
+            </div>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="croAutoFill()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>Autocompletar
             </button>
@@ -7856,6 +7861,20 @@ function croComputeGastoReal(){
   return {available:true,total,byCat,count:list.length};
 }
 
+function croUpdateProjStartText(val){
+  const t=$id('cro-proj-start-txt');
+  if(!t) return;
+  t.textContent=val?formatDateDisplay(val):'dd/mm/aaaa';
+  t.style.fontStyle=val?'normal':'italic';
+  t.style.color=val?'var(--ow)':'rgba(139,156,189,.68)';
+}
+function croUpdateDateText(ci,ri,val){
+  const txt=$id(`cro-date-txt-${ci}-${ri}`);
+  if(!txt) return;
+  txt.textContent=formatDateDisplay(val);
+  txt.style.fontStyle=val?'normal':'italic';
+  txt.style.color=val?'var(--ow)':'rgba(139,156,189,.68)';
+}
 function croSetField(ci,ri,field,val){
   const d=croGet(ci,ri);
   if(field==='start') d.start=val;
@@ -7985,7 +8004,11 @@ function croRenderGantt(){
         <div class="cro-row-info">
           <div class="cro-row-desc" title="${esc(r.desc||'')}">${esc(r.desc||r.code||'')}</div>
           <div class="cro-row-fields">
-            <input type="date" class="inp cro-inp cro-inp-date" value="${d.start||''}" onchange="croSetField(${ci},${ri},'start',this.value)" title="Fecha inicio">
+            <div class="inp cro-inp cro-inp-date" style="position:relative;display:flex;align-items:center;gap:4px;overflow:hidden;cursor:pointer">
+              <span style="display:inline-flex;flex-shrink:0;color:#67e8f9" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>
+              <span class="cro-date-txt" id="cro-date-txt-${ci}-${ri}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:${d.start?'normal':'italic'};color:${d.start?'var(--ow)':'rgba(139,156,189,.68)'}">${formatDateDisplay(d.start)}</span>
+              <input type="date" value="${d.start||''}" onchange="croSetField(${ci},${ri},'start',this.value);croUpdateDateText(${ci},${ri},this.value)" title="Fecha inicio" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;cursor:pointer;margin:0;padding:0">
+            </div>
             <input type="text" inputmode="numeric" class="inp cro-inp cro-inp-sm" placeholder="días" value="${d.dur||''}" onchange="croSetField(${ci},${ri},'dur',this.value)" title="Duración en días">
             <input type="text" inputmode="decimal" class="inp cro-inp cro-inp-sm" placeholder="%" value="${d.pct||''}" onchange="croSetField(${ci},${ri},'pct',this.value)" title="% avance físico real">
             <span class="cro-row-cost" id="cro-row-cost-${ci}-${ri}">${fmtUSD(cost)}</span>

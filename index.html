@@ -2424,7 +2424,7 @@ input[type=date].inp::-webkit-datetime-edit-text,
 input[type=date].inp::-webkit-datetime-edit-month-field,
 input[type=date].inp::-webkit-datetime-edit-day-field,
 input[type=date].inp::-webkit-datetime-edit-year-field {
-  color: rgba(139,156,189,.55);
+  color: rgba(139,156,189,.68);
 }
 input[type=date].inp:focus::-webkit-datetime-edit-text,
 input[type=date].inp:focus::-webkit-datetime-edit-month-field,
@@ -2435,6 +2435,13 @@ input[type=date].inp:focus::-webkit-datetime-edit-year-field {
 input[type=date].inp::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
+/* En varios navegadores móviles (Android/Chrome) el <input type="date"> trae una altura
+   mínima propia más alta que la de los demás inputs, y el ícono del calendario viene con
+   su propio tamaño fijo que la empuja más — por eso el recuadro de fecha quedaba más alto
+   que "días"/"%". Forzamos min-height:0 y un ícono chico para que respete la misma altura
+   que ponga .cro-inp/.inp, igual que los otros dos campos. */
+input[type=date].inp{min-height:0;line-height:normal}
+input[type=date].inp::-webkit-calendar-picker-indicator{width:14px;height:14px;padding:0;margin:0}
 /* Ícono del selector de fecha en los formularios de Gastos y facturas / Gastos personales: blanco en vez del negro por defecto */
 input[type=date].gx-in::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -2870,7 +2877,12 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
    nowrap en vez de wrap, y el valor empujado al final con margin-left:auto
    en lugar de competir por espacio con la descripción en la misma fila. */
 .cro-row-fields{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;width:100%}
-.cro-inp{height:30px;padding:0 8px;font-size:11.5px;width:134px!important;flex:0 0 134px!important}
+/* .inp trae min-height:40px para los inputs normales de la app — eso ganaba por encima
+   del height:30px de aquí abajo en "días"/"%" (inputs de texto normales), pero el de
+   fecha (un <input type="date">, un widget nativo del navegador) no respeta ese
+   min-height igual, así que se quedaba en 30px solo. Resultado: fecha más baja que
+   días/%. min-height:0 deja que las 3 cajas midan lo mismo. */
+.cro-inp{height:30px;min-height:0;padding:0 8px;font-size:11.5px;width:134px!important;flex:0 0 134px!important}
 .cro-inp-sm{width:56px!important;flex:0 0 56px!important;text-align:right;font-family:var(--f-mo)}
 .cro-row-cost{font-family:var(--f-mo);font-size:12px;font-weight:700;color:var(--gr);min-width:70px;text-align:right;margin-left:auto;flex:0 0 auto}
 @media(max-width:640px){.cro-row-fields{flex-wrap:wrap}.cro-row-cost{margin-left:0}}
@@ -7849,9 +7861,17 @@ function croSetField(ci,ri,field,val){
   else if(field==='dur') d.dur=Math.max(0,parseInt(val)||0);
   else if(field==='pct') d.pct=Math.max(0,Math.min(100,parseFloat(val)||0));
   persist();
-  croRenderGantt();
-  croRenderSCurve();
-  croRenderKPIs();
+  // croRenderGantt() reconstruye TODA la lista (reemplaza el HTML de cada fila, incluido
+  // el <input> que acabas de tocar). En celular, el selector nativo de fecha ("date picker")
+  // todavía está en pleno cierre justo cuando dispara este "change" — si reconstruimos el
+  // DOM en ese mismo instante, le cortamos el cierre al picker a medias y se ve como que
+  // "se cierra solo". Lo pasamos a la siguiente vuelta del navegador (requestAnimationFrame)
+  // para que el picker termine de cerrarse primero, y recién ahí reconstruimos la lista.
+  requestAnimationFrame(function(){
+    croRenderGantt();
+    croRenderSCurve();
+    croRenderKPIs();
+  });
 }
 
 function croAddDays(dateStr,days){

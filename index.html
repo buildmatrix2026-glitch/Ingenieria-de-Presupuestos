@@ -8838,7 +8838,13 @@ async function bmInitPortalIfNeeded(){
           '<div style="text-align:center;color:#8A95AB;font-size:13px">Generando el PDF del presupuesto…</div>'
         ));
         try{
-          window.S = payload; // reconstruye el estado que _pdfV2Build* esperan
+          // OJO: S se declara como "let S = loadState()" a nivel superior del
+          // script — una variable "let" de nivel superior NO es window.S, así
+          // que "window.S = payload" crea una variable aparte y no afecta a la
+          // S real que leen los generadores de PDF (salía el formato pero sin
+          // datos). Por eso mutamos el objeto S existente en vez de reemplazarlo.
+          Object.keys(S).forEach(function(k){ delete S[k]; });
+          Object.assign(S, payload);
           var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(payload.own || '');
           var blob = new Blob([pdfBytes], {type:'application/pdf'});
           var blobUrl = URL.createObjectURL(blob);

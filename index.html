@@ -7881,7 +7881,12 @@ function _bmAuditBuildPrompt(){
   var lineas = [];
   CAPS.forEach(function(nombre, ci){
     var rows = S.caps[ci]||[];
-    lineas.push('CAPÍTULO '+ci+' — '+nombre+':');
+    var capNum = (S.capNums && S.capNums[ci]!=null && S.capNums[ci]!=='') ? S.capNums[ci] : (ci+1);
+    // IMPORTANTE: este es el MISMO número de capítulo que el usuario ve en la app
+    // (1-indexado, o el número personalizado que haya puesto). El modelo debe
+    // devolver EXACTAMENTE este número en sus hallazgos para que coincida con lo
+    // que el usuario ve en pantalla — nunca un índice interno de 0 en adelante.
+    lineas.push('CAPÍTULO '+capNum+' — '+nombre+':');
     if (!rows.length) { lineas.push('  (vacío)'); return; }
     rows.forEach(function(r){
       lineas.push('  - '+(r.code||'')+' | '+(r.desc||'')+' | '+(r.unit||'')+' | qty='+(r.qty||0)+' | pu='+(r.pu||0));
@@ -7889,13 +7894,14 @@ function _bmAuditBuildPrompt(){
   });
   var presupuesto = lineas.join('\n');
   return 'Eres un auditor experto en presupuestos de construcción en Ecuador. Te doy el presupuesto ' +
-    'completo de un proyecto, organizado en 16 capítulos fijos (0 a 15, ya nombrados abajo). ' +
+    'completo de un proyecto, organizado en 16 capítulos fijos, cada uno con el MISMO número y nombre que ' +
+    'el usuario ve en su aplicación (ver encabezados "CAPÍTULO <número> — <nombre>" abajo). ' +
     'Tu única tarea es señalar posibles OMISIONES o INCONSISTENCIAS, NO calcular ni corregir nada tú mismo.\n\n' +
     'Revisa específicamente:\n' +
     '1. Rubros típicos que normalmente aparecen en cada capítulo y que no están presentes (ej.: si hay ' +
-    'enlucido interior en el capítulo 5 pero no hay pintura interior en el capítulo 12; si hay varios baños ' +
-    'pero pocos puntos de agua/desagüe en el capítulo 9; si hay mampostería pero no hay dinteles; si hay ' +
-    'estructura de hormigón pero no aparece el acero de refuerzo; si hay cubierta pero no hay canales/bajantes; etc.)\n' +
+    'enlucido interior pero no hay pintura interior; si hay varios baños pero pocos puntos de agua/desagüe; ' +
+    'si hay mampostería pero no hay dinteles; si hay estructura de hormigón pero no aparece el acero de ' +
+    'refuerzo; si hay cubierta pero no hay canales/bajantes; etc.)\n' +
     '2. Capítulos completamente vacíos que, a juzgar por el resto del presupuesto, probablemente sí deberían ' +
     'tener algo (ej. un proyecto con varios baños pero el capítulo de Aparatos Sanitarios está vacío).\n' +
     '3. Inconsistencias de cantidad entre capítulos relacionados (ej. número de aparatos sanitarios vs número ' +
@@ -7903,9 +7909,16 @@ function _bmAuditBuildPrompt(){
     'NO señales como problema un capítulo vacío si es razonable que el proyecto no lo necesite (ej. Estructura ' +
     'Metálica vacía en una casa que es toda de hormigón armado es normal, no es un error). Sé conservador: ' +
     'solo reporta lo que de verdad parece una omisión real, no inventes problemas por inventar.\n\n' +
+    'CRÍTICO sobre el campo "capitulo" de tu respuesta: debes usar EXACTAMENTE el número y nombre tal como ' +
+    'aparecen en los encabezados "CAPÍTULO <número> — <nombre>" de abajo (ej. si el hallazgo es sobre el ' +
+    'encabezado "CAPÍTULO 3 — ESTRUCTURA DE HORMIGON ARMADO", responde "capitulo":"Capítulo 3 — ESTRUCTURA DE ' +
+    'HORMIGON ARMADO"). NUNCA inventes, recalcules ni renumeres por tu cuenta — copia el número tal cual lo ves. ' +
+    'Si el hallazgo involucra más de un capítulo, menciona cada número y nombre involucrado (ej. "Capítulo 9 — ' +
+    'INSTALACIONES HIDROSANITARIAS y Capítulo 10 — APARATOS SANITARIOS Y GRIFERIA"), nunca "Varios capítulos" ' +
+    'a secas sin decir cuáles.\n\n' +
     'Responde ÚNICAMENTE con JSON válido, sin markdown ni texto adicional, con esta forma exacta:\n' +
-    '{"findings":[{"capitulo":"<nombre del capítulo o \'Varios capítulos\'>","tipo":"faltante|inconsistencia",' +
-    '"detalle":"<explicación breve y concreta, 1-2 frases>"}]}\n' +
+    '{"findings":[{"capitulo":"<número(s) y nombre(s) exactos del/los capítulo(s) afectado(s)>",' +
+    '"tipo":"faltante|inconsistencia","detalle":"<explicación breve y concreta, 1-2 frases>"}]}\n' +
     'Si no encuentras ningún problema real, responde {"findings":[]}.\n\n' +
     'PRESUPUESTO A REVISAR:\n' + presupuesto;
 }
@@ -8177,7 +8190,7 @@ function _bmRubroKey(r, idx){
   // Prioriza un código/descripción estable; si no hay nada reconocible, usa el índice
   // de la fila como última opción (mejor esfuerzo, puede marcar falsos "editado").
   if (!r) return 'idx:'+idx;
-  var cod = (r.cod || r.code || r.codigo || '').toString().trim();
+  var cod = (r.code || r.cod || r.codigo || '').toString().trim();
   if (cod) return 'cod:'+cod;
   var desc = (r.desc || r.descripcion || r.name || '').toString().trim().toLowerCase();
   if (desc) return 'desc:'+desc;
@@ -8216,22 +8229,39 @@ function _bmDiffProjectEntries(prev, next){
       var prevByKey = {}; prevRows.forEach(function(r,i){ prevByKey[_bmRubroKey(r,i)] = r; });
       var nextByKey = {}; nextRows.forEach(function(r,i){ nextByKey[_bmRubroKey(r,i)] = r; });
 
-      var added = 0, removed = 0, edited = 0;
+      var capLines = [];
+      var _rubroLabel = function(r){
+        var cod = (r.code || r.cod || r.codigo || '').toString().trim();
+        var desc = (r.desc || r.descripcion || r.name || '').toString().trim();
+        if (cod && desc) return cod+' — '+desc;
+        return cod || desc || 'Rubro sin descripción';
+      };
+
       Object.keys(nextByKey).forEach(function(k){
-        if (!(k in prevByKey)) { added++; return; }
-        var a = prevByKey[k], b = nextByKey[k];
+        var b = nextByKey[k];
+        if (!(k in prevByKey)) {
+          var qty0 = parseFloat(b.qty)||0, pu0 = parseFloat(b.pu)||0;
+          capLines.push('+ Agregado: '+_rubroLabel(b)+' ('+qty0+' '+(b.unit||'')+' × '+fmtUSD(pu0)+')');
+          return;
+        }
+        var a = prevByKey[k];
         var qtyA = parseFloat(a.qty)||0, qtyB = parseFloat(b.qty)||0;
         var puA = parseFloat(a.pu)||0, puB = parseFloat(b.pu)||0;
-        if (qtyA !== qtyB || puA !== puB) edited++;
+        if (qtyA !== qtyB && puA !== puB) {
+          capLines.push('✎ '+_rubroLabel(b)+': cantidad '+qtyA+' → '+qtyB+' '+(b.unit||'')+', P.U. '+fmtUSD(puA)+' → '+fmtUSD(puB));
+        } else if (qtyA !== qtyB) {
+          capLines.push('✎ '+_rubroLabel(b)+': cantidad '+qtyA+' → '+qtyB+' '+(b.unit||''));
+        } else if (puA !== puB) {
+          capLines.push('✎ '+_rubroLabel(b)+': P.U. '+fmtUSD(puA)+' → '+fmtUSD(puB));
+        }
       });
-      Object.keys(prevByKey).forEach(function(k){ if (!(k in nextByKey)) removed++; });
+      Object.keys(prevByKey).forEach(function(k){
+        if (!(k in nextByKey)) capLines.push('− Quitado: '+_rubroLabel(prevByKey[k]));
+      });
 
-      if (added || removed || edited) {
-        var parts = [];
-        if (added) parts.push(added+' rubro'+(added!==1?'s':'')+' agregado'+(added!==1?'s':''));
-        if (removed) parts.push(removed+' quitado'+(removed!==1?'s':''));
-        if (edited) parts.push(edited+' editado'+(edited!==1?'s':''));
-        changes.push(capName+': '+parts.join(', '));
+      if (capLines.length) {
+        changes.push(capName+':');
+        capLines.forEach(function(l){ changes.push('   '+l); });
       }
     }
 

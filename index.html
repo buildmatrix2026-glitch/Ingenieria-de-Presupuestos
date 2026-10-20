@@ -2040,11 +2040,15 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
   #af-admins{flex:1 1 100%;justify-content:center!important;text-align:center}
 }
 
-/* Presupuesto maestro: con 6 acciones (Auditar IA, Plantillas, Historial, Portal
-   cliente, Nuevo capítulo, Vaciar) una sola fila ya no entra en móvil sin que el
-   texto se corte feo — se acomodan en una cuadrícula de 3 columnas x 2 filas,
-   cada botón con el ícono arriba y el texto abajo, completo y legible. */
+/* Presupuesto maestro, en móvil: con 7 acciones (Auditar IA, Plantillas, Historial,
+   Portal cliente, Bitácora, Nuevo capítulo, Vaciar) ya ni una cuadrícula de 3x3 se ve
+   bien — demasiados botones para usar todos los días. En móvil se dejan visibles solo
+   las 2 acciones de uso diario (Nuevo capítulo, Vaciar) + un botón "Más" que agrupa
+   las 5 herramientas menos frecuentes en un menú aparte. En PC/tablet no cambia nada,
+   siguen las 7 en una fila (hay espacio de sobra). */
 @media(max-width:600px){
+  .vh-pre-secondary{display:none!important}
+  #bm-pre-more-btn{display:flex!important}
   .vh-pre-actions{
     width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
   }
@@ -3889,20 +3893,25 @@ gsap.fromTo('.chapter-card',
       <div class="vw" id="v-pre">
         <div class="vh"><div><h2>Presupuesto maestro</h2><div class="sub" id="caps-subtitle">16 capítulos · Cámara de la Construcción 2026</div></div>
           <div class="vh-pre-actions" style="display:flex;gap:8px">
-            <button class="btn ghost" id="btn-audit-ia" style="padding:9px 16px;font-size:12.5px" onclick="bmAuditRubros()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/></svg>Auditar con IA
-            </button>
-            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenTemplatesModal()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Plantillas
-            </button>
-            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenHistoryModal()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Historial
-            </button>
-            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmShareWithClient()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Portal cliente
-            </button>
-            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenBitacoraModal()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg>Bitácora
+            <div class="vh-pre-secondary" style="display:contents">
+              <button class="btn ghost" id="btn-audit-ia" style="padding:9px 16px;font-size:12.5px" onclick="bmAuditRubros()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/></svg>Auditar con IA
+              </button>
+              <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenTemplatesModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Plantillas
+              </button>
+              <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenHistoryModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Historial
+              </button>
+              <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmShareWithClient()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Portal cliente
+              </button>
+              <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenBitacoraModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg>Bitácora
+              </button>
+            </div>
+            <button class="btn ghost" id="bm-pre-more-btn" style="padding:9px 16px;font-size:12.5px;display:none" onclick="bmOpenMoreToolsMenu()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más
             </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="addNewCap()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M12 5v14M5 12h14"/></svg>Nuevo capítulo
@@ -3929,6 +3938,9 @@ gsap.fromTo('.chapter-card',
               <span id="cro-proj-start-txt" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;color:rgba(139,156,189,.68)">dd/mm/aaaa</span>
               <input type="date" id="cro-proj-start" title="Fecha de inicio del proyecto (para autocompletar)" onchange="croUpdateProjStartText(this.value)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;cursor:pointer;margin:0;padding:0">
             </div>
+            <button class="btn ghost" id="cro-order-badge-btn" style="padding:9px 16px;font-size:12.5px;position:relative;display:none" onclick="bmOpenOrderAlertsModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Pedidos<span id="cro-order-badge-count" style="position:absolute;top:-6px;right:-6px;background:#FF6B6B;color:#fff;border-radius:999px;min-width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700">0</span>
+            </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="croAutoFill()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>Autocompletar
             </button>
@@ -8376,6 +8388,38 @@ function bmOpenHistoryModal(){
   }
 }
 
+// ── Menú "Más" (solo móvil) ──────────────────────────────────────────────
+// Agrupa las herramientas de uso menos frecuente (Auditar IA, Plantillas,
+// Historial, Portal cliente, Bitácora) detrás de un solo botón en celular,
+// donde los 7 botones de Presupuesto ya no entraban de forma legible.
+// En PC/tablet este botón nunca se muestra — ahí siguen todos en la fila.
+function bmOpenMoreToolsMenu(){
+  var old = document.getElementById('bm-more-modal'); if (old) old.remove();
+  var modal = document.createElement('div');
+  modal.id = 'bm-more-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;padding:0';
+  var items = [
+    { label:'Auditar con IA', fn:'bmAuditRubros', svg:'<path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/>' },
+    { label:'Plantillas', fn:'bmOpenTemplatesModal', svg:'<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>' },
+    { label:'Historial', fn:'bmOpenHistoryModal', svg:'<path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>' },
+    { label:'Portal cliente', fn:'bmShareWithClient', svg:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>' },
+    { label:'Bitácora', fn:'bmOpenBitacoraModal', svg:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 15l-5-5L5 21"/>' }
+  ];
+  var itemsHtml = items.map(function(it){
+    return '<button type="button" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:0;border-bottom:1px solid rgba(255,255,255,.06);background:transparent;color:var(--ow,#F0F4FF);font-size:14px;text-align:left;cursor:pointer" onclick="document.getElementById(\'bm-more-modal\').remove();'+it.fn+'()">'+
+      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2.1">'+it.svg+'</svg>'+esc(it.label)+
+    '</button>';
+  }).join('');
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px 18px 0 0;padding:10px 0 max(10px,env(safe-area-inset-bottom)) 0;width:100%;max-width:520px">'+
+      '<div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:999px;margin:4px auto 10px"></div>'+
+      itemsHtml+
+      '<button type="button" style="width:calc(100% - 32px);margin:12px 16px 0;padding:12px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer" onclick="document.getElementById(\'bm-more-modal\').remove()">Cerrar</button>'+
+    '</div>';
+  document.body.appendChild(modal);
+  modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // ── PORTAL DEL CLIENTE ───────────────────────────────────────────────────────
 // Genera un enlace de solo lectura (protegido con contraseña) para que el
@@ -8734,9 +8778,12 @@ function bmOpenBitacoraModal(){
   modal.id = 'bm-bit-modal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
   var CAPS = getCaps();
-  var capOptionsHtml = '<option value="">(General, sin capítulo)</option>' + CAPS.map(function(n,i){
+  // Las <option> de un <select> no heredan var(--s2)/var(--ow) en todos los navegadores
+  // (el popup nativo usa sus propios colores por defecto) — hay que pintarlas a mano o
+  // salen con fondo blanco y texto casi invisible, como ya pasó en .icd-input más arriba.
+  var capOptionsHtml = '<option value="" style="background:#0E1420;color:#F0F4FF">(General, sin capítulo)</option>' + CAPS.map(function(n,i){
     var num = (S.capNums && S.capNums[i]!=null && S.capNums[i]!=='') ? S.capNums[i] : (i+1);
-    return '<option value="'+i+'">Cap. '+num+' — '+esc(n)+'</option>';
+    return '<option value="'+i+'" style="background:#0E1420;color:#F0F4FF">Cap. '+num+' — '+esc(n)+'</option>';
   }).join('');
   modal.innerHTML =
     '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(620px,94vw);max-height:88vh;display:flex;flex-direction:column">'+
@@ -8748,7 +8795,7 @@ function bmOpenBitacoraModal(){
 
       '<div style="border:1px solid var(--br);border-radius:12px;padding:14px;margin-bottom:16px">'+
         '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:5px">Capítulo (opcional)</label>'+
-        '<select id="bm-bit-cap" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:12.5px;margin-bottom:10px">'+capOptionsHtml+'</select>'+
+        '<select id="bm-bit-cap" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--br);background:#0E1420;color:var(--ow,#F0F4FF);font-size:12.5px;margin-bottom:10px">'+capOptionsHtml+'</select>'+
         '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:5px">Nota de avance</label>'+
         '<textarea id="bm-bit-note" rows="3" placeholder="Ej. Se fundió la losa del segundo piso, queda curando 14 días." style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:12.5px;margin-bottom:10px;resize:vertical;box-sizing:border-box"></textarea>'+
         '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:5px">Fotos (opcional)</label>'+
@@ -8945,7 +8992,10 @@ function croSetField(ci,ri,field,val){
   if(field==='start') d.start=val;
   else if(field==='dur') d.dur=Math.max(0,parseInt(val)||0);
   else if(field==='pct') d.pct=Math.max(0,Math.min(100,parseFloat(val)||0));
+  else if(field==='lead') d.lead=Math.max(0,parseInt(val)||0);
+  else if(field==='ordered') d.ordered=!!val;
   persist();
+  if(field==='lead'||field==='ordered') croRenderOrderBadge();
   // IMPORTANTE: nunca llamamos aquí a croRenderGantt() completo. Esa función reemplaza
   // el innerHTML de TODA la lista de filas, lo que destruye el <input> que el usuario
   // acaba de tocar. En celular (sobre todo iPad/iOS) eso corta la interacción con el
@@ -8994,6 +9044,101 @@ function croAddDays(dateStr,days){
 }
 function croDaysBetween(a,b){
   return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── ALERTAS DE PEDIDO ANTICIPADO ─────────────────────────────────────────────
+// Cada rubro del cronograma puede tener "días de anticipación" (d.lead): cuántos
+// días antes de su fecha de inicio hay que pedirlo (ventanas, ascensor,
+// estructura metálica fabricada, etc. — tú decides a cuáles ponerle). Cuando la
+// fecha de pedido (inicio - lead) ya llegó o está cerca, y el rubro todavía no
+// está marcado "Pedido" (d.ordered), se enciende la alerta.
+// ══════════════════════════════════════════════════════════════════════════
+
+// Devuelve 'due' (hay que pedir YA / ya se pasó la fecha), 'upcoming' (se acerca,
+// faltan 7 días o menos) o null (sin alerta: sin lead, ya pedido, o falta lejos).
+function croOrderAlertState(d){
+  if (!d || !d.lead || d.ordered || !d.start) return null;
+  var today = new Date().toISOString().slice(0,10);
+  var orderDate = croAddDays(d.start, -d.lead);
+  var daysToOrder = croDaysBetween(today, orderDate); // negativo = ya se pasó
+  if (daysToOrder <= 0) return 'due';
+  if (daysToOrder <= 7) return 'upcoming';
+  return null;
+}
+
+function croComputeAllOrderAlerts(){
+  var CAPS = getCaps();
+  var out = [];
+  for (var ci=0; ci<CAPS.length; ci++){
+    var rows = S.caps[ci]||[];
+    for (var ri=0; ri<rows.length; ri++){
+      var d = croGet(ci,ri);
+      var state = croOrderAlertState(d);
+      if (!state) continue;
+      var orderDate = croAddDays(d.start, -d.lead);
+      out.push({
+        ci:ci, ri:ri, state:state, orderDate:orderDate, startDate:d.start, lead:d.lead,
+        capNombre:CAPS[ci], desc:(rows[ri].desc||rows[ri].code||'Rubro'),
+        daysToOrder: croDaysBetween(new Date().toISOString().slice(0,10), orderDate)
+      });
+    }
+  }
+  // Más urgente primero (más vencido / más cerca)
+  out.sort(function(a,b){ return a.daysToOrder - b.daysToOrder; });
+  return out;
+}
+
+function croRenderOrderBadge(){
+  var btn = document.getElementById('cro-order-badge-btn');
+  var countEl = document.getElementById('cro-order-badge-count');
+  if (!btn || !countEl) return;
+  var alerts = croComputeAllOrderAlerts();
+  if (!alerts.length) { btn.style.display = 'none'; return; }
+  var dueCount = alerts.filter(function(a){ return a.state==='due'; }).length;
+  countEl.textContent = alerts.length;
+  countEl.style.background = dueCount>0 ? '#FF6B6B' : '#FFB020';
+  btn.style.display = 'inline-flex';
+}
+
+function bmOpenOrderAlertsModal(){
+  var old = document.getElementById('bm-order-modal'); if (old) old.remove();
+  var alerts = croComputeAllOrderAlerts();
+  var modal = document.createElement('div');
+  modal.id = 'bm-order-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+  var itemsHtml = alerts.length ? alerts.map(function(a){
+    var urgColor = a.state==='due' ? '#FF6B6B' : '#FFB020';
+    var urgLabel = a.daysToOrder<0 ? ('Vencido hace '+Math.abs(a.daysToOrder)+' día'+(Math.abs(a.daysToOrder)!==1?'s':'')) :
+                   (a.daysToOrder===0 ? 'Pedir hoy' : ('Pedir en '+a.daysToOrder+' día'+(a.daysToOrder!==1?'s':'')));
+    return '<div style="padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-left:3px solid '+urgColor+';border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.02)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px">'+
+        '<div style="font-size:12.5px;font-weight:600;color:var(--ow,#F0F4FF)">'+esc(a.desc)+'</div>'+
+        '<div style="font-size:11px;color:'+urgColor+';font-weight:700;white-space:nowrap">'+urgLabel+'</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--sld)">'+esc(a.capNombre)+' · Inicio de obra: '+formatDateDisplay(a.startDate)+' · Anticipación: '+a.lead+' días</div>'+
+      '<button type="button" class="btn ghost" style="margin-top:8px;padding:6px 12px;font-size:11px" onclick="croSetField('+a.ci+','+a.ri+',\'ordered\',true);bmOpenOrderAlertsModal();croRenderGantt()">Marcar como pedido ✓</button>'+
+    '</div>';
+  }).join('') : '<div style="text-align:center;padding:30px 10px;color:var(--sl)">'+
+      '<div style="font-size:34px;margin-bottom:10px">✓</div>'+
+      '<div style="font-size:14px;font-weight:600;color:var(--ow,#F0F4FF);margin-bottom:4px">Sin alertas de pedido pendientes</div>'+
+      '<div style="font-size:12px;color:var(--sld)">Pon "días de anticipación" en los rubros de entrega larga (ventanas, ascensor, estructura metálica, etc.) desde el Cronograma para que aparezcan aquí cuando se acerque su fecha de pedido.</div>'+
+    '</div>';
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(560px,94vw);max-height:84vh;display:flex;flex-direction:column">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="2.2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Alertas de pedido anticipado</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Rubros con tiempo de entrega largo que, según tu cronograma, ya toca pedir o se acerca su fecha.</div>'+
+      '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+itemsHtml+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" id="bm-order-close" style="flex:1;padding:11px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(modal);
+  modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
+  document.getElementById('bm-order-close').onclick = function(){ modal.remove(); };
 }
 
 // Autocompleta fechas vacías encadenando los rubros en orden (capítulo por capítulo),
@@ -9233,9 +9378,10 @@ function croRenderGantt(){
         hasBar=true;
       }
       const pct=d.pct||0;
-      html+=`<div class="cro-row" id="cro-row-${ci}-${ri}">
+      const orderAlert=croOrderAlertState(d);
+      html+=`<div class="cro-row" id="cro-row-${ci}-${ri}" style="${orderAlert==='due'?'border-left:3px solid #FF6B6B':(orderAlert==='upcoming'?'border-left:3px solid #FFB020':'')}">
         <div class="cro-row-info">
-          <div class="cro-row-desc" title="${esc(r.desc||'')}">${esc(r.desc||r.code||'')}</div>
+          <div class="cro-row-desc" title="${esc(r.desc||'')}">${esc(r.desc||r.code||'')}${orderAlert==='due'?' <span title="¡Pedir ya! Según el cronograma, este rubro ya debería estar pedido" style="color:#FF6B6B">⚠</span>':(orderAlert==='upcoming'?' <span title="Se acerca la fecha de pedido" style="color:#FFB020">⏰</span>':'')}</div>
           <div class="cro-row-fields">
             <div class="inp cro-inp cro-inp-date" style="position:relative;display:flex;align-items:center;gap:4px;overflow:hidden;cursor:pointer">
               <span style="display:inline-flex;flex-shrink:0;color:#67e8f9" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>
@@ -9244,6 +9390,10 @@ function croRenderGantt(){
             </div>
             <input type="text" inputmode="numeric" class="inp cro-inp cro-inp-sm" placeholder="días" value="${d.dur||''}" onchange="croSetField(${ci},${ri},'dur',this.value)" title="Duración en días">
             <input type="text" inputmode="decimal" class="inp cro-inp cro-inp-sm" placeholder="%" value="${d.pct||''}" onchange="croSetField(${ci},${ri},'pct',this.value)" title="% avance físico real">
+            <input type="text" inputmode="numeric" class="inp cro-inp cro-inp-sm" style="width:46px" placeholder="antic." value="${d.lead||''}" onchange="croSetField(${ci},${ri},'lead',this.value);croRenderGantt()" title="Días de anticipación para pedir este rubro (ej. ventanas, ascensor). Vacío = sin alerta">
+            <label title="Marca cuando ya hiciste el pedido" style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--sld);cursor:${d.lead?'pointer':'default'};opacity:${d.lead?'1':'.35'}">
+              <input type="checkbox" ${d.ordered?'checked':''} ${d.lead?'':'disabled'} onchange="croSetField(${ci},${ri},'ordered',this.checked);croRenderGantt()" style="cursor:pointer">Pedido
+            </label>
             <span class="cro-row-cost" id="cro-row-cost-${ci}-${ri}">${fmtUSD(cost)}</span>
           </div>
         </div>
@@ -9256,10 +9406,12 @@ function croRenderGantt(){
   if(!anyRow){
     wrap.innerHTML='<div class="cro-empty">Tu presupuesto todavía no tiene rubros. Agrega rubros en la pestaña Presupuesto y vuelve aquí para programarlos en el tiempo.</div>';
     $id('cro-ruler').innerHTML='';
+    croRenderOrderBadge();
     return;
   }
   wrap.innerHTML=html;
   croRenderRuler(range);
+  croRenderOrderBadge();
 }
 
 function croRenderRuler(range){

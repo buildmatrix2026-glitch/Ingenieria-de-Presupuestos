@@ -2041,23 +2041,28 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
 }
 
 /* Presupuesto maestro, en móvil: con 7 acciones (Auditar IA, Plantillas, Historial,
-   Portal cliente, Bitácora, Nuevo capítulo, Vaciar) ya ni una cuadrícula de 3x3 se ve
-   bien — demasiados botones para usar todos los días. En móvil se dejan visibles solo
-   las 2 acciones de uso diario (Nuevo capítulo, Vaciar) + un botón "Más" que agrupa
-   las 5 herramientas menos frecuentes en un menú aparte. En PC/tablet no cambia nada,
-   siguen las 7 en una fila (hay espacio de sobra). */
+   Portal cliente, Bitácora, Nuevo capítulo, Vaciar) ya no entran de forma legible. En
+   móvil se dejan visibles solo las 2 acciones de uso diario (Nuevo capítulo, Vaciar) +
+   un botón "Más" circular (solo ícono) que agrupa las 5 herramientas menos frecuentes
+   en una hoja aparte. Fila plana, en una sola línea, sin cajas apiladas ni texto
+   cortado — "Nuevo capítulo" queda como acción principal (botón sólido), "Vaciar"
+   secundaria y "Más" un círculo discreto al final. En PC/tablet no cambia nada.*/
 @media(max-width:600px){
   .vh-pre-secondary{display:none!important}
-  #bm-pre-more-btn{display:flex!important}
   .vh-pre-actions{
-    width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    width:100%;display:flex;gap:8px;align-items:stretch;
   }
   .vh-pre-actions button{
-    flex-direction:column;justify-content:center!important;align-items:center;
-    gap:5px;padding:10px 4px!important;text-align:center;white-space:normal;
-    line-height:1.2;min-height:56px;font-size:10.5px!important;
+    white-space:nowrap;font-size:12px!important;padding:0 10px!important;
+    min-height:42px;flex:1 1 0;
   }
-  .vh-pre-actions button svg{margin-right:0!important}
+  .vh-pre-actions button svg{margin-right:4px!important;flex-shrink:0}
+  #bm-pre-more-btn{
+    display:inline-flex!important;flex:0 0 42px!important;width:42px;padding:0!important;
+    border-radius:50%;
+  }
+  #bm-pre-more-btn svg{margin-right:0!important}
+  #bm-pre-more-btn .bm-more-label{display:none}
 }
 
 /* Insumos: Crear insumo y Categorías a ancho completo y centrados (solo móvil) */
@@ -3910,10 +3915,10 @@ gsap.fromTo('.chapter-card',
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg>Bitácora
               </button>
             </div>
-            <button class="btn ghost" id="bm-pre-more-btn" style="padding:9px 16px;font-size:12.5px;display:none" onclick="bmOpenMoreToolsMenu()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más
+            <button class="btn ghost" id="bm-pre-more-btn" title="Más herramientas" style="padding:9px 16px;font-size:12.5px;display:none" onclick="bmOpenMoreToolsMenu()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="bm-more-label">&nbsp;Más</span>
             </button>
-            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="addNewCap()">
+            <button class="btn" style="padding:9px 16px;font-size:12.5px" onclick="addNewCap()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M12 5v14M5 12h14"/></svg>Nuevo capítulo
             </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="resetBudget()">Vaciar</button>

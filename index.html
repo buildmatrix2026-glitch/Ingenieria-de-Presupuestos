@@ -2048,7 +2048,12 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
    antes solo pasaba en celular y en PC/tablet seguían las 7 en fila. */
 .vh-pre-secondary{display:none!important}
 #bm-pre-more-btn{
-  display:inline-flex!important;width:42px;height:42px;padding:0!important;
+  /* .btn trae min-height:44px por defecto — sin anularlo, chocaba con el
+     height:42px de acá y el botón salía ovalado (más alto que ancho) en vez
+     de un círculo perfecto. min-height/min-width igualados al tamaño fijo. */
+  display:inline-flex!important;align-items:center;justify-content:center;
+  box-sizing:border-box;width:42px!important;height:42px!important;
+  min-width:42px!important;min-height:42px!important;padding:0!important;
   border-radius:50%;flex:0 0 42px;
 }
 #bm-pre-more-btn svg{margin-right:0!important}

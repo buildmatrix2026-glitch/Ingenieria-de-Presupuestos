@@ -8347,14 +8347,29 @@ function _bmLogProjectHistory(prev, next){
 
     var docId = user.uid + '_' + (next.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
     var db = firebase.firestore();
-    db.collection('projects').doc(docId).collection('history').add({
+    var entryData = {
       ts: Date.now(),
       userUid: user.uid,
       userEmail: user.email || '',
       changes: changes,
       totalBefore: totalBefore,
       totalAfter: totalsNext.total
-    }).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+    };
+    // Solo en el PRIMER guardado de este proyecto se adjunta una foto completa
+    // (caps/capNames/own/date/ind/uti/iva) — es lo único que necesita el
+    // Comparador de presupuestos para poder enfrentar "primer guardado" vs.
+    // "estado actual" más adelante, sin tener que guardar una copia completa
+    // en CADA guardado (eso sí pesaría mucho con el tiempo).
+    if (!prev) {
+      entryData.snapshot = {
+        own: next.own || '', date: next.date || '',
+        ind: next.ind, uti: next.uti, iva: next.iva,
+        caps: JSON.parse(JSON.stringify(next.caps||[])),
+        capNames: JSON.parse(JSON.stringify(next.capNames||[]))
+      };
+    }
+    db.collection('projects').doc(docId).collection('history').add(entryData)
+      .catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
   }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
 
@@ -8427,52 +8442,45 @@ function bmOpenHistoryModal(){
 
 // ══════════════════════════════════════════════════════════════════════════
 // ── COMPARADOR DE PRESUPUESTOS ───────────────────────────────────────────
-// Permite elegir dos versiones (el proyecto actual abierto, un proyecto
-// guardado, o una plantilla) y ver lado a lado el total de cada una, la
-// diferencia en $ y %, y el detalle de qué cambió rubro por rubro —
-// reutilizando _bmDiffProjectEntries (ya usada en el Historial) y
-// _calcProjTotals, sin lógica nueva de cálculo que pueda desincronizarse.
-// Todo 100% local (localStorage), no requiere red ni cambios en Firestore.
+// Elige UN proyecto (de tus guardados, o el que tengas abierto) y compara
+// automáticamente su PRIMER guardado contra su estado ACTUAL — así lees de
+// un vistazo "qué cambió desde que arrancó este presupuesto hasta hoy", sin
+// tener que andar eligiendo manualmente dos versiones sueltas.
+// El "primer guardado" se obtiene de la entrada más antigua del Historial de
+// ese proyecto en Firestore (ahí se guarda una foto completa SOLO la primera
+// vez que se guarda un proyecto — ver _bmLogProjectHistory). El "actual" es
+// el proyecto tal como está ahora mismo (el que tengas abierto, o su última
+// versión guardada si no lo tienes abierto).
+// Reutiliza _bmDiffProjectEntries y _calcProjTotals — mismo motor que el
+// Historial, para que nunca se desincronice con lo que ya ves ahí.
 // ══════════════════════════════════════════════════════════════════════════
-function _bmCompareSources(){
-  var sources = [];
+function _bmCompareProjectList(){
+  var names = [];
+  var out = [];
   try{
-    if (S.proj) {
-      sources.push({
-        label: 'Actual: ' + (S.proj || 'Proyecto sin nombre'),
-        data: { own: S.own, date: S.date, ind: S.ind, uti: S.uti, iva: S.iva, caps: S.caps, capNames: S.capNames }
-      });
-    }
+    if (S.proj) { names.push(S.proj); out.push({ name: S.proj, current: true }); }
   }catch(e){}
   try{
     getSavedProjects().forEach(function(p){
-      sources.push({
-        label: 'Guardado: ' + (p.name || 'Sin nombre'),
-        data: { own: p.own, date: p.date, ind: p.ind, uti: p.uti, iva: p.iva, caps: p.caps, capNames: p.capNames }
-      });
+      if (!p.name || names.indexOf(p.name) >= 0) return;
+      names.push(p.name); out.push({ name: p.name, current: false });
     });
   }catch(e){}
-  try{
-    bmGetTemplates().forEach(function(t){
-      sources.push({
-        label: 'Plantilla: ' + (t.name || 'Sin nombre'),
-        data: { own: '', date: '', ind: t.ind, uti: t.uti, iva: t.iva, caps: t.caps, capNames: t.capNames }
-      });
-    });
-  }catch(e){}
-  return sources;
+  return out;
 }
 
 function bmOpenCompareModal(){
   var old = document.getElementById('bm-cmp-modal'); if (old) old.remove();
-  var sources = _bmCompareSources();
-  if (sources.length < 2) { toast('Necesitas al menos dos presupuestos (el actual, guardados o plantillas) para comparar', false); return; }
+  var user = firebase.auth().currentUser;
+  if (!user) { toast('Inicia sesión para poder comparar (el primer guardado se guarda en tu cuenta)', false); return; }
+  var list = _bmCompareProjectList();
+  if (!list.length) { toast('Abre o guarda al menos un proyecto para poder comparar', false); return; }
 
   var modal = document.createElement('div');
   modal.id = 'bm-cmp-modal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
 
-  var optsHtml = sources.map(function(s, i){ return '<option value="'+i+'">'+esc(s.label)+'</option>'; }).join('');
+  var optsHtml = list.map(function(p, i){ return '<option value="'+i+'">'+esc(p.name)+'</option>'; }).join('');
 
   modal.innerHTML =
     '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column">'+
@@ -8480,19 +8488,15 @@ function bmOpenCompareModal(){
         '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2"><path d="M8 3v18M16 3v18M4 8h4M16 8h4M4 16h4M16 16h4"/></svg>'+
         '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Comparador de presupuestos</div>'+
       '</div>'+
-      '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Elige dos versiones (el proyecto actual, un guardado o una plantilla) para ver qué cambió y cómo varió el total.</div>'+
-      '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'+
-        '<div>'+
-          '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Versión A (base)</label>'+
-          '<select id="bm-cmp-a" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--br);background:var(--s1,var(--s2));color:var(--ow,#F0F4FF);font-size:13px">'+optsHtml+'</select>'+
-        '</div>'+
-        '<div>'+
-          '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Versión B (comparar con)</label>'+
-          '<select id="bm-cmp-b" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--br);background:var(--s1,var(--s2));color:var(--ow,#F0F4FF);font-size:13px">'+optsHtml+'</select>'+
-        '</div>'+
+      '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Elige un proyecto y mira qué cambió desde su primer guardado hasta su estado actual.</div>'+
+      '<div style="margin-bottom:14px">'+
+        '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Proyecto</label>'+
+        '<select id="bm-cmp-proj" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--br);background:var(--s1,var(--s2));color:var(--ow,#F0F4FF);font-size:13px">'+optsHtml+'</select>'+
       '</div>'+
       '<button type="button" class="btn ghost" id="bm-cmp-go" style="margin-bottom:14px">Comparar</button>'+
-      '<div id="bm-cmp-result" style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px"></div>'+
+      '<div id="bm-cmp-result" style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+
+        '<div style="text-align:center;padding:16px;color:var(--sld);font-size:12.5px">Elige un proyecto y pulsa Comparar.</div>'+
+      '</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
         '<button type="button" class="btn ghost" id="bm-cmp-close" style="flex:1">Cerrar</button>'+
       '</div>'+
@@ -8501,46 +8505,68 @@ function bmOpenCompareModal(){
   document.getElementById('bm-cmp-close').onclick = function(){ modal.remove(); };
   modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
 
-  var selA = document.getElementById('bm-cmp-a');
-  var selB = document.getElementById('bm-cmp-b');
-  selA.value = '0';
-  selB.value = sources.length > 1 ? '1' : '0';
+  var selP = document.getElementById('bm-cmp-proj');
 
   var runCompare = function(){
     var resEl = document.getElementById('bm-cmp-result');
-    try{
-      var iA = parseInt(selA.value, 10), iB = parseInt(selB.value, 10);
-      if (isNaN(iA) || isNaN(iB) || !sources[iA] || !sources[iB]) { resEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sld);font-size:12.5px">Selección inválida.</div>'; return; }
-      if (iA === iB) { resEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sld);font-size:12.5px">Elige dos versiones distintas para comparar.</div>'; return; }
-      var a = sources[iA].data, b = sources[iB].data;
-      var totA = _calcProjTotals(a), totB = _calcProjTotals(b);
+    var i = parseInt(selP.value, 10);
+    var picked = list[i];
+    if (!picked) return;
+    resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Buscando el primer guardado…</div>';
+
+    var docId = user.uid + '_' + (picked.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
+    _bmConTiempoLimite(
+      firebase.firestore().collection('projects').doc(docId).collection('history')
+        .orderBy('ts', 'asc').limit(1).get(),
+      9000, 'COMPARADOR:lectura'
+    ).then(function(snap){
+      if (snap.empty || !snap.docs[0].data().snapshot) {
+        resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
+        return;
+      }
+      var first = snap.docs[0].data().snapshot; // {own,date,ind,uti,iva,caps,capNames}
+
+      // "Actual": si es el proyecto abierto ahora mismo, usa S en vivo;
+      // si no, usa su última versión guardada en localStorage.
+      var current;
+      if (picked.current) {
+        current = { own: S.own, date: S.date, ind: S.ind, uti: S.uti, iva: S.iva, caps: S.caps, capNames: S.capNames };
+      } else {
+        var saved = getSavedProjects().filter(function(p){ return p.name === picked.name; })[0];
+        current = saved ? { own: saved.own, date: saved.date, ind: saved.ind, uti: saved.uti, iva: saved.iva, caps: saved.caps, capNames: saved.capNames } : null;
+      }
+      if (!current) { resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se encontró el estado actual de este proyecto.</div>'; return; }
+
+      var totA = _calcProjTotals(first), totB = _calcProjTotals(current);
       var diffAbs = totB.total - totA.total;
       var diffPct = totA.total > 0 ? (diffAbs/totA.total*100) : 0;
       var diffColor = diffAbs > 0.005 ? '#F87171' : (diffAbs < -0.005 ? '#34D399' : 'var(--sld)');
       var diffSign = diffAbs >= 0 ? '+' : '−';
-      var changes = _bmDiffProjectEntries(a, b);
+      var changes = _bmDiffProjectEntries(first, current);
       var changesHtml = changes.length
         ? '<ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--ow,#F0F4FF)">'+changes.map(function(c){ return '<li style="margin-bottom:3px">'+esc(c)+'</li>'; }).join('')+'</ul>'
-        : '<div style="font-size:12.5px;color:var(--sld)">No hay diferencias entre estas dos versiones.</div>';
+        : '<div style="font-size:12.5px;color:var(--sld)">No hay diferencias — sigue igual que su primer guardado.</div>';
       resEl.innerHTML =
         '<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:10px;background:rgba(255,255,255,.02)">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px">'+
-            '<div><div style="font-size:10.5px;color:var(--sld)">'+esc(sources[iA].label)+'</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totA.total)+'</div></div>'+
-            '<div style="text-align:right"><div style="font-size:10.5px;color:var(--sld)">'+esc(sources[iB].label)+'</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totB.total)+'</div></div>'+
+            '<div><div style="font-size:10.5px;color:var(--sld)">Primer guardado</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totA.total)+'</div></div>'+
+            '<div style="text-align:right"><div style="font-size:10.5px;color:var(--sld)">Actual</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totB.total)+'</div></div>'+
           '</div>'+
           '<div style="text-align:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700;color:'+diffColor+'">'+diffSign+fmtUSD(Math.abs(diffAbs))+' ('+diffSign+Math.abs(diffPct).toFixed(1)+'%)</div>'+
         '</div>'+
         '<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.02)">'+
-          '<div style="font-size:11.5px;color:var(--sld);margin-bottom:8px;font-weight:600">Cambios detectados</div>'+
+          '<div style="font-size:11.5px;color:var(--sld);margin-bottom:8px;font-weight:600">Qué cambió</div>'+
           changesHtml+
         '</div>';
-    }catch(e){
+    }).catch(function(e){
       console.warn('Error comparando presupuestos:', e && e.message);
-      resEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sld);font-size:12.5px">No se pudo generar la comparación.</div>';
-    }
+      resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el primer guardado (red lenta o inestable).<br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" id="bm-cmp-retry">Reintentar</button></div>';
+      var retryBtn = document.getElementById('bm-cmp-retry');
+      if (retryBtn) retryBtn.onclick = runCompare;
+    });
   };
   document.getElementById('bm-cmp-go').onclick = runCompare;
-  runCompare(); // comparación inicial automática con los valores por defecto (actual vs. el primero disponible)
+  runCompare(); // comparación inicial automática con el proyecto preseleccionado
 }
 
 // ── Menú "Más" (solo móvil) ──────────────────────────────────────────────

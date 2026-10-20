@@ -8731,10 +8731,10 @@ function bmShareWithClient(){
         cipher: enc.cipher, iv: enc.iv, salt: enc.salt
       });
       var link = location.origin + location.pathname + '#/portal/' + shareId;
-      var shareMsg = 'Aquí tienes el enlace al presupuesto de tu proyecto "'+(S.proj||'')+'" en BuildMatrix:\n'+link+'\n\n(La contraseña te la comparto aparte)';
+      var shareMsg = 'Aquí tienes el enlace al presupuesto de tu proyecto "'+(S.proj||'')+'" en BuildMatrix:\n'+link+'\n\nContraseña: '+pwd;
       document.getElementById('bm-share-result').innerHTML =
         '<div style="padding:12px 14px;border:1px solid rgba(0,212,255,.3);border-radius:10px;background:rgba(0,212,255,.06);margin-bottom:12px">'+
-          '<div style="font-size:11px;color:var(--sld);margin-bottom:6px">Enlace para tu cliente (compártele también la contraseña por separado):</div>'+
+          '<div style="font-size:11px;color:var(--sld);margin-bottom:6px">Enlace para tu cliente. WhatsApp y Correo ya incluyen la contraseña en el mensaje — si usas "Copiar", acuérdate de compartirle la contraseña también:</div>'+
           '<input type="text" readonly id="bm-share-link-inp" value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:10px;box-sizing:border-box" onclick="this.select()">'+
           '<div style="display:flex;gap:8px">'+
             '<button type="button" class="btn ghost" id="bm-share-copy-btn" style="flex:1;flex-direction:column;gap:5px;height:auto;padding:10px 6px">'+
@@ -8777,7 +8777,15 @@ function bmShareWithClient(){
       waBtn.href = 'https://wa.me/?text=' + encodeURIComponent(shareMsg);
       waBtn.target = '_blank'; waBtn.rel = 'noopener';
       var mailBtn = document.getElementById('bm-share-mail-btn');
-      mailBtn.href = 'mailto:?subject=' + encodeURIComponent('Presupuesto — ' + (S.proj||'')) + '&body=' + encodeURIComponent(shareMsg);
+      // Gmail web en vez de mailto: — mailto depende de tener una app de correo
+      // configurada como predeterminada en el dispositivo, y si no la hay (muy
+      // común en Windows/Chrome) simplemente no pasa nada al hacer clic, sin
+      // ningún aviso de error. Esto abre Gmail directo en el navegador, con el
+      // destinatario listo para escribir y el resto ya armado — funciona
+      // siempre que el usuario tenga sesión de Gmail abierta, sin depender de
+      // ninguna app instalada.
+      mailBtn.href = 'https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent('Presupuesto — ' + (S.proj||'')) + '&body=' + encodeURIComponent(shareMsg);
+      mailBtn.target = '_blank'; mailBtn.rel = 'noopener';
       toast('Portal generado ✓');
     }catch(e){
       toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));

@@ -8460,7 +8460,14 @@ function _bmCloseMoreToolsMenu(){
 // tarde (llamadas a Gemini, subidas, etc.).
 function bmShowGlobalLoader(text){
   _bmEnsureMoreSheetStyles(); // reutiliza bmSheetBackdropIn/bmSheetUp, ya definidas ahí
-  var old = document.getElementById('bm-global-loader'); if (old) old.remove();
+  var existing = document.getElementById('bm-global-loader');
+  if (existing) {
+    // Ya está abierto: solo actualiza el texto, sin recrear el overlay — evita
+    // el parpadeo de reaparecer en cada cambio de etapa (resumen → APUs → …).
+    var txt = existing.querySelector('div > div:last-child');
+    if (txt) txt.innerHTML = esc(text||'Trabajando…');
+    return;
+  }
   var ov = document.createElement('div');
   ov.id = 'bm-global-loader';
   ov.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(4,8,18,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:bmSheetBackdropIn .2s ease';
@@ -8589,16 +8596,28 @@ async function _bmDecryptBytes(cipherBuf, ivB64, saltB64, password){
 // hace del lado del dueño del proyecto (acá SÍ está disponible el estado
 // completo S — capítulos, cronograma, insumos) porque el portal público no
 // tiene nada de eso cargado: generar el PDF ahí sería reconstruir toda la app.
-async function _bmBuildCombinedPresupuestoPdfBytes(autor){
+function _bmYield(){ return new Promise(function(r){ setTimeout(r, 0); }); }
+
+// onProgress(texto) opcional — se usa para que el loader flotante muestre en
+// qué paso va (construir cada PDF puede tardar varios segundos en proyectos
+// grandes, y sin esto parecía "colgado").
+async function _bmBuildCombinedPresupuestoPdfBytes(autor, onProgress){
   var PDFLib = window.PDFLib;
   if (!PDFLib) throw new Error('No se cargó la librería de combinar PDF');
-  var merged = await PDFLib.PDFDocument.create();
+  var notify = function(t){ if (onProgress) onProgress(t); };
 
-  var parts = [
-    _pdfV2BuildResumen('h', autor||''),
-    _pdfV2BuildAPUs('h', autor||''),
-    _pdfV2BuildCronograma('h', autor||'')
-  ];
+  notify('Generando el PDF del presupuesto…\n1/4 · Resumen'); await _bmYield();
+  var pResumen = _pdfV2BuildResumen('h', autor||'');
+
+  notify('Generando el PDF del presupuesto…\n2/4 · APUs'); await _bmYield();
+  var pApus = _pdfV2BuildAPUs('h', autor||'');
+
+  notify('Generando el PDF del presupuesto…\n3/4 · Cronograma'); await _bmYield();
+  var pCrono = _pdfV2BuildCronograma('h', autor||'');
+
+  notify('Generando el PDF del presupuesto…\n4/4 · Uniendo todo'); await _bmYield();
+  var merged = await PDFLib.PDFDocument.create();
+  var parts = [pResumen, pApus, pCrono];
   for (var i=0; i<parts.length; i++){
     var bytes = parts[i].output('arraybuffer');
     var src = await PDFLib.PDFDocument.load(bytes);
@@ -8638,6 +8657,25 @@ async function _bmBuildPortalPayload(){
   };
 }
 
+// Snapshot "crudo" del estado del proyecto (los mismos campos que leen
+// _pdfV2BuildResumen/_pdfV2BuildAPUs/_pdfV2BuildCronograma directamente de S),
+// en vez del resumen aplanado de arriba. Guardar esto es instantáneo (es solo
+// JSON, nada de generar ni subir un PDF) y permite que el PDF combinado se
+// arme DESPUÉS, en el navegador del propio cliente cuando abre el enlace,
+// reusando sin cambios los generadores reales de la app — por eso crear el
+// enlace vuelve a ser rápido.
+function _bmBuildPortalStateSnapshot(){
+  return {
+    kind: 'pdf-live',
+    proj: S.proj || 'Proyecto sin nombre', own: S.own || '', date: S.date || '',
+    ind: S.ind||0, uti: S.uti||0, iva: S.iva||0,
+    caps: JSON.parse(JSON.stringify(S.caps||[])),
+    capNames: JSON.parse(JSON.stringify(S.capNames||[])),
+    capNums: JSON.parse(JSON.stringify(S.capNums||[])),
+    schedule: JSON.parse(JSON.stringify(S.schedule||[]))
+  };
+}
+
 function bmShareWithClient(){
   var user = firebase.auth().currentUser;
   if (!user) { toast('Inicia sesión para generar un portal de cliente'); return; }
@@ -8673,19 +8711,18 @@ function bmShareWithClient(){
     var btn = document.getElementById('bm-share-go');
     var origHtml = btn.innerHTML;
     btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = 'Generando…';
-    bmShowGlobalLoader('Generando el PDF del presupuesto…\nResumen + APUs + cronograma');
     try{
-      var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(S.own || '');
-      var enc = await _bmEncryptBytes(pdfBytes, pwd);
+      // Guardamos solo el estado del proyecto (JSON chiquito) — instantáneo.
+      // El PDF (Resumen+APUs+Cronograma) se arma recién cuando el cliente abre
+      // el enlace y pone la contraseña, en SU navegador, con los mismos
+      // generadores de la app. Así no hay que generar ni subir ningún PDF acá.
+      var snapshot = _bmBuildPortalStateSnapshot();
+      var enc = await _bmEncryptPayload(snapshot, pwd);
       var shareId = _bmRandomToken(18);
-      var storagePath = 'public_share_pdfs/' + user.uid + '/' + shareId + '.bin';
-      var storageRef = firebase.storage().ref(storagePath);
-      await storageRef.put(new Blob([enc.cipherBuf], {type:'application/octet-stream'}));
-      var pdfUrl = await storageRef.getDownloadURL();
       var db = firebase.firestore();
       await db.collection('public_shares').doc(shareId).set({
         ownerUid: user.uid, proj: S.proj || '', ts: Date.now(),
-        pdfPath: storagePath, pdfUrl: pdfUrl, iv: enc.iv, salt: enc.salt
+        cipher: enc.cipher, iv: enc.iv, salt: enc.salt
       });
       var link = location.origin + location.pathname + '#/portal/' + shareId;
       document.getElementById('bm-share-result').innerHTML =
@@ -8720,8 +8757,6 @@ function bmShareWithClient(){
     }catch(e){
       toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));
       btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = origHtml;
-    } finally {
-      bmHideGlobalLoader();
     }
   };
 }
@@ -8793,35 +8828,34 @@ async function bmInitPortalIfNeeded(){
     var pwd = (document.getElementById('bm-portal-pwd').value || '');
     var btn = document.getElementById('bm-portal-go');
     btn.disabled = true; btn.textContent = 'Verificando…';
-    if (doc.pdfUrl) {
-      // Portal nuevo: el enlace muestra directo el PDF combinado (resumen + APUs
-      // + cronograma, con el mismo formato que exporta la app) — se descarga
-      // cifrado desde Storage y se descifra aquí mismo con la contraseña.
-      fetch(doc.pdfUrl).then(function(r){
-        if (!r.ok) throw new Error('No se pudo descargar el PDF');
-        return r.arrayBuffer();
-      }).then(function(cipherBuf){
-        return _bmDecryptBytes(cipherBuf, doc.iv, doc.salt, pwd);
-      }).then(function(plainBuf){
-        var blob = new Blob([plainBuf], {type:'application/pdf'});
-        var blobUrl = URL.createObjectURL(blob);
-        _bmRenderPortalPdfView(blobUrl);
-      }).catch(function(){
-        btn.disabled = false; btn.textContent = 'Ver proyecto';
-        var err = document.getElementById('bm-portal-err');
-        if (err) err.style.display = 'block';
-      });
-    } else {
-      // Compatibilidad con enlaces generados antes de este cambio (portal con
-      // vista propia en vez de PDF).
-      _bmDecryptPayload(doc.cipher, doc.iv, doc.salt, pwd).then(function(payload){
+    _bmDecryptPayload(doc.cipher, doc.iv, doc.salt, pwd).then(async function(payload){
+      if (payload && payload.kind === 'pdf-live') {
+        // Portal nuevo: el enlace guarda solo el estado del proyecto (chiquito,
+        // por eso crear el enlace es instantáneo). El PDF combinado (Resumen +
+        // APUs + Cronograma, mismo formato que exporta la app) se arma recién
+        // aquí, en el navegador del cliente, reusando los mismos generadores.
+        _bmRenderPortalShell(_bmPortalCard(
+          '<div style="text-align:center;color:#8A95AB;font-size:13px">Generando el PDF del presupuesto…</div>'
+        ));
+        try{
+          window.S = payload; // reconstruye el estado que _pdfV2Build* esperan
+          var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(payload.own || '');
+          var blob = new Blob([pdfBytes], {type:'application/pdf'});
+          var blobUrl = URL.createObjectURL(blob);
+          _bmRenderPortalPdfView(blobUrl);
+        }catch(e){
+          _bmRenderPortalShell(_bmPortalCard('<div style="text-align:center;color:#8A95AB;font-size:13.5px">No se pudo generar el PDF. Recarga la página e inténtalo de nuevo.</div>'));
+        }
+      } else {
+        // Compatibilidad con enlaces generados antes de este cambio (portal con
+        // vista propia en vez de PDF).
         _bmRenderPortalView(payload);
-      }).catch(function(){
-        btn.disabled = false; btn.textContent = 'Ver proyecto';
-        var err = document.getElementById('bm-portal-err');
-        if (err) err.style.display = 'block';
-      });
-    }
+      }
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = 'Ver proyecto';
+      var err = document.getElementById('bm-portal-err');
+      if (err) err.style.display = 'block';
+    });
   };
   document.getElementById('bm-portal-go').onclick = go;
   document.getElementById('bm-portal-pwd').addEventListener('keydown', function(e){ if (e.key==='Enter') go(); });

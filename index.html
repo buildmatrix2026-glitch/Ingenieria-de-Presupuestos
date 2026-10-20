@@ -3822,6 +3822,12 @@ gsap.fromTo('.chapter-card',
     </a>
     <div class="tp" id="tp-header" style="display:none"><span>Proyecto</span><b id="tpn"></b></div>
     <div class="ta">
+      <div id="bm-notif-wrap" style="position:relative">
+        <button id="bm-notif-btn" title="Notificaciones" onclick="bmToggleNotifPanel()" style="width:37px;height:37px;min-height:37px;min-width:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cy);border:1px solid rgba(0,212,255,.25);background:rgba(0,212,255,.05);cursor:pointer;flex-shrink:0;position:relative;-webkit-tap-highlight-color:transparent">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span id="bm-notif-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#FF6B6B;color:#fff;font-size:9.5px;font-weight:700;align-items:center;justify-content:center;line-height:1"></span>
+        </button>
+      </div>
       <button class="btn ghost btn-exp" style="font-size:13px;padding:9px 16px;border-radius:10px" onclick="openExp()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
         <span class="exp-label">Exportar</span></button>
@@ -6801,6 +6807,7 @@ function _bmApplyLoadedProject(p){
   renderBudget();
   go('pre');
   _bmAutoFillCronogramaIfEmpty();
+  try { if (typeof bmRefreshNotifications === 'function') bmRefreshNotifications(); } catch (e) {}
 }
 
 function loadProject(name){
@@ -8882,6 +8889,7 @@ async function bmInitPortalIfNeeded(){
           var blob = new Blob([pdfBytes], {type:'application/pdf'});
           var blobUrl = URL.createObjectURL(blob);
           _bmRenderPortalPdfView(blobUrl);
+          _bmPortalTrackOpen(shareId);
         }catch(e){
           _bmRenderPortalShell(_bmPortalCard('<div style="text-align:center;color:#8A95AB;font-size:13.5px">No se pudo generar el PDF. Recarga la página e inténtalo de nuevo.</div>'));
         }
@@ -8918,6 +8926,180 @@ function _bmRenderPortalPdfView(blobUrl){
       '</div>'+
       '<iframe src="'+blobUrl+'" title="Presupuesto" style="flex:1 1 auto;width:100%;border:0;background:#fff"></iframe>'+
     '</div>';
+}
+
+// Deja constancia (best-effort, nunca bloquea la vista si falla) de que el
+// cliente abrió el portal — así el dueño del proyecto se entera la próxima
+// vez que abra SU app, vía el Centro de notificaciones de abajo. Las reglas
+// de Firestore dejan que cualquiera (sin sesión) toque SOLO estos 2 campos
+// de este documento público, nada más.
+function _bmPortalTrackOpen(shareId){
+  try{
+    firebase.firestore().collection('public_shares').doc(shareId).update({
+      lastOpenedAt: Date.now(),
+      openCount: firebase.firestore.FieldValue.increment(1)
+    }).catch(function(){});
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── CENTRO DE NOTIFICACIONES (gratis, sin servidor) ─────────────────────────
+// No hay push real — eso necesitaría algo corriendo en el servidor todo el
+// tiempo (Cloud Functions programadas), que requiere plan Blaze. En vez de
+// eso: cada vez que abres la app, se revisan un par de cosas y se muestran
+// como notificaciones aquí mismo — la campanita con contador se llena al
+// entrar, igual que cualquier app te muestra "lo nuevo" al abrirla.
+//
+// Fuentes:
+//  1) Pedidos anticipados VENCIDOS del proyecto que tengas abierto ahora
+//     (reusa croComputeAllOrderAlerts(), ya existente para el modal de
+//     Alertas de pedido).
+//  2) Tu cliente abrió el Portal — se entera porque, al abrir el portal, el
+//     navegador del cliente (sin sesión) deja constancia en su propio
+//     documento public_shares/{shareId} (ver _bmPortalTrackOpen arriba; la
+//     regla de Firestore deja tocar SOLO esos 2 campos desde fuera, nada
+//     del contenido cifrado).
+//
+// "Visto" se guarda en localStorage (por notificación individual, no en la
+// nube) — así que es por dispositivo: si entras desde otro computador, las
+// vuelves a ver ahí la primera vez.
+// ══════════════════════════════════════════════════════════════════════════
+
+function _bmNotifSeenKey(id){ return 'bm_notif_seen_' + id; }
+function _bmNotifIsSeen(id){ try{ return localStorage.getItem(_bmNotifSeenKey(id)) === '1'; }catch(e){ return false; } }
+function _bmNotifMarkSeen(id){ try{ localStorage.setItem(_bmNotifSeenKey(id), '1'); }catch(e){} }
+
+async function _bmCollectNotifications(uid){
+  var out = [];
+
+  // 1) Pedidos anticipados vencidos del proyecto abierto actualmente
+  try{
+    if (S.proj && typeof croComputeAllOrderAlerts === 'function') {
+      var alerts = croComputeAllOrderAlerts();
+      alerts.forEach(function(a){
+        if (a.state !== 'due') return; // solo lo ya vencido, no "por vencer pronto"
+        var id = 'pedido_' + (S.proj||'') + '_' + a.ci + '_' + a.ri;
+        out.push({
+          id: id, icon: 'order', color: '#FF6B6B',
+          text: 'Pedido vencido: "' + (a.desc||'') + '" (' + (S.proj||'') + ')',
+          sub: a.capNombre || '',
+          action: function(){ go('cro'); bmOpenOrderAlertsModal(); }
+        });
+      });
+    }
+  }catch(e){ console.warn('[Notif] pedidos:', e); }
+
+  // 2) Clientes que abrieron el Portal (en cualquiera de tus proyectos)
+  try{
+    if (uid) {
+      var snap = await firebase.firestore().collection('public_shares').where('ownerUid','==',uid).get();
+      snap.forEach(function(doc){
+        var d = doc.data();
+        if (!d.lastOpenedAt) return;
+        var id = 'portal_' + doc.id + '_' + d.lastOpenedAt;
+        var fecha = new Date(d.lastOpenedAt).toLocaleString('es-EC',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        out.push({
+          id: id, icon: 'portal', color: '#14B8A6',
+          text: 'Tu cliente abrió el portal de "' + (d.proj||'') + '"',
+          sub: fecha, action: null
+        });
+      });
+    }
+  }catch(e){ console.warn('[Notif] portal:', e); }
+
+  out.sort(function(a,b){ return a.id < b.id ? 1 : -1; });
+  return out;
+}
+
+async function bmRefreshNotifications(){
+  try{
+    var user = firebase.auth().currentUser;
+    var list = await _bmCollectNotifications(user ? user.uid : null);
+    window._bmNotifList = list;
+    var unseen = list.filter(function(n){ return !_bmNotifIsSeen(n.id); }).length;
+    var badge = document.getElementById('bm-notif-badge');
+    if (badge) {
+      if (unseen > 0) { badge.textContent = unseen > 9 ? '9+' : String(unseen); badge.style.display = 'flex'; }
+      else { badge.style.display = 'none'; }
+    }
+    if (document.getElementById('bm-notif-panel')) _bmRenderNotifPanel();
+  }catch(e){ console.warn('[Notif] refresh:', e); }
+}
+
+function _bmNotifIconSvg(icon){
+  if (icon==='portal') return '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>';
+  return '<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>';
+}
+
+function _bmRenderNotifPanel(){
+  var panel = document.getElementById('bm-notif-panel');
+  if (!panel) return;
+  var list = window._bmNotifList || [];
+  var unseenCount = list.filter(function(n){ return !_bmNotifIsSeen(n.id); }).length;
+  var header = '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--br)">'+
+      '<div style="font-size:12.5px;font-weight:700;color:var(--ow,#F0F4FF)">Notificaciones</div>'+
+      (unseenCount>0 ? '<button type="button" id="bm-notif-markall" style="background:none;border:0;color:var(--cy);font-size:11px;cursor:pointer;padding:0">Marcar todo leído</button>' : '')+
+    '</div>';
+  if (!list.length) {
+    panel.innerHTML = header + '<div style="padding:26px 16px;text-align:center;color:var(--sld);font-size:12.5px">Sin notificaciones por ahora</div>';
+    return;
+  }
+  panel.innerHTML = header + list.map(function(n){
+    var seen = _bmNotifIsSeen(n.id);
+    return '<div class="bm-notif-item" data-id="'+esc(n.id)+'" style="display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;background:'+(seen?'transparent':'rgba(0,212,255,.045)')+'">'+
+      '<div style="width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+n.color+'1f">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+n.color+'" stroke-width="2.1">'+_bmNotifIconSvg(n.icon)+'</svg>'+
+      '</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12px;color:var(--ow,#F0F4FF);line-height:1.35">'+esc(n.text)+'</div>'+
+        (n.sub ? '<div style="font-size:10.5px;color:var(--sld);margin-top:2px">'+esc(n.sub)+'</div>' : '')+
+      '</div>'+
+      (seen ? '' : '<div style="width:7px;height:7px;border-radius:50%;background:#00D4FF;flex-shrink:0;margin-top:5px"></div>')+
+    '</div>';
+  }).join('');
+  panel.querySelectorAll('.bm-notif-item').forEach(function(el){
+    el.addEventListener('click', function(){
+      var id = el.getAttribute('data-id');
+      _bmNotifMarkSeen(id);
+      var n = list.find(function(x){ return x.id===id; });
+      bmRefreshNotifications();
+      if (n && n.action) { _bmCloseNotifPanel(); n.action(); }
+    });
+  });
+  var markAllBtn = document.getElementById('bm-notif-markall');
+  if (markAllBtn) markAllBtn.addEventListener('click', function(){
+    list.forEach(function(n){ _bmNotifMarkSeen(n.id); });
+    bmRefreshNotifications();
+  });
+}
+
+function _bmCloseNotifPanel(){
+  var panel = document.getElementById('bm-notif-panel');
+  if (panel) panel.remove();
+  document.removeEventListener('click', _bmNotifOutsideClick, true);
+}
+
+function _bmNotifOutsideClick(e){
+  var panel = document.getElementById('bm-notif-panel');
+  var btn = document.getElementById('bm-notif-btn');
+  if (!panel) return;
+  if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+  _bmCloseNotifPanel();
+}
+
+function bmToggleNotifPanel(){
+  var existing = document.getElementById('bm-notif-panel');
+  if (existing) { _bmCloseNotifPanel(); return; }
+  var wrap = document.getElementById('bm-notif-wrap');
+  if (!wrap) return;
+  _bmEnsureMoreSheetStyles(); // reutiliza la animación bmTileIn, ya definida ahí
+  var panel = document.createElement('div');
+  panel.id = 'bm-notif-panel';
+  panel.style.cssText = 'position:absolute;top:calc(100% + 8px);right:0;width:300px;max-width:88vw;max-height:70vh;overflow-y:auto;background:var(--s2);border:1px solid var(--br);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:99995;animation:bmTileIn .2s ease forwards';
+  wrap.appendChild(panel);
+  _bmRenderNotifPanel();
+  setTimeout(function(){ document.addEventListener('click', _bmNotifOutsideClick, true); }, 0);
+  bmRefreshNotifications();
 }
 
 function _bmPortalFmtUSD(n){ return '$'+(Number(n)||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -13924,6 +14106,7 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
   // ── Admitir usuario aprobado en la app ──────────────────────────────────
   function _admitUser(user, identifier, displayName) {
     localStorage.setItem('bm_auth', '1');
+    try { if (typeof bmRefreshNotifications === 'function') bmRefreshNotifications(); } catch (e) {}
     // Biblioteca personal: onSnapshot sobre users/{uid}/insumos y users/{uid}/apus
     try { if (typeof bmLibStart === 'function') bmLibStart(user.uid); } catch (e) { console.warn('bmLibStart:', e); }
     try { if (typeof bmGastosStart === 'function') bmGastosStart(user.uid); } catch (e) { console.warn('bmGastosStart:', e); }

@@ -2982,23 +2982,29 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
 
 </style>
 
-<!-- GSAP/ScrollTrigger: se cargan AQUI, despues de todo el CSS de arriba, a
-     proposito. Antes estaban arriba del todo en el head, y al ser etiquetas
-     script normales con atributo src (sin defer), el navegador debia pausar
-     el analisis del documento para descargarlos ANTES de poder llegar al
-     bloque de estilos con el CSS que fija el logo arriba a la izquierda
-     (regla nav con position fixed). En redes mas lentas (wifi debil del
-     iPad, por ejemplo) esa pausa alcanzaba a notarse: la pagina se pintaba
-     una primera vez sin ese CSS todavia listo (el logo cae en el flujo
-     normal del documento, junto a los demas titulos de la cabecera) y,
-     apenas termina de cargar, se reacomoda de golpe a su lugar. Eso era el
-     salto del logo. Moviendolos para aca, todo el CSS critico ya esta
-     aplicado antes de que el navegador tenga que esperar por ellos, asi que
-     ese pintado a medias ya no puede pasar. El orden de ejecucion entre
-     ellos y el script de abajo que los usa no cambia: siguen siendo
-     sincronos, solo que ahora los estilos ya estan resueltos de antes. -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- GSAP/ScrollTrigger con atributo defer: reordenarlos despues del bloque
+     de estilos (intento anterior) ayudaba pero no bastaba, porque seguian
+     siendo etiquetas de carga de script SINCRONAS. El navegador igual tenia
+     que detener el analisis del HTML justo en esa linea para descargarlos
+     de cdnjs.cloudflare.com antes de seguir leyendo el resto del documento
+     (la barra de navegacion real llega varios miles de lineas mas abajo,
+     dentro de #land). En wifi lento esa pausa de red se nota, y algunos
+     navegadores (sobre todo Safari/iPad) pueden llegar a pintar una primera
+     version del documento antes de que esa pausa termine, mostrando la
+     barra de navegacion con su layout aun sin terminar de asentarse (el
+     logo cae fuera de su posicion final hasta que todo se resuelve). Con
+     defer, el navegador ya no se detiene: sigue leyendo y pintando el resto
+     del HTML (incluida la barra de navegacion, con todo su CSS ya resuelto)
+     al mismo tiempo que GSAP se descarga en segundo plano, y solo ejecuta
+     estos dos scripts cuando el documento ya esta completamente parseado,
+     eliminando la pausa de raiz en vez de solo esquivarla. El bloque de
+     abajo que usa gsap.registerPlugin sigue siendo sincrono, asi que se
+     encierra en un listener de DOMContentLoaded para que corra despues de
+     que ambos scripts con defer ya hayan terminado (los scripts con defer
+     siempre se ejecutan, en orden, antes de ese evento) — el orden real de
+     ejecucion no cambia. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
 
 <!-- ── Auth simulado (Firebase removido) ──────────────────────────────── -->
 <script>
@@ -3491,7 +3497,14 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   <p class="footer-copy">Referencia: Cámara de Construcción Ecuador 2026</p>
 </footer>
 
-<script>    
+<script>
+// Todo este bloque depende de GSAP/ScrollTrigger, que ahora cargan con
+// "defer" (ver comentario junto a esas dos etiquetas <script src> más
+// arriba). Por eso se encierra en DOMContentLoaded: ese evento solo se
+// dispara DESPUÉS de que todos los scripts con defer ya terminaron de
+// ejecutarse, así que para cuando esto corre, gsap y ScrollTrigger ya
+// existen siempre, sin excepción.
+document.addEventListener('DOMContentLoaded', function () {
 gsap.registerPlugin(ScrollTrigger);
 
 /* Cursor personalizado eliminado por completo: ya no hay listener de
@@ -3777,6 +3790,8 @@ gsap.fromTo('.chapter-card',
     ctaFinal.style.setProperty('--cy', y + '%');
   }, {passive:true});
 })();
+
+}); // fin DOMContentLoaded
 </script>
 
 <!-- ═══ WELCOME MODAL ═══ -->
@@ -8479,11 +8494,13 @@ function bmOpenHistoryModal(){
         '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Cargando historial…</div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" class="btn ghost" id="bm-hist-delete" title="Borrar historial de este proyecto" style="padding:11px;color:#FF6B6B;border-color:rgba(255,107,107,.35)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>'+
         '<button type="button" class="btn ghost" id="bm-hist-close" style="flex:1">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);
   document.getElementById('bm-hist-close').onclick = function(){ modal.remove(); };
+  document.getElementById('bm-hist-delete').onclick = function(){ bmDeleteHistory(); };
   modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
 
   var listEl = document.getElementById('bm-hist-list');

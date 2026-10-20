@@ -8491,10 +8491,31 @@ function bmShareWithClient(){
       document.getElementById('bm-share-result').innerHTML =
         '<div style="padding:12px 14px;border:1px solid rgba(0,212,255,.3);border-radius:10px;background:rgba(0,212,255,.06);margin-bottom:12px">'+
           '<div style="font-size:11px;color:var(--sld);margin-bottom:6px">Enlace para tu cliente (compártele también la contraseña por separado):</div>'+
-          '<input type="text" readonly value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:8px;box-sizing:border-box" onclick="this.select()">'+
-          '<button type="button" class="btn ghost" style="width:100%;padding:8px;font-size:12px" onclick="navigator.clipboard.writeText('+JSON.stringify(link)+').then(function(){toast(\'Enlace copiado\')})">Copiar enlace</button>'+
+          '<input type="text" readonly id="bm-share-link-inp" value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:8px;box-sizing:border-box" onclick="this.select()">'+
+          '<button type="button" class="btn ghost" id="bm-share-copy-btn" style="width:100%;padding:8px;font-size:12px">Copiar enlace</button>'+
         '</div>';
       btn.style.display = 'none';
+      // Listener en vez de onclick inline: un link va con comillas que rompían el
+      // atributo onclick="..." (ambos usan comillas dobles) y el botón quedaba
+      // roto — copiarlo así evita por completo el problema de escapado de comillas.
+      var copyBtn = document.getElementById('bm-share-copy-btn');
+      copyBtn.addEventListener('click', function(){
+        var fallbackCopy = function(){
+          var inp = document.getElementById('bm-share-link-inp');
+          if (!inp) return false;
+          inp.select(); inp.setSelectionRange(0, 99999);
+          try{ return document.execCommand('copy'); }catch(e){ return false; }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(function(){
+            toast('Enlace copiado');
+          }).catch(function(){
+            if (fallbackCopy()) toast('Enlace copiado'); else toast('No se pudo copiar — selecciona el enlace manualmente');
+          });
+        } else {
+          if (fallbackCopy()) toast('Enlace copiado'); else toast('No se pudo copiar — selecciona el enlace manualmente');
+        }
+      });
       toast('Portal generado ✓');
     }catch(e){
       toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));

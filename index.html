@@ -8347,29 +8347,48 @@ function _bmLogProjectHistory(prev, next){
 
     var docId = user.uid + '_' + (next.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
     var db = firebase.firestore();
-    var entryData = {
-      ts: Date.now(),
-      userUid: user.uid,
-      userEmail: user.email || '',
-      changes: changes,
-      totalBefore: totalBefore,
-      totalAfter: totalsNext.total
-    };
-    // Solo en el PRIMER guardado de este proyecto se adjunta una foto completa
-    // (caps/capNames/own/date/ind/uti/iva) — es lo único que necesita el
-    // Comparador de presupuestos para poder enfrentar "primer guardado" vs.
-    // "estado actual" más adelante, sin tener que guardar una copia completa
-    // en CADA guardado (eso sí pesaría mucho con el tiempo).
-    if (!prev) {
-      entryData.snapshot = {
+    var histCol = db.collection('projects').doc(docId).collection('history');
+
+    var buildSnapshot = function(){
+      return {
         own: next.own || '', date: next.date || '',
         ind: next.ind, uti: next.uti, iva: next.iva,
         caps: JSON.parse(JSON.stringify(next.caps||[])),
         capNames: JSON.parse(JSON.stringify(next.capNames||[]))
       };
+    };
+    var writeEntry = function(withSnapshot){
+      var entryData = {
+        ts: Date.now(),
+        userUid: user.uid,
+        userEmail: user.email || '',
+        changes: changes,
+        totalBefore: totalBefore,
+        totalAfter: totalsNext.total
+      };
+      if (withSnapshot) entryData.snapshot = buildSnapshot();
+      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+    };
+
+    if (!prev) {
+      // Primer guardado de este proyecto (nunca existió antes): siempre
+      // adjunta la foto completa — es lo único que necesita el Comparador
+      // de presupuestos para poder enfrentar "primer guardado" vs. "estado
+      // actual" más adelante, sin tener que guardar una copia completa en
+      // CADA guardado (eso sí pesaría mucho con el tiempo).
+      writeEntry(true);
+      return;
     }
-    db.collection('projects').doc(docId).collection('history').add(entryData)
-      .catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+    // Proyecto que YA existía (creado antes de que existiera el Comparador,
+    // o cuyo primer guardado real nunca quedó registrado): si ninguna
+    // entrada anterior del historial tiene todavía una foto completa, se la
+    // adjunta a ESTE guardado para que sirva de punto de partida desde
+    // ahora — así el Comparador no se queda sin nada que mostrar para
+    // siempre en proyectos antiguos.
+    histCol.orderBy('ts', 'asc').limit(1).get().then(function(snap){
+      var yaTieneFotoInicial = !snap.empty && !!snap.docs[0].data().snapshot;
+      writeEntry(!yaTieneFotoInicial);
+    }).catch(function(){ writeEntry(false); });
   }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
 

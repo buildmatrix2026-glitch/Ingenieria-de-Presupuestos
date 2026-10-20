@@ -2040,10 +2040,20 @@ mark{background:rgba(0,212,255,.22);color:var(--cy);border-radius:2px;padding:0 
   #af-admins{flex:1 1 100%;justify-content:center!important;text-align:center}
 }
 
-/* Presupuesto maestro: Nuevo capítulo + Vaciar en fila, ancho completo y centrados (solo móvil) */
+/* Presupuesto maestro: con 6 acciones (Auditar IA, Plantillas, Historial, Portal
+   cliente, Nuevo capítulo, Vaciar) una sola fila ya no entra en móvil sin que el
+   texto se corte feo — se acomodan en una cuadrícula de 3 columnas x 2 filas,
+   cada botón con el ícono arriba y el texto abajo, completo y legible. */
 @media(max-width:600px){
-  .vh-pre-actions{width:100%}
-  .vh-pre-actions button{flex:1;justify-content:center!important;text-align:center}
+  .vh-pre-actions{
+    width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  }
+  .vh-pre-actions button{
+    flex-direction:column;justify-content:center!important;align-items:center;
+    gap:5px;padding:10px 4px!important;text-align:center;white-space:normal;
+    line-height:1.2;min-height:56px;font-size:10.5px!important;
+  }
+  .vh-pre-actions button svg{margin-right:0!important}
 }
 
 /* Insumos: Crear insumo y Categorías a ancho completo y centrados (solo móvil) */

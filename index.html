@@ -3822,12 +3822,6 @@ gsap.fromTo('.chapter-card',
     </a>
     <div class="tp" id="tp-header" style="display:none"><span>Proyecto</span><b id="tpn"></b></div>
     <div class="ta">
-      <div id="bm-notif-wrap" style="position:relative">
-        <button id="bm-notif-btn" title="Notificaciones" onclick="bmToggleNotifPanel()" style="width:37px;height:37px;min-height:37px;min-width:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cy);border:1px solid rgba(0,212,255,.25);background:rgba(0,212,255,.05);cursor:pointer;flex-shrink:0;position:relative;-webkit-tap-highlight-color:transparent">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span id="bm-notif-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#FF6B6B;color:#fff;font-size:9.5px;font-weight:700;align-items:center;justify-content:center;line-height:1"></span>
-        </button>
-      </div>
       <button class="btn ghost btn-exp" style="font-size:13px;padding:9px 16px;border-radius:10px" onclick="openExp()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
         <span class="exp-label">Exportar</span></button>
@@ -3846,6 +3840,12 @@ gsap.fromTo('.chapter-card',
         </div>
         <button id="qa-trigger" onclick="toggleQuickActions()" title="Acciones" style="width:37px;height:37px;min-height:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cy);border:1px solid rgba(0,212,255,.25);background:rgba(0,212,255,.05);cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">
           <svg id="qa-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="transition:transform .35s cubic-bezier(.4,0,.2,1)"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+        </button>
+      </div>
+      <div id="bm-notif-wrap" style="position:relative">
+        <button id="bm-notif-btn" title="Notificaciones" onclick="bmToggleNotifPanel()" style="width:37px;height:37px;min-height:37px;min-width:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cy);border:1px solid rgba(0,212,255,.25);background:rgba(0,212,255,.05);cursor:pointer;flex-shrink:0;position:relative;-webkit-tap-highlight-color:transparent">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span id="bm-notif-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#FF6B6B;color:#fff;font-size:9.5px;font-weight:700;align-items:center;justify-content:center;line-height:1"></span>
         </button>
       </div>
     </div>

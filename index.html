@@ -8564,7 +8564,20 @@ function _bmLogProjectHistory(prev, next){
         totalAfter: totalsNext.total
       };
       if (withSnapshot) entryData.snapshotJson = buildSnapshotJson();
-      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+      histCol.add(entryData).catch(function(e){
+        console.warn('No se pudo registrar historial (no crítico):', e && e.message);
+        if (withSnapshot && typeof toast === 'function'){
+          // Antes esto fallaba en TOTAL silencio (solo consola) — si la foto
+          // base nunca llegaba a Firestore (por ejemplo, un presupuesto tan
+          // grande que supera el límite de 1MB por documento de Firestore),
+          // no había forma de saberlo sin adivinar a ciegas. Avisamos la
+          // razón real cuando se puede identificar.
+          var esTamano = e && e.code === 'invalid-argument' && /exceed|too large|maximum size|1,?048,?576|1 ?mi?b/i.test(e.message || '');
+          toast(esTamano
+            ? '⚠ Este presupuesto es muy grande para guardar su "foto" de comparación en la nube (límite de Firestore). El Comparador seguirá funcionando en este dispositivo, pero no en otros.'
+            : '⚠ No se pudo guardar el punto de partida del Comparador en la nube.', false);
+        }
+      });
     };
 
     if (!prev) {
@@ -8587,8 +8600,38 @@ function _bmLogProjectHistory(prev, next){
     // foto base — caso normal para cualquier guardado después del primero.
     // Sin ninguna consulta a Firestore de por medio: cero posibilidad de
     // carrera. Si no hay cambios reconocibles, no se registra nada más.
+    //
+    // AUTORREPARACIÓN: antes, este flag se marcaba "conocido" sin verificar
+    // que la foto completa de verdad hubiera quedado guardada en este
+    // dispositivo (una versión anterior de este código solo guardaba el
+    // flag, no la foto) — si eso pasó alguna vez, el Comparador se quedaba
+    // atascado para siempre, porque este atajo nunca volvía a intentar
+    // conseguir la foto real. Ahora se verifica: si el flag dice "conocido"
+    // pero la foto local no está, se la busca una vez (local o Firestore) y
+    // se la deja guardada aquí mismo — después de eso, este atajo rápido sí
+    // es 100% seguro.
     if (_bmHistBaselineKnownLocally(docId)) {
-      if (changes.length) writeEntry(changes, false);
+      if (_bmHistReadBaselineLocal(docId)) {
+        if (changes.length) writeEntry(changes, false);
+        return;
+      }
+      _bmGetBaselineSnapshot(docId, histCol).then(function(baselineJson){
+        if (!baselineJson) {
+          // Tampoco hay nada en Firestore: de verdad nunca se guardó una
+          // foto base para este proyecto. Se adjunta una ahora mismo con el
+          // estado actual, para que el Comparador funcione desde ya.
+          writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
+          _bmHistStoreBaselineLocal(docId, buildSnapshotJson());
+          return;
+        }
+        // Sí existía (en Firestore, o ya en caché) — se deja también
+        // guardada localmente para que el Comparador no vuelva a depender
+        // de la red en este dispositivo.
+        _bmHistStoreBaselineLocal(docId, baselineJson);
+        if (changes.length) writeEntry(changes, false);
+      }).catch(function(){
+        if (changes.length) writeEntry(changes, false);
+      });
       return;
     }
     // Proyecto que YA existía (creado antes de que existiera el Comparador,
@@ -8807,7 +8850,20 @@ function bmOpenCompareModal(){
     // explicación completa junto a _bmGetBaselineSnapshot, más arriba).
     _bmConTiempoLimite(_bmGetBaselineSnapshot(docId, histCol), 9000, 'COMPARADOR:lectura').then(function(baselineJson){
       if (!baselineJson) {
-        resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
+        // Autorreparación: de verdad no hay ninguna foto guardada (ni local
+        // ni en la nube) para este proyecto — en vez de dejarlo sin salida
+        // para siempre, se establece AHORA MISMO una con el estado actual,
+        // para que el Comparador quede listo desde el próximo cambio que
+        // hagas, sin que tengas que volver a tocar "Guardar" primero.
+        if (picked.current && S.proj){
+          try{
+            var snapNow = JSON.stringify({ own:S.own||'', date:S.date||'', ind:S.ind, uti:S.uti, iva:S.iva, caps:S.caps||[], capNames:S.capNames||[], schedule:S.schedule||{} });
+            _bmHistStoreBaselineLocal(docId, snapNow);
+            if (typeof _bmHistMarkBaselineKnown === 'function') _bmHistMarkBaselineKnown(docId);
+            histCol.add({ ts: Date.now(), userUid: user.uid, userEmail: user.email||'', changes:['Punto de partida capturado'], totalBefore:0, totalAfter:_calcProjTotals(S).total, snapshotJson: snapNow }).catch(function(e){ console.warn('No se pudo guardar la foto en la nube (no crítico):', e && e.message); });
+          }catch(e){ console.warn('No se pudo establecer la foto de partida:', e && e.message); }
+        }
+        resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>'+(picked.current ? 'Se acaba de establecer tu estado actual como punto de partida — haz un cambio y vuelve a pulsar "Comparar".' : 'Esta comparación queda disponible desde el próximo guardado en adelante.')+'</div>';
         return;
       }
       if (typeof _bmHistMarkBaselineKnown === 'function') _bmHistMarkBaselineKnown(docId);

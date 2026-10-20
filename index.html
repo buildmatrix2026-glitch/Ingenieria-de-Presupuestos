@@ -8665,10 +8665,11 @@ async function _bmBuildPortalPayload(){
 // arme DESPUÉS, en el navegador del propio cliente cuando abre el enlace,
 // reusando sin cambios los generadores reales de la app — por eso crear el
 // enlace vuelve a ser rápido.
-function _bmBuildPortalStateSnapshot(){
+function _bmBuildPortalStateSnapshot(autor){
   return {
     kind: 'pdf-live',
     proj: S.proj || 'Proyecto sin nombre', own: S.own || '', date: S.date || '',
+    autor: autor || '',
     ind: S.ind||0, uti: S.uti||0, iva: S.iva||0,
     caps: JSON.parse(JSON.stringify(S.caps||[])),
     capNames: JSON.parse(JSON.stringify(S.capNames||[])),
@@ -8694,6 +8695,8 @@ function bmShareWithClient(){
       '<div id="bm-share-step1" style="font-size:12px;color:var(--sld);margin:10px 0 14px">'+
         'Crea un enlace que abre directo en el navegador un PDF con el resumen del presupuesto, el desglose de APUs y el cronograma de tu proyecto — con el mismo formato que ya exportas. Protégelo con una contraseña que tú le compartes aparte (por WhatsApp, por ejemplo).'+
       '</div>'+
+      '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Elaborado por (opcional, sale en el PDF)</label>'+
+      '<input type="text" id="bm-share-author" placeholder="Ej. Arq. Daniel Rodríguez" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:13.5px;margin-bottom:14px;box-sizing:border-box">'+
       '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Contraseña para el cliente</label>'+
       '<input type="text" id="bm-share-pwd" placeholder="Ej. casa2026" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:13.5px;margin-bottom:16px;box-sizing:border-box">'+
       '<div id="bm-share-result"></div>'+
@@ -8717,7 +8720,9 @@ function bmShareWithClient(){
       // El PDF (Resumen+APUs+Cronograma) se arma recién cuando el cliente abre
       // el enlace y pone la contraseña, en SU navegador, con los mismos
       // generadores de la app. Así no hay que generar ni subir ningún PDF acá.
-      var snapshot = _bmBuildPortalStateSnapshot();
+      var autorInp = document.getElementById('bm-share-author');
+      var autor = (autorInp && autorInp.value || '').trim();
+      var snapshot = _bmBuildPortalStateSnapshot(autor);
       var enc = await _bmEncryptPayload(snapshot, pwd);
       var shareId = _bmRandomToken(18);
       var db = firebase.firestore();
@@ -8726,11 +8731,25 @@ function bmShareWithClient(){
         cipher: enc.cipher, iv: enc.iv, salt: enc.salt
       });
       var link = location.origin + location.pathname + '#/portal/' + shareId;
+      var shareMsg = 'Aquí tienes el enlace al presupuesto de tu proyecto "'+(S.proj||'')+'" en BuildMatrix:\n'+link+'\n\n(La contraseña te la comparto aparte)';
       document.getElementById('bm-share-result').innerHTML =
         '<div style="padding:12px 14px;border:1px solid rgba(0,212,255,.3);border-radius:10px;background:rgba(0,212,255,.06);margin-bottom:12px">'+
           '<div style="font-size:11px;color:var(--sld);margin-bottom:6px">Enlace para tu cliente (compártele también la contraseña por separado):</div>'+
-          '<input type="text" readonly id="bm-share-link-inp" value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:8px;box-sizing:border-box" onclick="this.select()">'+
-          '<button type="button" class="btn ghost" id="bm-share-copy-btn" style="width:100%;padding:8px;font-size:12px">Copiar enlace</button>'+
+          '<input type="text" readonly id="bm-share-link-inp" value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:10px;box-sizing:border-box" onclick="this.select()">'+
+          '<div style="display:flex;gap:8px">'+
+            '<button type="button" class="btn ghost" id="bm-share-copy-btn" style="flex:1;flex-direction:column;gap:5px;height:auto;padding:10px 6px">'+
+              '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></svg>'+
+              '<span style="font-size:10.5px">Copiar</span>'+
+            '</button>'+
+            '<a href="#" id="bm-share-wa-btn" class="btn ghost" style="flex:1;flex-direction:column;gap:5px;height:auto;padding:10px 6px;text-decoration:none;border-color:rgba(37,211,102,.35)">'+
+              '<svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 004.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.92 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0012.04 2zm5.8 14.1c-.24.68-1.4 1.3-1.93 1.38-.49.08-1.11.11-1.8-.11-.41-.13-.95-.31-1.63-.6-2.87-1.24-4.74-4.13-4.88-4.33-.14-.19-1.17-1.55-1.17-2.96 0-1.4.74-2.09 1-2.38.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.17.01.41-.07.65.49.24.58.82 2 .89 2.15.07.15.12.32.02.51-.1.19-.15.31-.3.48-.14.17-.3.37-.43.5-.14.14-.29.29-.13.57.17.28.74 1.22 1.6 1.97 1.1.98 2.03 1.29 2.31 1.43.28.14.44.12.6-.07.17-.19.72-.84.91-1.12.19-.28.38-.24.65-.14.26.1 1.68.79 1.97.94.28.14.47.21.54.33.07.12.07.68-.17 1.36z"/></svg>'+
+              '<span style="font-size:10.5px;color:#25D366">WhatsApp</span>'+
+            '</a>'+
+            '<a href="#" id="bm-share-mail-btn" class="btn ghost" style="flex:1;flex-direction:column;gap:5px;height:auto;padding:10px 6px;text-decoration:none">'+
+              '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>'+
+              '<span style="font-size:10.5px">Correo</span>'+
+            '</a>'+
+          '</div>'+
         '</div>';
       btn.style.display = 'none';
       // Listener en vez de onclick inline: un link va con comillas que rompían el
@@ -8754,6 +8773,11 @@ function bmShareWithClient(){
           if (fallbackCopy()) toast('Enlace copiado'); else toast('No se pudo copiar — selecciona el enlace manualmente');
         }
       });
+      var waBtn = document.getElementById('bm-share-wa-btn');
+      waBtn.href = 'https://wa.me/?text=' + encodeURIComponent(shareMsg);
+      waBtn.target = '_blank'; waBtn.rel = 'noopener';
+      var mailBtn = document.getElementById('bm-share-mail-btn');
+      mailBtn.href = 'mailto:?subject=' + encodeURIComponent('Presupuesto — ' + (S.proj||'')) + '&body=' + encodeURIComponent(shareMsg);
       toast('Portal generado ✓');
     }catch(e){
       toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));
@@ -8846,7 +8870,7 @@ async function bmInitPortalIfNeeded(){
           // datos). Por eso mutamos el objeto S existente en vez de reemplazarlo.
           Object.keys(S).forEach(function(k){ delete S[k]; });
           Object.assign(S, payload);
-          var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(payload.own || '');
+          var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(payload.autor || '');
           var blob = new Blob([pdfBytes], {type:'application/pdf'});
           var blobUrl = URL.createObjectURL(blob);
           _bmRenderPortalPdfView(blobUrl);

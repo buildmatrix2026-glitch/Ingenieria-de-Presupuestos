@@ -6686,7 +6686,6 @@ function _bmReallySyncProjectToFirestore(entry) {
 }
 
 function saveProject(){
-  alert('[DEBUG] saveProject() se ejecutó. S.proj="' + (S.proj||'') + '"');
   const name = (S.proj||'').trim() || prompt('Nombre del proyecto:','Mi Proyecto');
   if(!name){toast('Ingresa un nombre de proyecto');return;}
 
@@ -8332,6 +8331,26 @@ function _bmDiffProjectEntries(prev, next){
   return changes;
 }
 
+// Busca la entrada MÁS ANTIGUA del historial de un proyecto que tenga una
+// foto completa (snapshotJson) — NO simplemente "la entrada más antigua a
+// secas". Un proyecto puede tener años de historial de cambios normales (sin
+// foto, de la función Historial de toda la vida) de ANTES de que existiera
+// el Comparador; esas entradas viejas son más antiguas que la primera foto
+// que se llegó a guardar, así que buscar solo "orderBy ts asc limit(1)"
+// encontraba esa entrada vieja sin foto y el Comparador creía que nunca
+// había foto base, aunque sí existiera más adelante en el historial. Se
+// revisan hasta 100 entradas (de más vieja a más nueva) buscando la primera
+// que sí tenga foto.
+function _bmFindBaselineSnapshot(histCol){
+  return histCol.orderBy('ts', 'asc').limit(100).get().then(function(snap){
+    for (var i = 0; i < snap.docs.length; i++){
+      var d = snap.docs[i].data();
+      if (d.snapshotJson) return d.snapshotJson;
+    }
+    return null;
+  });
+}
+
 function _bmLogProjectHistory(prev, next){
   // Mejor esfuerzo total: cualquier fallo aquí se traga en silencio y NUNCA
   // debe afectar el guardado (que ya ocurrió) ni la sincronización a Firestore.
@@ -8377,12 +8396,7 @@ function _bmLogProjectHistory(prev, next){
         totalAfter: totalsNext.total
       };
       if (withSnapshot) entryData.snapshotJson = buildSnapshotJson();
-      histCol.add(entryData).then(function(ref){
-        alert('[DEBUG] Historial guardado OK, doc: ' + ref.id + (withSnapshot ? ' (CON foto base)' : ' (sin foto)'));
-      }).catch(function(e){
-        console.warn('No se pudo registrar historial (no crítico):', e && e.message);
-        alert('[DEBUG] Historial FALLÓ al guardar: ' + (e && e.message || e));
-      });
+      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
     };
 
     if (!prev) {
@@ -8403,9 +8417,8 @@ function _bmLogProjectHistory(prev, next){
     // mirar si "changes" detectó algo, porque _bmDiffProjectEntries solo
     // compara own/fecha/ind/uti/iva y cantidad/P.U. por rubro — una edición
     // de APU, cronograma, insumos personalizados, etc. no aparece ahí.
-    histCol.orderBy('ts', 'asc').limit(1).get().then(function(snap){
-      var yaTieneFotoInicial = !snap.empty && !!snap.docs[0].data().snapshotJson;
-      if (!yaTieneFotoInicial) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
+    _bmFindBaselineSnapshot(histCol).then(function(baselineJson){
+      if (!baselineJson) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
       if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
       writeEntry(changes, false);
     }).catch(function(e){
@@ -8561,17 +8574,14 @@ function bmOpenCompareModal(){
     resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Buscando el primer guardado…</div>';
 
     var docId = user.uid + '_' + (picked.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
-    _bmConTiempoLimite(
-      firebase.firestore().collection('projects').doc(docId).collection('history')
-        .orderBy('ts', 'asc').limit(1).get(),
-      9000, 'COMPARADOR:lectura'
-    ).then(function(snap){
-      if (snap.empty || !snap.docs[0].data().snapshotJson) {
+    var histCol = firebase.firestore().collection('projects').doc(docId).collection('history');
+    _bmConTiempoLimite(_bmFindBaselineSnapshot(histCol), 9000, 'COMPARADOR:lectura').then(function(baselineJson){
+      if (!baselineJson) {
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
         return;
       }
       var first;
-      try{ first = JSON.parse(snap.docs[0].data().snapshotJson); }catch(e){
+      try{ first = JSON.parse(baselineJson); }catch(e){
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">La foto guardada de "'+esc(picked.name)+'" está dañada y no se pudo leer.</div>';
         return;
       } // {own,date,ind,uti,iva,caps,capNames}

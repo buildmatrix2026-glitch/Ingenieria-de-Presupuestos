@@ -8035,6 +8035,10 @@ async function bmAuditRubros(){
   var btn = document.getElementById('btn-audit-ia');
   var originalHtml = btn ? btn.innerHTML : '';
   if (btn){ btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="40 56"/></svg>Analizando…</span>'; }
+  // Indicador flotante además del botón: el botón de escritorio puede estar oculto
+  // (en celular vive dentro del menú "Más"), así que sin esto no se veía ningún
+  // indicio de que la auditoría estaba trabajando al elegirla desde ahí.
+  bmShowGlobalLoader('Auditando presupuesto con IA…\nEsto puede tardar unos segundos');
   var prompt = _bmAuditBuildPrompt();
   var models = _bmAuditModelList();
   var lastErr = null;
@@ -8056,6 +8060,7 @@ async function bmAuditRubros(){
     if (lastErr) toast('No se pudo completar la auditoría: '+(lastErr.message||'error desconocido'));
   } finally {
     if (btn){ btn.disabled = false; btn.innerHTML = originalHtml; }
+    bmHideGlobalLoader();
   }
 }
 
@@ -8398,17 +8403,18 @@ function bmOpenHistoryModal(){
 // Historial, Portal cliente, Bitácora) detrás de un solo botón en celular,
 // donde los 7 botones de Presupuesto ya no entraban de forma legible.
 // En PC/tablet este botón nunca se muestra — ahí siguen todos en la fila.
-// Hoja "Más herramientas": inyecta sus propias animaciones una sola vez (reutilizadas
-// en cada apertura) — fondo con fade y la tarjeta entrando desde abajo con un
-// rebote suave (cubic-bezier tipo "overshoot"), más natural que un simple slide-up.
+// Ventana flotante "Más herramientas": inyecta sus propias animaciones una sola vez
+// (reutilizadas en cada apertura) — fondo con fade y la tarjeta flotando hacia el
+// centro con un pequeño rebote (cubic-bezier tipo "overshoot"), con margen libre a
+// los costados en vez de ocupar todo el ancho como una hoja inferior.
 function _bmEnsureMoreSheetStyles(){
   if (document.getElementById('bm-more-sheet-styles')) return;
   var st = document.createElement('style');
   st.id = 'bm-more-sheet-styles';
   st.textContent =
     '@keyframes bmSheetBackdropIn{from{opacity:0}to{opacity:1}}'+
-    '@keyframes bmSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}'+
-    '@keyframes bmSheetOut{from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}'+
+    '@keyframes bmSheetUp{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}'+
+    '@keyframes bmSheetOut{from{opacity:1;transform:scale(1) translateY(0)}to{opacity:0;transform:scale(.94) translateY(8px)}}'+
     '@keyframes bmTileIn{from{opacity:0;transform:translateY(8px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}'+
     '.bm-more-tile{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 8px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);cursor:pointer;transition:transform .15s var(--es,ease),background .15s;opacity:0;animation:bmTileIn .38s cubic-bezier(.16,1,.3,1) forwards}'+
     '.bm-more-tile:active{transform:scale(.93);background:rgba(255,255,255,.06)}'+
@@ -8420,9 +8426,31 @@ function _bmCloseMoreToolsMenu(){
   var modal = document.getElementById('bm-more-modal');
   if (!modal) return;
   var sheet = document.getElementById('bm-more-sheet');
-  if (sheet) sheet.style.animation = 'bmSheetOut .22s ease forwards';
-  modal.style.animation = 'bmSheetBackdropIn .22s ease reverse forwards';
-  setTimeout(function(){ if (modal.parentNode) modal.remove(); }, 210);
+  if (sheet) sheet.style.animation = 'bmSheetOut .2s ease forwards';
+  modal.style.animation = 'bmSheetBackdropIn .2s ease reverse forwards';
+  setTimeout(function(){ if (modal.parentNode) modal.remove(); }, 190);
+}
+
+// Indicador de carga flotante y centrado, visible sin importar desde qué botón se
+// disparó la acción (antes "Auditar con IA" solo animaba el botón de escritorio,
+// invisible en celular porque ahí vive escondido dentro del menú "Más" — parecía
+// que no pasaba nada al elegirlo desde ahí). Se usa para cualquier operación que
+// tarde (llamadas a Gemini, subidas, etc.).
+function bmShowGlobalLoader(text){
+  _bmEnsureMoreSheetStyles(); // reutiliza bmSheetBackdropIn/bmSheetUp, ya definidas ahí
+  var old = document.getElementById('bm-global-loader'); if (old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'bm-global-loader';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(4,8,18,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:bmSheetBackdropIn .2s ease';
+  ov.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:280px;animation:bmSheetUp .3s cubic-bezier(.16,1,.3,1)">'+
+      '<svg width="32" height="32" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="#00D4FF" stroke-width="2.5" stroke-dasharray="40 56"/></svg>'+
+      '<div style="font-size:13px;color:var(--ow,#F0F4FF);font-weight:600;text-align:center;line-height:1.4;white-space:pre-line">'+esc(text||'Trabajando…')+'</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+function bmHideGlobalLoader(){
+  var ov = document.getElementById('bm-global-loader'); if (ov) ov.remove();
 }
 
 function bmOpenMoreToolsMenu(){
@@ -8430,7 +8458,7 @@ function bmOpenMoreToolsMenu(){
   var old = document.getElementById('bm-more-modal'); if (old) old.remove();
   var modal = document.createElement('div');
   modal.id = 'bm-more-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.82);backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;padding:0;animation:bmSheetBackdropIn .25s ease';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.82);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;animation:bmSheetBackdropIn .25s ease';
   var items = [
     { label:'Auditar con IA', fn:'bmAuditRubros', color:'#a78bfa', svg:'<path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/>' },
     { label:'Plantillas', fn:'bmOpenTemplatesModal', color:'#00D4FF', svg:'<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>' },
@@ -8447,8 +8475,7 @@ function bmOpenMoreToolsMenu(){
     '</button>';
   }).join('');
   modal.innerHTML =
-    '<div id="bm-more-sheet" style="background:linear-gradient(180deg,var(--s2),var(--s1,var(--s2)));border:1px solid var(--br);border-bottom:0;border-radius:22px 22px 0 0;padding:12px 16px max(16px,env(safe-area-inset-bottom)) 16px;width:100%;max-width:520px;box-shadow:0 -16px 50px rgba(0,0,0,.5);animation:bmSheetUp .38s cubic-bezier(.16,1,.3,1)">'+
-      '<div style="width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:999px;margin:2px auto 14px"></div>'+
+    '<div id="bm-more-sheet" style="background:linear-gradient(180deg,var(--s2),var(--s1,var(--s2)));border:1px solid var(--br);border-radius:22px;padding:18px 18px max(18px,env(safe-area-inset-bottom)) 18px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:bmSheetUp .32s cubic-bezier(.16,1,.3,1)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
         '<div style="font-size:14.5px;font-weight:700;color:var(--ow,#F0F4FF)">Más herramientas</div>'+
         '<button type="button" aria-label="Cerrar" style="width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.06);color:var(--sl);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="_bmCloseMoreToolsMenu()">'+

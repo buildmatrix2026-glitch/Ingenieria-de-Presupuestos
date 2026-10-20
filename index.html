@@ -8417,12 +8417,28 @@ function _bmDiffProjectEntries(prev, next){
 // revisan hasta 100 entradas (de más vieja a más nueva) buscando la primera
 // que sí tenga foto.
 function _bmFindBaselineSnapshot(histCol){
-  return histCol.orderBy('ts', 'asc').limit(100).get().then(function(snap){
+  var q = histCol.orderBy('ts', 'asc').limit(100);
+  var fromSnap = function(snap){
     for (var i = 0; i < snap.docs.length; i++){
       var d = snap.docs[i].data();
       if (d.snapshotJson) return d.snapshotJson;
     }
     return null;
+  };
+  // Primero el CACHÉ LOCAL del propio SDK de Firestore (instantáneo, sin red
+  // de por medio) — ese caché SÍ incluye las escrituras de ESTA sesión que
+  // todavía no fueron confirmadas por el servidor ("compensación de
+  // latencia" del SDK), así que es la forma correcta de ver, sin ninguna
+  // carrera posible, la foto que se acaba de guardar hace instantes en este
+  // mismo dispositivo. Si el caché no tiene nada (o nunca se consultó esta
+  // colección sin conexión antes, lo que puede hacer fallar la propia
+  // lectura de caché), se recurre al servidor como ya se hacía.
+  return q.get({ source: 'cache' }).then(function(snap){
+    var found = fromSnap(snap);
+    if (found) return found;
+    return q.get().then(fromSnap);
+  }).catch(function(){
+    return q.get().then(fromSnap);
   });
 }
 

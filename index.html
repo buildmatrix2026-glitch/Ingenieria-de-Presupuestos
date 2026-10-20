@@ -8187,8 +8187,8 @@ function bmOpenTemplatesModal(){
       '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Arranca un presupuesto nuevo con la misma estructura de capítulos y rubros de una plantilla guardada.</div>'+
       '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+listHtml+'</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" id="bm-tpl-save" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--br);background:transparent;color:var(--ow,#F0F4FF);font-weight:600;font-size:13px;cursor:pointer">+ Guardar presupuesto actual como plantilla</button>'+
-        '<button type="button" id="bm-tpl-close" style="padding:11px 18px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+        '<button type="button" class="btn ghost" id="bm-tpl-save" style="flex:1">+ Guardar actual</button>'+
+        '<button type="button" class="btn ghost" id="bm-tpl-close">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);
@@ -8200,7 +8200,10 @@ function bmOpenTemplatesModal(){
   try{
     var user = firebase.auth().currentUser;
     if (user){
-      firebase.firestore().collection('users').doc(user.uid).collection('templates').get().then(function(snap){
+      _bmConTiempoLimite(
+        firebase.firestore().collection('users').doc(user.uid).collection('templates').get(),
+        9000, 'PLANTILLAS:lectura-nube'
+      ).then(function(snap){
         var local = bmGetTemplates(); var byName = {};
         local.forEach(function(t){ byName[t.name]=t; });
         var changed = false;
@@ -8362,7 +8365,7 @@ function bmOpenHistoryModal(){
         '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Cargando historial…</div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" id="bm-hist-close" style="flex:1;padding:11px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+        '<button type="button" class="btn ghost" id="bm-hist-close" style="flex:1">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);
@@ -8375,8 +8378,17 @@ function bmOpenHistoryModal(){
     if (!user) { listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Inicia sesión para ver el historial de este proyecto.</div>'; return; }
     if (!S.proj) { listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Abre o guarda un proyecto primero.</div>'; return; }
     var docId = user.uid + '_' + (S.proj || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
-    firebase.firestore().collection('projects').doc(docId).collection('history')
-      .orderBy('ts', 'desc').limit(50).get().then(function(snap){
+    // ── Por qué el timeout ───────────────────────────────────────────────
+    // En algunas redes móviles/WiFi (y sobre todo en Safari de iPad/iPhone) el
+    // canal de datos en tiempo real de Firestore puede quedarse "colgado" sin
+    // responder ni fallar — el mismo síntoma ya documentado en el login más
+    // arriba (_bmConTiempoLimite). Sin un límite de tiempo, el modal se queda
+    // para siempre en "Cargando historial…" sin mostrar ni datos ni error.
+    _bmConTiempoLimite(
+      firebase.firestore().collection('projects').doc(docId).collection('history')
+        .orderBy('ts', 'desc').limit(50).get(),
+      9000, 'HISTORIAL:lectura'
+    ).then(function(snap){
         if (snap.empty) {
           listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no hay historial para este proyecto.<br>Se irá registrando cada vez que pulses "Guardar" sobre un cambio.</div>';
           return;
@@ -8397,10 +8409,10 @@ function bmOpenHistoryModal(){
         });
         listEl.innerHTML = html;
       }).catch(function(e){
-        listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial.</div>';
+        listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial (red lenta o inestable).<br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" onclick="bmOpenHistoryModal()">Reintentar</button></div>';
       });
   }catch(e){
-    listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial.</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial.<br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" onclick="bmOpenHistoryModal()">Reintentar</button></div>';
   }
 }
 
@@ -8422,9 +8434,11 @@ function _bmEnsureMoreSheetStyles(){
     '@keyframes bmSheetUp{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}'+
     '@keyframes bmSheetOut{from{opacity:1;transform:scale(1) translateY(0)}to{opacity:0;transform:scale(.94) translateY(8px)}}'+
     '@keyframes bmTileIn{from{opacity:0;transform:translateY(8px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}'+
-    '.bm-more-tile{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 8px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);cursor:pointer;transition:transform .15s var(--es,ease),background .15s;opacity:0;animation:bmTileIn .38s cubic-bezier(.16,1,.3,1) forwards}'+
+    '.bm-more-tile{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 8px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);cursor:pointer;transition:transform .18s cubic-bezier(.16,1,.3,1),background .18s,border-color .18s,box-shadow .18s;opacity:0;animation:bmTileIn .38s cubic-bezier(.16,1,.3,1) forwards}'+
+    '@media(hover:hover){.bm-more-tile:hover{transform:translateY(-3px);background:rgba(255,255,255,.055);border-color:rgba(0,212,255,.35);box-shadow:0 10px 24px rgba(0,0,0,.35)}'+
+    '.bm-more-tile:hover .bm-more-icon{transform:scale(1.08)}}'+
     '.bm-more-tile:active{transform:scale(.93);background:rgba(255,255,255,.06)}'+
-    '.bm-more-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}';
+    '.bm-more-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s cubic-bezier(.16,1,.3,1)}';
   document.head.appendChild(st);
 }
 
@@ -8599,8 +8613,8 @@ function bmShareWithClient(){
       '<input type="text" id="bm-share-pwd" placeholder="Ej. casa2026" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:13.5px;margin-bottom:16px;box-sizing:border-box">'+
       '<div id="bm-share-result"></div>'+
       '<div style="display:flex;gap:8px;margin-top:4px">'+
-        '<button type="button" id="bm-share-go" style="flex:1;padding:11px;border-radius:10px;border:0;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#041221;font-weight:700;font-size:13px;cursor:pointer">Generar enlace</button>'+
-        '<button type="button" id="bm-share-close" style="padding:11px 18px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+        '<button type="button" class="btn" id="bm-share-go" style="flex:1">Generar enlace</button>'+
+        '<button type="button" class="btn ghost" id="bm-share-close">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);
@@ -8680,6 +8694,22 @@ function _bmPortalCard(contentHtml){
   return '<div style="background:#0E1420;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px">'+contentHtml+'</div>';
 }
 
+// Copia autónoma del mismo límite de tiempo que usa el resto de la app
+// (_bmConTiempoLimite, definido mucho más abajo en el archivo). No se puede
+// reutilizar esa función aquí: esta ruta del portal corre en el arranque
+// mismo de la página (justo después de inicializar Firebase), ANTES de que
+// el <script> que define _bmConTiempoLimite llegue a ejecutarse — así que
+// llamarla desde acá lanzaría "no está definida". De ahí esta copia chiquita,
+// sin más dependencias, puesta aquí mismo donde se necesita.
+function _bmPortalConTiempoLimite(promise, ms){
+  return new Promise(function(resolve, reject){
+    var listo = false;
+    var timer = setTimeout(function(){ if (listo) return; listo = true; reject(new Error('Tiempo de espera agotado')); }, ms);
+    promise.then(function(v){ if (listo) return; listo = true; clearTimeout(timer); resolve(v); },
+                 function(e){ if (listo) return; listo = true; clearTimeout(timer); reject(e); });
+  });
+}
+
 async function bmInitPortalIfNeeded(){
   var shareId = _bmPortalShareIdFromHash();
   if (!shareId) return false;
@@ -8689,7 +8719,7 @@ async function bmInitPortalIfNeeded(){
   var db = firebase.firestore();
   var doc;
   try{
-    var snap = await db.collection('public_shares').doc(shareId).get();
+    var snap = await _bmPortalConTiempoLimite(db.collection('public_shares').doc(shareId).get(), 9000);
     if (!snap.exists) {
       _bmRenderPortalShell(_bmPortalCard('<div style="text-align:center;color:#8A95AB;font-size:13.5px">Este enlace ya no es válido o fue revocado.</div>'));
       return true;
@@ -8872,10 +8902,21 @@ function bmOpenBitacoraModal(){
         '<select id="bm-bit-cap" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--br);background:#0E1420;color:var(--ow,#F0F4FF);font-size:12.5px;margin-bottom:10px">'+capOptionsHtml+'</select>'+
         '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:5px">Nota de avance</label>'+
         '<textarea id="bm-bit-note" rows="3" placeholder="Ej. Se fundió la losa del segundo piso, queda curando 14 días." style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:12.5px;margin-bottom:10px;resize:vertical;box-sizing:border-box"></textarea>'+
-        '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:5px">Fotos (opcional)</label>'+
-        '<input type="file" id="bm-bit-files" accept="image/*" capture="environment" multiple style="width:100%;font-size:12px;color:var(--sld);margin-bottom:10px">'+
+        '<label style="font-size:11px;color:var(--sld);display:block;margin-bottom:7px">Fotos (opcional)</label>'+
+        '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+          '<button type="button" class="btn ghost" id="bm-bit-camera-btn" style="flex:1;flex-direction:column;gap:6px;height:auto;padding:14px 8px">'+
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'+
+            '<span style="font-size:11.5px">Tomar foto</span>'+
+          '</button>'+
+          '<button type="button" class="btn ghost" id="bm-bit-gallery-btn" style="flex:1;flex-direction:column;gap:6px;height:auto;padding:14px 8px">'+
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M3 16l5-5 4 4"/><path d="M17 15v6M14 18h6"/></svg>'+
+            '<span style="font-size:11.5px">Cargar archivos</span>'+
+          '</button>'+
+        '</div>'+
+        '<input type="file" id="bm-bit-camera-input" accept="image/*" capture="environment" style="display:none">'+
+        '<input type="file" id="bm-bit-gallery-input" accept="image/*" multiple style="display:none">'+
         '<div id="bm-bit-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>'+
-        '<button type="button" id="bm-bit-save" style="width:100%;padding:11px;border-radius:10px;border:0;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#041221;font-weight:700;font-size:13px;cursor:pointer">Guardar entrada</button>'+
+        '<button type="button" class="btn" id="bm-bit-save" style="width:100%">Guardar entrada</button>'+
       '</div>'+
 
       '<div style="font-size:12px;font-weight:700;color:var(--sld);margin-bottom:8px">ENTRADAS ANTERIORES</div>'+
@@ -8883,19 +8924,36 @@ function bmOpenBitacoraModal(){
         '<div style="text-align:center;padding:20px 10px;color:var(--sld);font-size:12.5px">Cargando…</div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" id="bm-bit-close" style="flex:1;padding:11px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+        '<button type="button" class="btn ghost" id="bm-bit-close" style="flex:1">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);
   modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
   document.getElementById('bm-bit-close').onclick = function(){ modal.remove(); };
 
-  document.getElementById('bm-bit-files').addEventListener('change', function(e){
-    _bmBitPendingFiles = Array.prototype.slice.call(e.target.files || []);
+  function _bmBitRenderPreview(){
     var prev = document.getElementById('bm-bit-preview');
-    prev.innerHTML = _bmBitPendingFiles.map(function(f){
-      return '<div style="width:52px;height:52px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--sld);text-align:center;padding:2px">'+esc(f.name.slice(0,14))+'</div>';
+    prev.innerHTML = _bmBitPendingFiles.map(function(f, i){
+      var url = URL.createObjectURL(f);
+      return '<div style="position:relative;width:56px;height:56px;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.1)">'+
+        '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover" onload="URL.revokeObjectURL(this.src)">'+
+        '<button type="button" title="Quitar" onclick="_bmBitRemovePending('+i+')" style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;border:0;background:rgba(4,8,18,.75);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0">'+
+          '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>'+
+        '</button>'+
+      '</div>';
     }).join('');
+  }
+  window._bmBitRemovePending = function(i){ _bmBitPendingFiles.splice(i,1); _bmBitRenderPreview(); };
+
+  document.getElementById('bm-bit-camera-btn').onclick = function(){ document.getElementById('bm-bit-camera-input').click(); };
+  document.getElementById('bm-bit-gallery-btn').onclick = function(){ document.getElementById('bm-bit-gallery-input').click(); };
+  ['bm-bit-camera-input','bm-bit-gallery-input'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(e){
+      var picked = Array.prototype.slice.call(e.target.files || []);
+      _bmBitPendingFiles = _bmBitPendingFiles.concat(picked);
+      e.target.value = ''; // permite volver a elegir el mismo archivo si lo quitó y lo quiere agregar de nuevo
+      _bmBitRenderPreview();
+    });
   });
 
   document.getElementById('bm-bit-save').onclick = async function(){
@@ -8963,15 +9021,20 @@ function _bmBitEntryHtml(id, d){
 function _bmBitRenderList(docId){
   var listEl = document.getElementById('bm-bit-list');
   if (!listEl) return;
-  firebase.firestore().collection('projects').doc(docId).collection('bitacora')
-    .orderBy('ts','desc').limit(100).get().then(function(snap){
+  // Mismo límite de tiempo que el Historial: sin esto, en redes móviles problemáticas
+  // (típico en iPad/iPhone) la lista se puede quedar en "Cargando…" para siempre.
+  _bmConTiempoLimite(
+    firebase.firestore().collection('projects').doc(docId).collection('bitacora')
+      .orderBy('ts','desc').limit(100).get(),
+    9000, 'BITACORA:lectura'
+  ).then(function(snap){
       var el = document.getElementById('bm-bit-list'); if (!el) return;
       if (snap.empty) { el.innerHTML = '<div style="text-align:center;padding:20px 10px;color:var(--sld);font-size:12.5px">Todavía no hay entradas en la bitácora.</div>'; return; }
       var html = '';
       snap.forEach(function(doc){ html += _bmBitEntryHtml(doc.id, doc.data()); });
       el.innerHTML = html;
     }).catch(function(){
-      var el = document.getElementById('bm-bit-list'); if (el) el.innerHTML = '<div style="text-align:center;padding:20px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar la bitácora.</div>';
+      var el = document.getElementById('bm-bit-list'); if (el) el.innerHTML = '<div style="text-align:center;padding:20px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar la bitácora (red lenta o inestable).<br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" onclick="_bmBitRenderList('+JSON.stringify(docId)+')">Reintentar</button></div>';
     });
 }
 
@@ -9207,7 +9270,7 @@ function bmOpenOrderAlertsModal(){
       '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Rubros con tiempo de entrega largo que, según tu cronograma, ya toca pedir o se acerca su fecha.</div>'+
       '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+itemsHtml+'</div>'+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" id="bm-order-close" style="flex:1;padding:11px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+        '<button type="button" class="btn ghost" id="bm-order-close" style="flex:1">Cerrar</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(modal);

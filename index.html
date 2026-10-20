@@ -6800,6 +6800,7 @@ function _bmApplyLoadedProject(p){
   document.getElementById('tp-header').style.display = p.name ? '' : 'none';
   renderBudget();
   go('pre');
+  _bmAutoFillCronogramaIfEmpty();
 }
 
 function loadProject(name){
@@ -9561,20 +9562,10 @@ const CRO_CAP_DEPS = [
   [5],       // 14 Fachaleta
   [7,14],    // 15 Obras complementarias
 ];
-async function croAutoFill(){
-  const startInput=$id('cro-proj-start');
-  const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
-  if(!await BM_CONFIRM(
-    '¿Autocompletar cronograma desde '+formatDateDisplay(projStart)+'?\n'+
-    'Respeta dependencias reales entre capítulos: p.ej. mampostería no puede iniciar antes de que la estructura esté fundida y curada.\n'+
-    'Los capítulos independientes —como cubierta y acabados interiores— avanzan en PARALELO, simulando varias cuadrillas reales trabajando a la vez.\n'+
-    'La duración de cada rubro se estima según su descripción, cantidad y unidad (o su costo si no se reconoce nada).\n'+
-    'Se respetan tiempos reales de curado y fraguado: una losa deja 14 días de espera antes de cargar algo encima.\n'+
-    'Dentro de cada capítulo los rubros van uno tras otro (una sola cuadrilla por capítulo) — son días orientativos, ajústalos luego según tu cuadrilla, el clima y el criterio del residente de obra.\n'+
-    'El % de avance de todos los rubros se pondrá en 100%.\n'+
-    'Los rubros que ya tienen fecha o días puestos a mano no se tocan.\n'+
-    '¿Continuar?'
-  )) return;
+// Núcleo del autocompletado, separado del botón para poder reusarlo en
+// silencio (sin el diálogo de confirmación) justo después de abrir/importar
+// un proyecto — ver _bmAutoFillCronogramaIfEmpty más abajo.
+function _bmCronoAutoFillCore(projStart){
   const CAPS=getCaps();
   const capFinish=new Array(CAPS.length).fill(null);   // fecha de fin calculada de cada capítulo
   // CRO_CAP_DEPS ya está en orden topológico válido (cada capítulo solo depende de
@@ -9599,9 +9590,57 @@ async function croAutoFill(){
     }
     capFinish[ci]=cursor;
   }
+}
+
+async function croAutoFill(){
+  const startInput=$id('cro-proj-start');
+  const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
+  if(!await BM_CONFIRM(
+    '¿Autocompletar cronograma desde '+formatDateDisplay(projStart)+'?\n'+
+    'Respeta dependencias reales entre capítulos: p.ej. mampostería no puede iniciar antes de que la estructura esté fundida y curada.\n'+
+    'Los capítulos independientes —como cubierta y acabados interiores— avanzan en PARALELO, simulando varias cuadrillas reales trabajando a la vez.\n'+
+    'La duración de cada rubro se estima según su descripción, cantidad y unidad (o su costo si no se reconoce nada).\n'+
+    'Se respetan tiempos reales de curado y fraguado: una losa deja 14 días de espera antes de cargar algo encima.\n'+
+    'Dentro de cada capítulo los rubros van uno tras otro (una sola cuadrilla por capítulo) — son días orientativos, ajústalos luego según tu cuadrilla, el clima y el criterio del residente de obra.\n'+
+    'El % de avance de todos los rubros se pondrá en 100%.\n'+
+    'Los rubros que ya tienen fecha o días puestos a mano no se tocan.\n'+
+    '¿Continuar?'
+  )) return;
+  _bmCronoAutoFillCore(projStart);
   persist();
   renderCronograma();
   toast('Cronograma autocompletado respetando dependencias entre capítulos, curado real y varios frentes de trabajo en paralelo');
+}
+
+// Se llama justo después de abrir o importar un presupuesto: si el cronograma
+// está completamente vacío (ningún rubro con fecha+duración), lo autocompleta
+// solo, SIN preguntar — así cualquier cosa que dependa del cronograma (el PDF
+// del Portal del cliente, por ejemplo) siempre tiene un estimado real en vez
+// de caer en el rango por defecto de "hoy + 30 días". Si YA hay algo programado
+// (aunque sea parcial) no toca nada, para no pisar fechas puestas a mano ni
+// avances reales ya registrados.
+function _bmAutoFillCronogramaIfEmpty(){
+  try{
+    var CAPS = getCaps();
+    var hasAny = false;
+    for (var ci=0; ci<CAPS.length && !hasAny; ci++){
+      var rows = S.caps[ci]||[];
+      for (var ri=0; ri<rows.length; ri++){
+        var d = (S.schedule && S.schedule[ci]) ? S.schedule[ci][ri] : null;
+        if (d && d.start && d.dur) { hasAny = true; break; }
+      }
+    }
+    if (hasAny) return;
+    var anyRubro = (S.caps||[]).some(function(rows){ return rows && rows.length; });
+    if (!anyRubro) return; // proyecto vacío — nada que programar todavía
+    var projStart = S.date || new Date().toISOString().slice(0,10);
+    _bmCronoAutoFillCore(projStart);
+    persist();
+    var wrap = document.getElementById('cro-gantt-body');
+    if (wrap) renderCronograma();
+  }catch(e){
+    console.warn('[BuildMatrix] No se pudo autocompletar el cronograma al cargar el proyecto:', e);
+  }
 }
 
 // Rango de fechas total del proyecto (mínimo inicio, máximo fin) entre todos los rubros programados
@@ -11186,6 +11225,7 @@ function importJSON(inp){
       // "Guardar" explícitamente — ese es el único paso que ahora escribe en
       // localStorage/"Mis Proyectos" y sincroniza con Firestore. Si recargas
       // la página sin haber guardado, este import se pierde (es lo esperado).
+      _bmAutoFillCronogramaIfEmpty();
       persist();
       renderBudget();
       go('pre');

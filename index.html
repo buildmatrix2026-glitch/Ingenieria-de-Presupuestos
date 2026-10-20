@@ -8383,7 +8383,8 @@ function _bmLogProjectHistory(prev, next){
         own: next.own || '', date: next.date || '',
         ind: next.ind, uti: next.uti, iva: next.iva,
         caps: next.caps || [],
-        capNames: next.capNames || []
+        capNames: next.capNames || [],
+        schedule: next.schedule || {}
       });
     };
     var writeEntry = function(changesArr, withSnapshot){
@@ -8590,34 +8591,19 @@ function bmOpenCompareModal(){
       // si no, usa su última versión guardada en localStorage.
       var current;
       if (picked.current) {
-        current = { own: S.own, date: S.date, ind: S.ind, uti: S.uti, iva: S.iva, caps: S.caps, capNames: S.capNames };
+        current = { own: S.own, date: S.date, ind: S.ind, uti: S.uti, iva: S.iva, caps: S.caps, capNames: S.capNames, schedule: S.schedule };
       } else {
         var saved = getSavedProjects().filter(function(p){ return p.name === picked.name; })[0];
-        current = saved ? { own: saved.own, date: saved.date, ind: saved.ind, uti: saved.uti, iva: saved.iva, caps: saved.caps, capNames: saved.capNames } : null;
+        current = saved ? { own: saved.own, date: saved.date, ind: saved.ind, uti: saved.uti, iva: saved.iva, caps: saved.caps, capNames: saved.capNames, schedule: saved.schedule } : null;
       }
       if (!current) { resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se encontró el estado actual de este proyecto.</div>'; return; }
 
-      var totA = _calcProjTotals(first), totB = _calcProjTotals(current);
-      var diffAbs = totB.total - totA.total;
-      var diffPct = totA.total > 0 ? (diffAbs/totA.total*100) : 0;
-      var diffColor = diffAbs > 0.005 ? '#F87171' : (diffAbs < -0.005 ? '#34D399' : 'var(--sld)');
-      var diffSign = diffAbs >= 0 ? '+' : '−';
-      var changes = _bmDiffProjectEntries(first, current);
-      var changesHtml = changes.length
-        ? '<ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--ow,#F0F4FF)">'+changes.map(function(c){ return '<li style="margin-bottom:3px">'+esc(c)+'</li>'; }).join('')+'</ul>'
-        : '<div style="font-size:12.5px;color:var(--sld)">No hay diferencias — sigue igual que su primer guardado.</div>';
-      resEl.innerHTML =
-        '<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:10px;background:rgba(255,255,255,.02)">'+
-          '<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px">'+
-            '<div><div style="font-size:10.5px;color:var(--sld)">Primer guardado</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totA.total)+'</div></div>'+
-            '<div style="text-align:right"><div style="font-size:10.5px;color:var(--sld)">Actual</div><div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(totB.total)+'</div></div>'+
-          '</div>'+
-          '<div style="text-align:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700;color:'+diffColor+'">'+diffSign+fmtUSD(Math.abs(diffAbs))+' ('+diffSign+Math.abs(diffPct).toFixed(1)+'%)</div>'+
-        '</div>'+
-        '<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.02)">'+
-          '<div style="font-size:11.5px;color:var(--sld);margin-bottom:8px;font-weight:600">Qué cambió</div>'+
-          changesHtml+
-        '</div>';
+      // El usuario pidió la comparación completa a pantalla dividida (todos
+      // los rubros, totales y cronograma lado a lado), no solo un resumen —
+      // así que apenas hay datos, se cierra esta ventanita de selección y se
+      // abre directo la vista de comparación a pantalla completa.
+      modal.remove();
+      _bmOpenFullCompareView(picked, first, current);
     }).catch(function(e){
       console.warn('Error comparando presupuestos:', e && e.message);
       resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el primer guardado (red lenta o inestable).<br><span style="color:#F87171;font-size:11px">'+esc(e && e.message || String(e))+'</span><br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" id="bm-cmp-retry">Reintentar</button></div>';
@@ -8626,7 +8612,144 @@ function bmOpenCompareModal(){
     });
   };
   document.getElementById('bm-cmp-go').onclick = runCompare;
-  runCompare(); // comparación inicial automática con el proyecto preseleccionado
+  // Nota: ya NO se dispara runCompare() automáticamente al abrir — ahora que
+  // un resultado exitoso cierra esta ventanita y abre la comparación a
+  // pantalla completa, dispararlo solo porque se abrió el modal le quitaría
+  // al usuario la oportunidad de elegir el proyecto que realmente quiere.
+}
+
+// ── Vista de comparación a pantalla completa (dos columnas) ─────────────
+// Arma una lista ÚNICA de rubros por capítulo (unión de los dos lados, en el
+// mismo orden para que ambas columnas queden alineadas fila por fila) y la
+// reutiliza para pintar las dos columnas — así no hay dos lógicas de armado
+// que puedan desincronizarse entre sí.
+function _bmBuildCompareRows(firstSnap, currentSnap){
+  var capNamesRef = (currentSnap.capNames && currentSnap.capNames.length) ? currentSnap.capNames : (firstSnap.capNames||[]);
+  var capsA = firstSnap.caps||[], capsB = currentSnap.caps||[];
+  var nCaps = Math.max(capsA.length, capsB.length);
+  var out = [];
+  for (var ci=0; ci<nCaps; ci++){
+    var rowsA = capsA[ci]||[], rowsB = capsB[ci]||[];
+    if (!rowsA.length && !rowsB.length) continue;
+    var byKeyA = {}; rowsA.forEach(function(r,i){ byKeyA[_bmRubroKey(r,i)] = {row:r, idx:i}; });
+    var byKeyB = {}; rowsB.forEach(function(r,i){ byKeyB[_bmRubroKey(r,i)] = {row:r, idx:i}; });
+    var orderedKeys = rowsA.map(function(r,i){ return _bmRubroKey(r,i); });
+    rowsB.forEach(function(r,i){ var k=_bmRubroKey(r,i); if (orderedKeys.indexOf(k)<0) orderedKeys.push(k); });
+    var rubros = orderedKeys.map(function(k){
+      var a = byKeyA[k], b = byKeyB[k];
+      var status;
+      if (!a) status = 'added';
+      else if (!b) status = 'removed';
+      else {
+        var qa = parseFloat(a.row.qty)||0, qb = parseFloat(b.row.qty)||0;
+        var pa = parseFloat(a.row.pu)||0, pb = parseFloat(b.row.pu)||0;
+        status = (qa!==qb || pa!==pb) ? 'changed' : 'same';
+      }
+      return {
+        key: k, a: a, b: b, status: status,
+        schedA: a ? (((firstSnap.schedule||{})[ci]||{})[a.idx] || null) : null,
+        schedB: b ? (((currentSnap.schedule||{})[ci]||{})[b.idx] || null) : null
+      };
+    });
+    out.push({ ci: ci, name: capNamesRef[ci] || ('Capítulo '+(ci+1)), rubros: rubros });
+  }
+  return out;
+}
+
+function _bmRubroLabelFull(r){
+  var cod = (r.code || r.cod || r.codigo || '').toString().trim();
+  var desc = (r.desc || r.descripcion || r.name || '').toString().trim();
+  if (cod && desc) return cod+' — '+desc;
+  return cod || desc || 'Rubro sin descripción';
+}
+
+function _bmSchedTxt(sched){
+  if (!sched || !sched.start || !sched.dur) return '—';
+  var endDate = null;
+  try{
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(sched.start);
+    if (m) { var d = new Date(+m[1], +m[2]-1, +m[3]); d.setDate(d.getDate() + (parseInt(sched.dur,10)||0)); endDate = d.toLocaleDateString('es-EC',{day:'2-digit',month:'short'}); }
+  }catch(e){}
+  return sched.start + ' · ' + sched.dur + 'd' + (endDate ? ' (fin ' + endDate + ')' : '');
+}
+
+function _bmRenderCompareSideHtml(capsOut, snap, side){
+  var html = '';
+  capsOut.forEach(function(cap){
+    html += '<div style="font-size:12px;font-weight:700;color:var(--cy,#00D4FF);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.03em">'+esc(cap.name)+'</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    cap.rubros.forEach(function(entry){
+      var e = side==='a' ? entry.a : entry.b;
+      var sched = side==='a' ? entry.schedA : entry.schedB;
+      var bg = 'transparent', dim = false;
+      if (entry.status==='added') { if (side==='a') dim = true; else bg='rgba(52,211,153,.12)'; }
+      else if (entry.status==='removed') { if (side==='b') dim = true; else bg='rgba(248,113,113,.12)'; }
+      else if (entry.status==='changed') { bg='rgba(251,191,36,.12)'; }
+      if (!e) {
+        html += '<tr style="background:'+bg+'"><td colspan="2" style="padding:7px 6px;color:var(--sld);font-style:italic;border-bottom:1px solid rgba(255,255,255,.05)">— no existía en este momento —</td></tr>';
+        return;
+      }
+      var r = e.row;
+      var qty = parseFloat(r.qty)||0, pu = parseFloat(r.pu)||0, tot = qty*pu;
+      html +=
+        '<tr style="background:'+bg+';opacity:'+(dim ? 0.45 : 1)+'">'+
+          '<td style="padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ow,#F0F4FF)">'+
+            esc(_bmRubroLabelFull(r))+
+            '<div style="font-size:10.5px;color:var(--sld);margin-top:2px">'+qty+' '+esc(r.unit||'')+' × '+fmtUSD(pu)+' · 📅 '+esc(_bmSchedTxt(sched))+'</div>'+
+          '</td>'+
+          '<td style="padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.05);text-align:right;white-space:nowrap;font-weight:600;color:var(--ow,#F0F4FF)">'+fmtUSD(tot)+'</td>'+
+        '</tr>';
+    });
+    html += '</table>';
+  });
+  return html;
+}
+
+function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
+  var old = document.getElementById('bm-cmp-full'); if (old) old.remove();
+  if (!document.getElementById('bm-cmp-full-styles')) {
+    var st = document.createElement('style');
+    st.id = 'bm-cmp-full-styles';
+    st.textContent = '@media (max-width: 860px){ #bm-cmp-full .bmcmp-grid{ grid-template-columns:1fr !important; } #bm-cmp-full .bmcmp-col-a{ border-right:0 !important; border-bottom:1px solid var(--br); } }';
+    document.head.appendChild(st);
+  }
+
+  var capsOut = _bmBuildCompareRows(firstSnap, currentSnap);
+  var totA = _calcProjTotals(firstSnap), totB = _calcProjTotals(currentSnap);
+  var diffAbs = totB.total - totA.total;
+  var diffPct = totA.total > 0 ? (diffAbs/totA.total*100) : 0;
+  var diffColor = diffAbs > 0.005 ? '#F87171' : (diffAbs < -0.005 ? '#34D399' : 'var(--sld)');
+  var diffSign = diffAbs >= 0 ? '+' : '−';
+
+  var wrap = document.createElement('div');
+  wrap.id = 'bm-cmp-full';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:99995;background:var(--s1,#05080f);display:flex;flex-direction:column';
+  wrap.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--br);flex-shrink:0;flex-wrap:wrap">'+
+      '<div>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Comparación — '+esc(picked.name)+'</div>'+
+        '<div style="font-size:12px;color:'+diffColor+';font-weight:700">'+diffSign+fmtUSD(Math.abs(diffAbs))+' ('+diffSign+Math.abs(diffPct).toFixed(1)+'%) vs. el primer guardado</div>'+
+      '</div>'+
+      '<button type="button" class="btn ghost" id="bm-cmp-full-close">Cerrar</button>'+
+    '</div>'+
+    '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden">'+
+      '<div class="bmcmp-col-a" style="overflow-y:auto;padding:0 18px 24px;border-right:1px solid var(--br)">'+
+        '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--br);z-index:2">'+
+          '<div style="font-size:11px;color:var(--sld)">Primer guardado'+(firstSnap.date?' · '+esc(firstSnap.date):'')+'</div>'+
+          '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(totA.total)+'</div>'+
+        '</div>'+
+        _bmRenderCompareSideHtml(capsOut, firstSnap, 'a')+
+      '</div>'+
+      '<div class="bmcmp-col-b" style="overflow-y:auto;padding:0 18px 24px">'+
+        '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--br);z-index:2">'+
+          '<div style="font-size:11px;color:var(--sld)">Actual'+(currentSnap.date?' · '+esc(currentSnap.date):'')+'</div>'+
+          '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(totB.total)+'</div>'+
+        '</div>'+
+        _bmRenderCompareSideHtml(capsOut, currentSnap, 'b')+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(wrap);
+  document.getElementById('bm-cmp-full-close').onclick = function(){ wrap.remove(); };
 }
 
 // ── Menú "Más" (solo móvil) ──────────────────────────────────────────────

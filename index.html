@@ -8673,36 +8673,82 @@ function _bmSchedTxt(sched){
   return sched.start + ' · ' + sched.dur + 'd' + (endDate ? ' (fin ' + endDate + ')' : '');
 }
 
-function _bmRenderCompareSideHtml(capsOut, snap, side){
+function _bmCmpRowBg(status, side, forBudget){
+  if (status==='added') return side==='a' ? null : 'rgba(52,211,153,.12)';
+  if (status==='removed') return side==='b' ? null : 'rgba(248,113,113,.12)';
+  if (status==='changed') return 'rgba(251,191,36,.12)';
+  return 'transparent';
+}
+
+// Sección PRESUPUESTO: tarjetas por capítulo, cada una con sus rubros y el
+// subtotal de ESE lado (solo lo que existe en este lado — si un rubro no
+// existe aquí, su fila queda en blanco para no sumarlo).
+function _bmRenderCompareBudgetSide(capsOut, side){
   var html = '';
   capsOut.forEach(function(cap){
-    html += '<div style="font-size:12px;font-weight:700;color:var(--cy,#00D4FF);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.03em">'+esc(cap.name)+'</div>';
-    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
-    cap.rubros.forEach(function(entry){
+    var subtotal = 0;
+    var rowsHtml = cap.rubros.map(function(entry){
       var e = side==='a' ? entry.a : entry.b;
-      var sched = side==='a' ? entry.schedA : entry.schedB;
-      var bg = 'transparent', dim = false;
-      if (entry.status==='added') { if (side==='a') dim = true; else bg='rgba(52,211,153,.12)'; }
-      else if (entry.status==='removed') { if (side==='b') dim = true; else bg='rgba(248,113,113,.12)'; }
-      else if (entry.status==='changed') { bg='rgba(251,191,36,.12)'; }
+      var bg = _bmCmpRowBg(entry.status, side);
       if (!e) {
-        html += '<tr style="background:'+bg+'"><td colspan="2" style="padding:7px 6px;color:var(--sld);font-style:italic;border-bottom:1px solid rgba(255,255,255,.05)">— no existía en este momento —</td></tr>';
-        return;
+        return '<div style="display:flex;align-items:center;padding:8px 14px;color:var(--sld);font-style:italic;font-size:11.5px;border-top:1px solid rgba(255,255,255,.04)">— no existía en este momento —</div>';
       }
       var r = e.row;
       var qty = parseFloat(r.qty)||0, pu = parseFloat(r.pu)||0, tot = qty*pu;
-      html +=
-        '<tr style="background:'+bg+';opacity:'+(dim ? 0.45 : 1)+'">'+
-          '<td style="padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ow,#F0F4FF)">'+
-            esc(_bmRubroLabelFull(r))+
-            '<div style="font-size:10.5px;color:var(--sld);margin-top:2px">'+qty+' '+esc(r.unit||'')+' × '+fmtUSD(pu)+' · 📅 '+esc(_bmSchedTxt(sched))+'</div>'+
-          '</td>'+
-          '<td style="padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.05);text-align:right;white-space:nowrap;font-weight:600;color:var(--ow,#F0F4FF)">'+fmtUSD(tot)+'</td>'+
-        '</tr>';
-    });
-    html += '</table>';
+      subtotal += tot;
+      return (
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(r))+'</div>'+
+            '<div style="font-size:10.5px;color:var(--sld);margin-top:1px">'+qty+' '+esc(r.unit||'')+' × '+fmtUSD(pu)+'</div>'+
+          '</div>'+
+          '<div style="flex-shrink:0;font-weight:700;font-size:12.5px;color:var(--ow,#F0F4FF);white-space:nowrap">'+fmtUSD(tot)+'</div>'+
+        '</div>'
+      );
+    }).join('');
+    html +=
+      '<div style="border:1px solid var(--br);border-radius:12px;overflow:hidden;margin-bottom:12px;background:rgba(255,255,255,.015)">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:rgba(255,255,255,.03)">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--cy,#00D4FF)">'+esc(cap.name)+'</div>'+
+          '<div style="font-size:12.5px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(subtotal)+'</div>'+
+        '</div>'+
+        rowsHtml+
+      '</div>';
   });
   return html;
+}
+
+// Sección CRONOGRAMA: tarjetas por capítulo, una fila por rubro programado
+// en ESE lado (fecha de inicio, duración y fecha de fin calculada). Un rubro
+// que no tiene fecha programada en este lado simplemente no aparece aquí —
+// esta sección es solo sobre fechas, no sobre presupuesto.
+function _bmRenderCompareScheduleSide(capsOut, side){
+  var html = '';
+  capsOut.forEach(function(cap){
+    var rows = cap.rubros.map(function(entry){
+      var e = side==='a' ? entry.a : entry.b;
+      var sched = side==='a' ? entry.schedA : entry.schedB;
+      if (!e || !sched || !sched.start || !sched.dur) return null;
+      var bg = _bmCmpRowBg(entry.status, side);
+      return {
+        html: (
+          '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
+            '<div style="flex:1;min-width:0;color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(e.row))+'</div>'+
+            '<div style="flex-shrink:0;font-size:11.5px;color:var(--sld);white-space:nowrap">'+esc(_bmSchedTxt(sched))+'</div>'+
+          '</div>'
+        )
+      };
+    }).filter(Boolean);
+    if (!rows.length) return; // capítulo sin ningún rubro programado en este lado: se omite
+    html +=
+      '<div style="border:1px solid var(--br);border-radius:12px;overflow:hidden;margin-bottom:12px;background:rgba(255,255,255,.015)">'+
+        '<div style="padding:10px 14px;background:rgba(255,255,255,.03)">'+
+          '<div style="font-size:12px;font-weight:700;color:#F59E0B">'+esc(cap.name)+'</div>'+
+        '</div>'+
+        rows.map(function(r){ return r.html; }).join('')+
+      '</div>';
+  });
+  return html || '<div style="padding:18px 4px;color:var(--sld);font-size:12.5px;font-style:italic">Sin rubros programados en este momento.</div>';
 }
 
 function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
@@ -8710,7 +8756,7 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   if (!document.getElementById('bm-cmp-full-styles')) {
     var st = document.createElement('style');
     st.id = 'bm-cmp-full-styles';
-    st.textContent = '@media (max-width: 860px){ #bm-cmp-full .bmcmp-grid{ grid-template-columns:1fr !important; } #bm-cmp-full .bmcmp-col-a{ border-right:0 !important; border-bottom:1px solid var(--br); } }';
+    st.textContent = '@media (max-width: 860px){ #bm-cmp-full .bmcmp-grid{ grid-template-columns:1fr !important; } #bm-cmp-full .bmcmp-col-a{ border-right:0 !important; border-bottom:1px solid var(--br); padding-bottom:20px !important; } }';
     document.head.appendChild(st);
   }
 
@@ -8720,6 +8766,27 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   var diffPct = totA.total > 0 ? (diffAbs/totA.total*100) : 0;
   var diffColor = diffAbs > 0.005 ? '#F87171' : (diffAbs < -0.005 ? '#34D399' : 'var(--sld)');
   var diffSign = diffAbs >= 0 ? '+' : '−';
+
+  var presupuestoIcon = '<path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/>';
+  var cronogramaIcon = '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/>';
+
+  var sectionHeader = function(icon, color, label){
+    return (
+      '<div style="display:flex;align-items:center;gap:9px;margin:28px 0 14px">'+
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2">'+icon+'</svg>'+
+        '<div style="font-size:14px;font-weight:700;color:var(--ow,#F0F4FF)">'+label+'</div>'+
+        '<div style="flex:1;height:1px;background:var(--br)"></div>'+
+      '</div>'
+    );
+  };
+  var colHeader = function(label, date, total){
+    return (
+      '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;border-bottom:1px solid var(--br);z-index:2;margin-bottom:4px">'+
+        '<div style="font-size:11px;color:var(--sld)">'+label+(date?' · '+esc(date):'')+'</div>'+
+        '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(total)+'</div>'+
+      '</div>'
+    );
+  };
 
   var wrap = document.createElement('div');
   wrap.id = 'bm-cmp-full';
@@ -8732,20 +8799,26 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
       '</div>'+
       '<button type="button" class="btn ghost" id="bm-cmp-full-close">Cerrar</button>'+
     '</div>'+
-    '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden">'+
-      '<div class="bmcmp-col-a" style="overflow-y:auto;padding:0 18px 24px;border-right:1px solid var(--br)">'+
-        '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--br);z-index:2">'+
-          '<div style="font-size:11px;color:var(--sld)">Primer guardado'+(firstSnap.date?' · '+esc(firstSnap.date):'')+'</div>'+
-          '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(totA.total)+'</div>'+
+    '<div style="overflow-y:auto;flex:1">'+
+      sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto').replace('margin:28px 0 14px', 'margin:20px 20px 14px')+
+      '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;padding:0 20px">'+
+        '<div class="bmcmp-col-a" style="padding:0 18px 8px 0;border-right:1px solid var(--br)">'+
+          colHeader('Primer guardado', firstSnap.date, totA.total)+
+          _bmRenderCompareBudgetSide(capsOut, 'a')+
         '</div>'+
-        _bmRenderCompareSideHtml(capsOut, firstSnap, 'a')+
+        '<div class="bmcmp-col-b" style="padding:0 0 8px 18px">'+
+          colHeader('Actual', currentSnap.date, totB.total)+
+          _bmRenderCompareBudgetSide(capsOut, 'b')+
+        '</div>'+
       '</div>'+
-      '<div class="bmcmp-col-b" style="overflow-y:auto;padding:0 18px 24px">'+
-        '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--br);z-index:2">'+
-          '<div style="font-size:11px;color:var(--sld)">Actual'+(currentSnap.date?' · '+esc(currentSnap.date):'')+'</div>'+
-          '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(totB.total)+'</div>'+
+      sectionHeader(cronogramaIcon, '#F59E0B', 'Cronograma').replace('margin:28px 0 14px', 'margin:8px 20px 14px')+
+      '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;padding:0 20px 28px">'+
+        '<div class="bmcmp-col-a" style="padding:0 18px 0 0;border-right:1px solid var(--br)">'+
+          _bmRenderCompareScheduleSide(capsOut, 'a')+
         '</div>'+
-        _bmRenderCompareSideHtml(capsOut, currentSnap, 'b')+
+        '<div class="bmcmp-col-b" style="padding:0 0 0 18px">'+
+          _bmRenderCompareScheduleSide(capsOut, 'b')+
+        '</div>'+
       '</div>'+
     '</div>';
   document.body.appendChild(wrap);

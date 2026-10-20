@@ -8340,7 +8340,6 @@ function _bmLogProjectHistory(prev, next){
     if (!user) return; // sin sesión no hay a dónde registrar el historial
 
     var changes = prev ? _bmDiffProjectEntries(prev, next) : ['Primer guardado del proyecto'];
-    if (!changes.length) return; // nada relevante que registrar (p.ej. guardó sin cambios)
 
     var totalsNext = _calcProjTotals(next);
     var totalBefore = prev ? _calcProjTotals(prev).total : 0;
@@ -8357,12 +8356,12 @@ function _bmLogProjectHistory(prev, next){
         capNames: JSON.parse(JSON.stringify(next.capNames||[]))
       };
     };
-    var writeEntry = function(withSnapshot){
+    var writeEntry = function(changesArr, withSnapshot){
       var entryData = {
         ts: Date.now(),
         userUid: user.uid,
         userEmail: user.email || '',
-        changes: changes,
+        changes: changesArr,
         totalBefore: totalBefore,
         totalAfter: totalsNext.total
       };
@@ -8376,7 +8375,7 @@ function _bmLogProjectHistory(prev, next){
       // de presupuestos para poder enfrentar "primer guardado" vs. "estado
       // actual" más adelante, sin tener que guardar una copia completa en
       // CADA guardado (eso sí pesaría mucho con el tiempo).
-      writeEntry(true);
+      writeEntry(changes, true);
       return;
     }
     // Proyecto que YA existía (creado antes de que existiera el Comparador,
@@ -8384,11 +8383,20 @@ function _bmLogProjectHistory(prev, next){
     // entrada anterior del historial tiene todavía una foto completa, se la
     // adjunta a ESTE guardado para que sirva de punto de partida desde
     // ahora — así el Comparador no se queda sin nada que mostrar para
-    // siempre en proyectos antiguos.
+    // siempre en proyectos antiguos. IMPORTANTE: esto se decide ANTES de
+    // mirar si "changes" detectó algo, porque _bmDiffProjectEntries solo
+    // compara own/fecha/ind/uti/iva y cantidad/P.U. por rubro — una edición
+    // de APU, cronograma, insumos personalizados, etc. no aparece ahí, y
+    // antes eso hacía que el guardado se saltara por completo sin crear
+    // nunca la foto base (el bug reportado: "hice un cambio y no se nota").
     histCol.orderBy('ts', 'asc').limit(1).get().then(function(snap){
       var yaTieneFotoInicial = !snap.empty && !!snap.docs[0].data().snapshot;
-      writeEntry(!yaTieneFotoInicial);
-    }).catch(function(){ writeEntry(false); });
+      if (!yaTieneFotoInicial) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
+      if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
+      writeEntry(changes, false);
+    }).catch(function(){
+      if (changes.length) writeEntry(changes, false); // mejor esfuerzo si falla la consulta previa
+    });
   }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
 

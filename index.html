@@ -8426,6 +8426,43 @@ function _bmFindBaselineSnapshot(histCol){
   });
 }
 
+// ── Bug real que arreglamos aquí: "la primera edición no se comparaba, solo
+// la segunda" ──────────────────────────────────────────────────────────────
+// Para un proyecto NUEVO, el primer "Guardar" adjunta la foto base (ver más
+// abajo, rama "!prev"). Pero ese envío a Firestore es asíncrono y NO se
+// espera (fire-and-forget) — si el usuario edita algo y pulsa "Guardar" de
+// nuevo enseguida (segundos después), ese segundo guardado consultaba
+// Firestore (_bmFindBaselineSnapshot) para ver "¿ya existe foto base?" ANTES
+// de que la escritura del primer guardado hubiera terminado de propagarse,
+// así que la consulta no la encontraba todavía y el código asumía que nunca
+// hubo foto base — y adjuntaba una foto NUEVA, pero construida con el estado
+// de este SEGUNDO guardado (ya con el cambio hecho), no con el del primero.
+// Resultado: la foto base terminaba siendo igual al estado "después" del
+// primer cambio, así que al comparar no se veía ninguna diferencia — recién
+// en el TERCER guardado la consulta a Firestore ya alcanzaba a ver la foto
+// real del primer guardado (con más tiempo de sobra) y ahí sí se notaba el
+// cambio acumulado.
+// La solución: en vez de preguntarle a Firestore "¿ya hay foto base?" en
+// cada guardado (con el riesgo de red de por medio), lo recordamos en
+// localStorage ni bien se adjunta la foto la primera vez — una lectura
+// local, instantánea, sin ninguna carrera posible. Solo se vuelve a
+// consultar Firestore si este dispositivo no tiene ese recuerdo local (p.ej.
+// un proyecto abierto por primera vez en otro dispositivo), caso en el que
+// ya pasó tiempo de sobra y no hay carrera real.
+function _bmHistBaselineLSKey(){ return 'bm_hist_baseline_known'; }
+function _bmHistBaselineKnownSet(){
+  try{ return JSON.parse(localStorage.getItem(_bmHistBaselineLSKey()) || '[]'); }catch(e){ return []; }
+}
+function _bmHistBaselineKnownLocally(docId){
+  return _bmHistBaselineKnownSet().indexOf(docId) !== -1;
+}
+function _bmHistMarkBaselineKnown(docId){
+  try{
+    var set = _bmHistBaselineKnownSet();
+    if (set.indexOf(docId) === -1){ set.push(docId); localStorage.setItem(_bmHistBaselineLSKey(), JSON.stringify(set)); }
+  }catch(e){}
+}
+
 function _bmLogProjectHistory(prev, next){
   // Mejor esfuerzo total: cualquier fallo aquí se traga en silencio y NUNCA
   // debe afectar el guardado (que ya ocurrió) ni la sincronización a Firestore.
@@ -8482,19 +8519,33 @@ function _bmLogProjectHistory(prev, next){
       // actual" más adelante, sin tener que guardar una copia completa en
       // CADA guardado (eso sí pesaría mucho con el tiempo).
       writeEntry(changes, true);
+      // Se recuerda YA MISMO, local e instantáneamente — sin esto, un
+      // segundo guardado hecho segundos después podía no encontrar esta
+      // foto todavía en Firestore y terminaba adjuntando otra, equivocada
+      // (ver la explicación completa más arriba, junto a estas funciones).
+      _bmHistMarkBaselineKnown(docId);
+      return;
+    }
+    // Este dispositivo ya sabe (por localStorage) que este proyecto tiene
+    // foto base — caso normal para cualquier guardado después del primero.
+    // Sin ninguna consulta a Firestore de por medio: cero posibilidad de
+    // carrera. Si no hay cambios reconocibles, no se registra nada más.
+    if (_bmHistBaselineKnownLocally(docId)) {
+      if (changes.length) writeEntry(changes, false);
       return;
     }
     // Proyecto que YA existía (creado antes de que existiera el Comparador,
-    // o cuyo primer guardado real nunca quedó registrado): si ninguna
-    // entrada anterior del historial tiene todavía una foto completa, se la
-    // adjunta a ESTE guardado para que sirva de punto de partida desde
-    // ahora — así el Comparador no se queda sin nada que mostrar para
-    // siempre en proyectos antiguos. IMPORTANTE: esto se decide ANTES de
-    // mirar si "changes" detectó algo, porque _bmDiffProjectEntries solo
-    // compara own/fecha/ind/uti/iva y cantidad/P.U. por rubro — una edición
-    // de APU, cronograma, insumos personalizados, etc. no aparece ahí.
+    // o cuyo primer guardado real nunca quedó registrado, o abierto por
+    // primera vez en este dispositivo): se consulta Firestore para ver si
+    // ya hay una foto base en otro lado; si no la hay, se adjunta a ESTE
+    // guardado para que sirva de punto de partida desde ahora. IMPORTANTE:
+    // esto se decide ANTES de mirar si "changes" detectó algo, porque
+    // _bmDiffProjectEntries solo compara own/fecha/ind/uti/iva y
+    // cantidad/P.U. por rubro — una edición de APU, cronograma, insumos
+    // personalizados, etc. no aparece ahí.
     _bmFindBaselineSnapshot(histCol).then(function(baselineJson){
-      if (!baselineJson) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
+      if (!baselineJson) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); _bmHistMarkBaselineKnown(docId); return; }
+      _bmHistMarkBaselineKnown(docId); // ya existe en la nube — recordarlo para no volver a consultar
       if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
       writeEntry(changes, false);
     }).catch(function(e){
@@ -8504,6 +8555,7 @@ function _bmLogProjectHistory(prev, next){
       // más adelante) a quedarse sin ninguna para siempre por una consulta
       // que falló.
       writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
+      _bmHistMarkBaselineKnown(docId);
     });
   }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
@@ -8691,6 +8743,7 @@ function bmOpenCompareModal(){
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
         return;
       }
+      if (typeof _bmHistMarkBaselineKnown === 'function') _bmHistMarkBaselineKnown(docId);
       var first;
       try{ first = JSON.parse(baselineJson); }catch(e){
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">La foto guardada de "'+esc(picked.name)+'" está dañada y no se pudo leer.</div>';

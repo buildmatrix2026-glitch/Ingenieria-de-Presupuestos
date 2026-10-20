@@ -2971,7 +2971,7 @@ input[type=date].gx-in::-webkit-calendar-picker-indicator {
   window._fbSocialSignIn       = null;
 </script>
 </head>
-<body><svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true" focusable="false"><defs><filter id="lgGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="lgGlowBig" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
+<body><script>(function(){ try{ if(/^#\/portal\//.test(location.hash)){ document.documentElement.style.visibility='hidden'; } }catch(e){} })();</script><svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true" focusable="false"><defs><filter id="lgGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="lgGlowBig" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
 
 <!-- ═══════════════════════════════════════════════════════
@@ -3887,6 +3887,9 @@ gsap.fromTo('.chapter-card',
             </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenHistoryModal()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Historial
+            </button>
+            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmShareWithClient()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Portal cliente
             </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="addNewCap()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M12 5v14M5 12h14"/></svg>Nuevo capítulo
@@ -8360,6 +8363,265 @@ function bmOpenHistoryModal(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// ── PORTAL DEL CLIENTE ───────────────────────────────────────────────────────
+// Genera un enlace de solo lectura (protegido con contraseña) para que el
+// cliente vea el avance, totales y desglose de rubros del proyecto SIN tener
+// que iniciar sesión ni poder editar nada. El contenido se cifra en el
+// navegador (AES-GCM, clave derivada de la contraseña con PBKDF2) antes de
+// subirlo a Firestore: aunque el documento público se pueda LEER sin sesión,
+// nadie puede ver el contenido real sin la contraseña — ni siquiera con
+// acceso directo a la base de datos.
+// Documento público: public_shares/{shareId} (shareId = token aleatorio,
+// NO adivinable; solo "get" directo permitido por las reglas, nunca "list").
+// ══════════════════════════════════════════════════════════════════════════
+
+function _bmRandomToken(len){
+  var bytes = new Uint8Array(len||18);
+  (window.crypto || window.msCrypto).getRandomValues(bytes);
+  return Array.prototype.map.call(bytes, function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+}
+
+async function _bmDeriveKey(password, saltB64, forEncrypt){
+  var enc = new TextEncoder();
+  var salt = saltB64 ? Uint8Array.from(atob(saltB64), function(c){return c.charCodeAt(0);}) : window.crypto.getRandomValues(new Uint8Array(16));
+  var baseKey = await window.crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  var key = await window.crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt:salt, iterations:150000, hash:'SHA-256' },
+    baseKey,
+    { name:'AES-GCM', length:256 },
+    false,
+    forEncrypt ? ['encrypt'] : ['decrypt']
+  );
+  var saltOut = btoa(String.fromCharCode.apply(null, salt));
+  return { key: key, saltB64: saltOut };
+}
+
+async function _bmEncryptPayload(obj, password){
+  var der = await _bmDeriveKey(password, null, true);
+  var iv = window.crypto.getRandomValues(new Uint8Array(12));
+  var enc = new TextEncoder();
+  var data = enc.encode(JSON.stringify(obj));
+  var cipherBuf = await window.crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, der.key, data);
+  var cipherB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(cipherBuf)));
+  var ivB64 = btoa(String.fromCharCode.apply(null, iv));
+  return { cipher: cipherB64, iv: ivB64, salt: der.saltB64 };
+}
+
+async function _bmDecryptPayload(cipherB64, ivB64, saltB64, password){
+  var der = await _bmDeriveKey(password, saltB64, false);
+  var iv = Uint8Array.from(atob(ivB64), function(c){return c.charCodeAt(0);});
+  var cipherBytes = Uint8Array.from(atob(cipherB64), function(c){return c.charCodeAt(0);});
+  var plainBuf = await window.crypto.subtle.decrypt({ name:'AES-GCM', iv:iv }, der.key, cipherBytes);
+  var dec = new TextDecoder();
+  return JSON.parse(dec.decode(plainBuf));
+}
+
+function _bmBuildPortalPayload(){
+  var CAPS = getCaps();
+  var caps = [];
+  CAPS.forEach(function(nombre, ci){
+    var rows = S.caps[ci] || [];
+    var capNum = (S.capNums && S.capNums[ci]!=null && S.capNums[ci]!=='') ? S.capNums[ci] : (ci+1);
+    var rubros = rows.map(function(r){
+      var sched = (S.schedule && S.schedule[ci] && S.schedule[ci][rows.indexOf(r)]) || null;
+      return {
+        code: r.code||'', desc: r.desc||'', unit: r.unit||'',
+        qty: parseFloat(r.qty)||0, pu: parseFloat(r.pu)||0,
+        total: (parseFloat(r.qty)||0)*(parseFloat(r.pu)||0),
+        pct: sched ? (sched.pct||0) : 0
+      };
+    });
+    if (rubros.length) caps.push({ num: capNum, nombre: nombre, rubros: rubros });
+  });
+  var totals = _calcProjTotals({caps:S.caps, ind:S.ind, uti:S.uti, iva:S.iva});
+  return {
+    proj: S.proj || 'Proyecto sin nombre', own: S.own || '', date: S.date || '',
+    ts: Date.now(), caps: caps,
+    totals: { cd: totals.cd, ind: totals.ind, uti: totals.uti, sub: totals.sub, iva: totals.iva, total: totals.total },
+    indPct: S.ind||0, utiPct: S.uti||0, ivaPct: S.iva||0,
+    bitacora: [] // reservado: se llenará cuando se implemente la Bitácora de obra con fotos
+  };
+}
+
+function bmShareWithClient(){
+  var user = firebase.auth().currentUser;
+  if (!user) { toast('Inicia sesión para generar un portal de cliente'); return; }
+  if (!S.proj) { toast('Guarda el proyecto antes de compartirlo'); return; }
+  var old = document.getElementById('bm-share-modal'); if (old) old.remove();
+  var modal = document.createElement('div');
+  modal.id = 'bm-share-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(480px,94vw)">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Portal del cliente</div>'+
+      '</div>'+
+      '<div id="bm-share-step1" style="font-size:12px;color:var(--sld);margin:10px 0 14px">'+
+        'Crea un enlace de solo lectura para que tu cliente vea el avance, el cronograma, los totales y el desglose de rubros de este proyecto — sin poder editar nada. Protégelo con una contraseña que tú le compartes aparte (por WhatsApp, por ejemplo).'+
+      '</div>'+
+      '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Contraseña para el cliente</label>'+
+      '<input type="text" id="bm-share-pwd" placeholder="Ej. casa2026" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:13.5px;margin-bottom:16px;box-sizing:border-box">'+
+      '<div id="bm-share-result"></div>'+
+      '<div style="display:flex;gap:8px;margin-top:4px">'+
+        '<button type="button" id="bm-share-go" style="flex:1;padding:11px;border-radius:10px;border:0;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#041221;font-weight:700;font-size:13px;cursor:pointer">Generar enlace</button>'+
+        '<button type="button" id="bm-share-close" style="padding:11px 18px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(modal);
+  modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
+  document.getElementById('bm-share-close').onclick = function(){ modal.remove(); };
+  document.getElementById('bm-share-go').onclick = async function(){
+    var pwdInp = document.getElementById('bm-share-pwd');
+    var pwd = (pwdInp.value||'').trim();
+    if (pwd.length < 4) { toast('Usa una contraseña de al menos 4 caracteres'); return; }
+    var btn = document.getElementById('bm-share-go');
+    var origHtml = btn.innerHTML;
+    btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = 'Generando…';
+    try{
+      var payload = _bmBuildPortalPayload();
+      var enc = await _bmEncryptPayload(payload, pwd);
+      var shareId = _bmRandomToken(18);
+      var db = firebase.firestore();
+      await db.collection('public_shares').doc(shareId).set({
+        ownerUid: user.uid, proj: S.proj || '', ts: Date.now(),
+        cipher: enc.cipher, iv: enc.iv, salt: enc.salt
+      });
+      var link = location.origin + location.pathname + '#/portal/' + shareId;
+      document.getElementById('bm-share-result').innerHTML =
+        '<div style="padding:12px 14px;border:1px solid rgba(0,212,255,.3);border-radius:10px;background:rgba(0,212,255,.06);margin-bottom:12px">'+
+          '<div style="font-size:11px;color:var(--sld);margin-bottom:6px">Enlace para tu cliente (compártele también la contraseña por separado):</div>'+
+          '<input type="text" readonly value="'+esc(link)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--br);background:rgba(255,255,255,.04);color:var(--ow,#F0F4FF);font-size:12px;margin-bottom:8px;box-sizing:border-box" onclick="this.select()">'+
+          '<button type="button" class="btn ghost" style="width:100%;padding:8px;font-size:12px" onclick="navigator.clipboard.writeText('+JSON.stringify(link)+').then(function(){toast(\'Enlace copiado\')})">Copiar enlace</button>'+
+        '</div>';
+      btn.style.display = 'none';
+      toast('Portal generado ✓');
+    }catch(e){
+      toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));
+      btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = origHtml;
+    }
+  };
+}
+
+// ── Vista pública del portal (sin sesión) ───────────────────────────────────
+function _bmPortalShareIdFromHash(){
+  var m = /^#\/portal\/([a-zA-Z0-9]+)$/.exec(location.hash || '');
+  return m ? m[1] : null;
+}
+
+function _bmRenderPortalShell(innerHtml){
+  document.documentElement.style.background = '#070B14';
+  document.body.innerHTML =
+    '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit">'+
+      '<div style="width:min(720px,100%)">'+
+        '<div style="text-align:center;margin-bottom:18px;color:#00D4FF;font-weight:700;font-size:15px;letter-spacing:.5px">BUILDMATRIX · PORTAL DEL CLIENTE</div>'+
+        innerHtml+
+      '</div>'+
+    '</div>';
+}
+
+function _bmPortalCard(contentHtml){
+  return '<div style="background:#0E1420;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px">'+contentHtml+'</div>';
+}
+
+async function bmInitPortalIfNeeded(){
+  var shareId = _bmPortalShareIdFromHash();
+  if (!shareId) return false;
+  _bmRenderPortalShell(_bmPortalCard(
+    '<div style="text-align:center;color:#8A95AB;font-size:13px">Cargando…</div>'
+  ));
+  var db = firebase.firestore();
+  var doc;
+  try{
+    var snap = await db.collection('public_shares').doc(shareId).get();
+    if (!snap.exists) {
+      _bmRenderPortalShell(_bmPortalCard('<div style="text-align:center;color:#8A95AB;font-size:13.5px">Este enlace ya no es válido o fue revocado.</div>'));
+      return true;
+    }
+    doc = snap.data();
+  }catch(e){
+    _bmRenderPortalShell(_bmPortalCard('<div style="text-align:center;color:#8A95AB;font-size:13.5px">No se pudo cargar el portal. Verifica tu conexión e inténtalo de nuevo.</div>'));
+    return true;
+  }
+  _bmRenderPortalShell(_bmPortalCard(
+    '<div style="font-size:14px;font-weight:600;color:#F0F4FF;margin-bottom:4px">Acceso protegido</div>'+
+    '<div style="font-size:12px;color:#8A95AB;margin-bottom:16px">Ingresa la contraseña que te compartió el constructor.</div>'+
+    '<input type="password" id="bm-portal-pwd" placeholder="Contraseña" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#F0F4FF;font-size:14px;margin-bottom:12px;box-sizing:border-box">'+
+    '<div id="bm-portal-err" style="color:#FF6B6B;font-size:12px;margin-bottom:10px;display:none">Contraseña incorrecta. Inténtalo de nuevo.</div>'+
+    '<button type="button" id="bm-portal-go" style="width:100%;padding:12px;border-radius:10px;border:0;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#041221;font-weight:700;font-size:13.5px;cursor:pointer">Ver proyecto</button>'
+  ));
+  var go = function(){
+    var pwd = (document.getElementById('bm-portal-pwd').value || '');
+    var btn = document.getElementById('bm-portal-go');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    _bmDecryptPayload(doc.cipher, doc.iv, doc.salt, pwd).then(function(payload){
+      _bmRenderPortalView(payload);
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = 'Ver proyecto';
+      var err = document.getElementById('bm-portal-err');
+      if (err) err.style.display = 'block';
+    });
+  };
+  document.getElementById('bm-portal-go').onclick = go;
+  document.getElementById('bm-portal-pwd').addEventListener('keydown', function(e){ if (e.key==='Enter') go(); });
+  return true;
+}
+
+function _bmPortalFmtUSD(n){ return '$'+(Number(n)||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function _bmRenderPortalView(payload){
+  var capsHtml = (payload.caps||[]).map(function(cap){
+    var rowsHtml = cap.rubros.map(function(r){
+      return '<tr>'+
+        '<td style="padding:7px 8px;font-size:11.5px;color:#8A95AB">'+esc(r.code)+'</td>'+
+        '<td style="padding:7px 8px;font-size:12px;color:#F0F4FF">'+esc(r.desc)+'</td>'+
+        '<td style="padding:7px 8px;font-size:11.5px;color:#8A95AB;text-align:center">'+esc(r.unit)+'</td>'+
+        '<td style="padding:7px 8px;font-size:11.5px;color:#8A95AB;text-align:right">'+r.qty+'</td>'+
+        '<td style="padding:7px 8px;font-size:11.5px;color:#8A95AB;text-align:right">'+_bmPortalFmtUSD(r.pu)+'</td>'+
+        '<td style="padding:7px 8px;font-size:12px;color:#F0F4FF;text-align:right;font-weight:600">'+_bmPortalFmtUSD(r.total)+'</td>'+
+        '<td style="padding:7px 8px;font-size:11.5px;color:#00D4FF;text-align:right">'+(r.pct||0)+'%</td>'+
+      '</tr>';
+    }).join('');
+    var capTotal = cap.rubros.reduce(function(a,r){return a+r.total;},0);
+    return '<div style="margin-bottom:18px">'+
+      '<div style="font-size:12.5px;font-weight:700;color:#F0F4FF;margin-bottom:6px">CAPÍTULO '+cap.num+' — '+esc(cap.nombre)+' · '+_bmPortalFmtUSD(capTotal)+'</div>'+
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)">'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:left">CÓD.</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:left">DESCRIPCIÓN</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:center">UND</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:right">CANT.</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:right">P.U.</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:right">TOTAL</th>'+
+          '<th style="padding:6px 8px;font-size:10px;color:#5A6478;text-align:right">AVANCE</th>'+
+        '</tr></thead><tbody>'+rowsHtml+'</tbody>'+
+      '</table></div>'+
+    '</div>';
+  }).join('');
+
+  var t = payload.totals || {};
+  var dt = payload.ts ? new Date(payload.ts) : null;
+  var fechaStr = dt ? dt.toLocaleDateString('es-EC',{day:'2-digit',month:'long',year:'numeric'}) : '';
+
+  _bmRenderPortalShell(
+    _bmPortalCard(
+      '<div style="margin-bottom:18px">'+
+        '<div style="font-size:18px;font-weight:700;color:#F0F4FF;margin-bottom:4px">'+esc(payload.proj||'Proyecto')+'</div>'+
+        '<div style="font-size:12px;color:#8A95AB">'+(payload.own?esc(payload.own)+' · ':'')+(payload.date?esc(payload.date)+' · ':'')+'Actualizado al '+fechaStr+'</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:22px">'+
+        '<div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px"><div style="font-size:10px;color:#5A6478;margin-bottom:4px">COSTO DIRECTO</div><div style="font-size:14px;font-weight:700;color:#F0F4FF">'+_bmPortalFmtUSD(t.cd)+'</div></div>'+
+        '<div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px"><div style="font-size:10px;color:#5A6478;margin-bottom:4px">INDIRECTOS+UTIL.</div><div style="font-size:14px;font-weight:700;color:#F0F4FF">'+_bmPortalFmtUSD((t.ind||0)+(t.uti||0))+'</div></div>'+
+        '<div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px"><div style="font-size:10px;color:#5A6478;margin-bottom:4px">IVA</div><div style="font-size:14px;font-weight:700;color:#F0F4FF">'+_bmPortalFmtUSD(t.iva)+'</div></div>'+
+        '<div style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:10px;padding:12px"><div style="font-size:10px;color:#00D4FF;margin-bottom:4px">TOTAL GENERAL</div><div style="font-size:15px;font-weight:700;color:#00D4FF">'+_bmPortalFmtUSD(t.total)+'</div></div>'+
+      '</div>'+
+      capsHtml+
+      '<div style="text-align:center;margin-top:10px;font-size:10.5px;color:#4A5468">Portal de solo lectura generado con BuildMatrix</div>'
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ── CRONOGRAMA (BETA): Gantt + Curva S ──────────────────────────────────────
 // Datos: S.schedule = { [ci]: { [ri]: { start:'YYYY-MM-DD', dur:Number(días), pct:Number(0-100) } } }
 // Se persiste igual que S.caps (sessionStorage vía persist(), y se incluyó en
@@ -12661,6 +12923,18 @@ function closeGrpModal(){ const m=document.getElementById('grpModalOverlay');if(
       console.warn('No se pudo aplicar settings() de Firestore:', e && e.message);
     }
   }
+
+  // ── Portal del cliente: si la URL trae #/portal/<id>, esta es TODA la página
+  // que se muestra — sin login, sin el resto de la app. Se dispara apenas
+  // Firestore está listo; reactiva la visibilidad del documento (oculta al
+  // vuelo por el script al inicio de <body> para evitar el flash de la UI
+  // normal mientras carga) sin importar si encontró el portal o no.
+  (function(){
+    if (typeof bmInitPortalIfNeeded !== 'function') { return; }
+    bmInitPortalIfNeeded().then(function(handled){
+      document.documentElement.style.visibility = '';
+    }).catch(function(){ document.documentElement.style.visibility = ''; });
+  })();
 
   // ── Aislar los datos locales por cuenta: nunca deben mezclarse entre usuarios del
   // mismo dispositivo (ej. una cuenta admin y luego una cuenta normal en el mismo navegador).

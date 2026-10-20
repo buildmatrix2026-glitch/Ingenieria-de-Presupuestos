@@ -8680,11 +8680,43 @@ function _bmCmpRowBg(status, side, forBudget){
   return 'transparent';
 }
 
-// Sección PRESUPUESTO: tarjetas por capítulo, cada una con sus rubros y el
-// subtotal de ESE lado (solo lo que existe en este lado — si un rubro no
-// existe aquí, su fila queda en blanco para no sumarlo).
-function _bmRenderCompareBudgetSide(capsOut, side){
-  var html = '';
+// ── Bloque de totales de costos (igual criterio visual que la vista de
+// proyecto guardado: tarjetas de Costo directo / Indirectos / Utilidad / IVA
+// + una tarjeta destacada de Total general c/IVA) — se repite en CADA lado.
+function _bmCostTilesHtml(snap, totals){
+  var pct = function(v){ return (v===undefined||v===null) ? 0 : v; };
+  var tiles = [
+    { lbl:'COSTO DIRECTO', sub:'', val: totals.cd },
+    { lbl:'INDIRECTOS', sub: pct(snap.ind)+'%', val: totals.ind },
+    { lbl:'UTILIDAD', sub: pct(snap.uti)+'%', val: totals.uti },
+    { lbl:'IVA', sub: pct(snap.iva)+'%', val: totals.iva }
+  ];
+  var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">';
+  tiles.forEach(function(t){
+    html +=
+      '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02)">'+
+        '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">'+t.lbl+(t.sub?' <span style="opacity:.6">'+t.sub+'</span>':'')+'</div>'+
+        '<div style="font-size:15px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(t.val)+'</div>'+
+      '</div>';
+  });
+  html += '</div>';
+  html +=
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid rgba(0,212,255,.35);border-radius:10px;padding:12px 14px;background:rgba(0,212,255,.06);margin-bottom:4px">'+
+      '<div>'+
+        '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--cy,#00D4FF);font-weight:700;margin-bottom:3px">TOTAL GENERAL (c/IVA)</div>'+
+        '<div style="font-size:11px;color:var(--sld)">'+totals.rubros+' rubros · '+totals.capCount+' capítulo'+(totals.capCount!==1?'s':'')+'</div>'+
+      '</div>'+
+      '<div style="font-size:23px;font-weight:800;color:var(--ow,#F0F4FF);white-space:nowrap">'+fmtUSD(totals.total)+'</div>'+
+    '</div>';
+  return html;
+}
+
+// Sección PRESUPUESTO: bloque de totales + tarjetas por capítulo con todos
+// los rubros de AMBOS lados (si un rubro no existe en este lado, su fila
+// queda marcada en blanco, para que las dos columnas siempre listen lo
+// mismo y sean fáciles de comparar línea por línea).
+function _bmRenderCompareBudgetSide(capsOut, snap, totals, side){
+  var html = _bmCostTilesHtml(snap, totals);
   capsOut.forEach(function(cap){
     var subtotal = 0;
     var rowsHtml = cap.rubros.map(function(entry){
@@ -8706,11 +8738,15 @@ function _bmRenderCompareBudgetSide(capsOut, side){
         '</div>'
       );
     }).join('');
+    var pctOfTotal = totals.cd > 0 ? (subtotal/totals.cd*100) : 0;
     html +=
       '<div style="border:1px solid var(--br);border-radius:12px;overflow:hidden;margin-bottom:12px;background:rgba(255,255,255,.015)">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:rgba(255,255,255,.03)">'+
           '<div style="font-size:12px;font-weight:700;color:var(--cy,#00D4FF)">'+esc(cap.name)+'</div>'+
-          '<div style="font-size:12.5px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(subtotal)+'</div>'+
+          '<div style="text-align:right;flex-shrink:0">'+
+            '<div style="font-size:12.5px;font-weight:700;color:var(--ow,#F0F4FF)">'+fmtUSD(subtotal)+'</div>'+
+            '<div style="font-size:9.5px;color:var(--sld)">'+pctOfTotal.toFixed(1)+'%</div>'+
+          '</div>'+
         '</div>'+
         rowsHtml+
       '</div>';
@@ -8718,26 +8754,142 @@ function _bmRenderCompareBudgetSide(capsOut, side){
   return html;
 }
 
-// Sección CRONOGRAMA: tarjetas por capítulo, una fila por rubro programado
-// en ESE lado (fecha de inicio, duración y fecha de fin calculada). Un rubro
-// que no tiene fecha programada en este lado simplemente no aparece aquí —
-// esta sección es solo sobre fechas, no sobre presupuesto.
-function _bmRenderCompareScheduleSide(capsOut, side){
+// ── Curva S a partir de una foto (snapshot): recalcula rango de fechas,
+// costo diario planificado y acumulado, igual método que el Cronograma
+// real de la app pero sin depender del estado global S (usa el snapshot).
+function _bmSnapCroRange(snap){
+  var caps = snap.caps||[], sched = snap.schedule||{};
+  var min=null, max=null;
+  for (var ci=0; ci<caps.length; ci++){
+    var rows = caps[ci]||[];
+    for (var ri=0; ri<rows.length; ri++){
+      var d = (sched[ci]||{})[ri];
+      if (!d || !d.start || !d.dur) continue;
+      var end = croAddDays(d.start, d.dur);
+      if (!min || d.start<min) min = d.start;
+      if (!max || end>max) max = end;
+    }
+  }
+  if (!min || !max) return null;
+  return { min:min, max:max, totalDays: Math.max(1, croDaysBetween(min,max)) };
+}
+
+function _bmSnapCroSeries(snap){
+  var range = _bmSnapCroRange(snap);
+  if (!range) return null;
+  var caps = snap.caps||[], sched = snap.schedule||{};
+  var totalDays = range.totalDays;
+  var daily = new Array(totalDays+1).fill(0);
+  var totalPlanned = 0, scheduledCount = 0, totalRubros = 0;
+  for (var ci=0; ci<caps.length; ci++){
+    var rows = caps[ci]||[];
+    totalRubros += rows.length;
+    for (var ri=0; ri<rows.length; ri++){
+      var r = rows[ri];
+      var d = (sched[ci]||{})[ri];
+      if (!d || !d.start || !d.dur) continue;
+      var cost = (parseFloat(r.qty)||0)*(parseFloat(r.pu)||0);
+      if (!cost) continue;
+      scheduledCount++;
+      totalPlanned += cost;
+      var offsetDays = croDaysBetween(range.min, d.start);
+      var perDay = cost/Math.max(1, d.dur);
+      for (var k=0; k<d.dur; k++){
+        var idx = offsetDays+k;
+        if (idx>=0 && idx<=totalDays) daily[idx] += perDay;
+      }
+    }
+  }
+  var cum=[], run=0;
+  for (var i=0;i<daily.length;i++){ run+=daily[i]; cum.push(run); }
+  var maxPoints=36;
+  var step=Math.max(1, Math.ceil(cum.length/maxPoints));
+  var values=[];
+  for (var j=0;j<cum.length;j+=step) values.push(cum[j]);
+  if ((cum.length-1)%step!==0) values.push(cum[cum.length-1]);
+  return { range:range, values:values, totalPlanned:totalPlanned, scheduledCount:scheduledCount, totalRubros:totalRubros };
+}
+
+// Mini-gráfico de curva S como SVG en línea (sin dependencias de Chart.js),
+// para poder dibujar varios a la vez sin pisarse entre columnas.
+function _bmSvgSCurve(values, color){
+  var w=100, h=34; // viewBox en unidades relativas, escala con CSS
+  var maxV = Math.max.apply(null, values.concat([1]));
+  var n = values.length;
+  var pts = values.map(function(v,i){
+    var x = n>1 ? (i/(n-1))*w : 0;
+    var y = h - (v/maxV)*h;
+    return x.toFixed(2)+','+y.toFixed(2);
+  });
+  var linePath = 'M'+pts.join(' L');
+  var areaPath = linePath+' L'+w+','+h+' L0,'+h+' Z';
+  var gid = 'bmcsgrad'+Math.random().toString(36).slice(2,8);
+  return (
+    '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="width:100%;height:84px;display:block">'+
+      '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0%" stop-color="'+color+'" stop-opacity=".45"/>'+
+        '<stop offset="100%" stop-color="'+color+'" stop-opacity="0"/>'+
+      '</linearGradient></defs>'+
+      '<path d="'+areaPath+'" fill="url(#'+gid+')" stroke="none" vector-effect="non-scaling-stroke"/>'+
+      '<path d="'+linePath+'" fill="none" stroke="'+color+'" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '</svg>'
+  );
+}
+
+function _bmDurTxt(days){
+  if (days<30) return days+'d';
+  var months = days/30;
+  return months.toFixed(1)+' meses · '+days+'d';
+}
+
+// Sección CRONOGRAMA: KPIs (duración, rango de fechas, costo programado,
+// rubros programados), Curva S, y tarjetas por capítulo con cada rubro
+// programado en ESE lado (fecha de inicio, duración, fin calculado).
+function _bmRenderCompareScheduleSide(capsOut, snap, side){
+  var series = _bmSnapCroSeries(snap);
   var html = '';
+
+  if (!series) {
+    html += '<div style="padding:16px 4px;color:var(--sld);font-size:12.5px;font-style:italic;border:1px dashed var(--br);border-radius:10px;margin-bottom:14px">Sin rubros programados en este momento.</div>';
+  } else {
+    var range = series.range;
+    html +=
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">'+
+        '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02)">'+
+          '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">DURACIÓN ESTIMADA</div>'+
+          '<div style="font-size:14px;font-weight:800;color:var(--ow,#F0F4FF)">'+_bmDurTxt(range.totalDays)+'</div>'+
+        '</div>'+
+        '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02)">'+
+          '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">RANGO</div>'+
+          '<div style="font-size:12.5px;font-weight:700;color:var(--ow,#F0F4FF)">'+esc(range.min)+' → '+esc(range.max)+'</div>'+
+        '</div>'+
+        '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02)">'+
+          '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">COSTO PROGRAMADO</div>'+
+          '<div style="font-size:14px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(series.totalPlanned)+'</div>'+
+        '</div>'+
+        '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02)">'+
+          '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">RUBROS PROGRAMADOS</div>'+
+          '<div style="font-size:14px;font-weight:800;color:var(--ow,#F0F4FF)">'+series.scheduledCount+' / '+series.totalRubros+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px 4px;background:rgba(255,255,255,.015);margin-bottom:14px">'+
+        '<div style="font-size:10.5px;font-weight:700;color:var(--sld);margin-bottom:2px">Curva S — costo planificado acumulado</div>'+
+        _bmSvgSCurve(series.values, side==='a' ? '#8B5CF6' : '#00D4FF')+
+      '</div>';
+  }
+
   capsOut.forEach(function(cap){
     var rows = cap.rubros.map(function(entry){
       var e = side==='a' ? entry.a : entry.b;
       var sched = side==='a' ? entry.schedA : entry.schedB;
       if (!e || !sched || !sched.start || !sched.dur) return null;
       var bg = _bmCmpRowBg(entry.status, side);
-      return {
-        html: (
-          '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
-            '<div style="flex:1;min-width:0;color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(e.row))+'</div>'+
-            '<div style="flex-shrink:0;font-size:11.5px;color:var(--sld);white-space:nowrap">'+esc(_bmSchedTxt(sched))+'</div>'+
-          '</div>'
-        )
-      };
+      return (
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
+          '<div style="flex:1;min-width:0;color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(e.row))+'</div>'+
+          '<div style="flex-shrink:0;font-size:11.5px;color:var(--sld);white-space:nowrap">'+esc(_bmSchedTxt(sched))+'</div>'+
+        '</div>'
+      );
     }).filter(Boolean);
     if (!rows.length) return; // capítulo sin ningún rubro programado en este lado: se omite
     html +=
@@ -8745,10 +8897,10 @@ function _bmRenderCompareScheduleSide(capsOut, side){
         '<div style="padding:10px 14px;background:rgba(255,255,255,.03)">'+
           '<div style="font-size:12px;font-weight:700;color:#F59E0B">'+esc(cap.name)+'</div>'+
         '</div>'+
-        rows.map(function(r){ return r.html; }).join('')+
+        rows.join('')+
       '</div>';
   });
-  return html || '<div style="padding:18px 4px;color:var(--sld);font-size:12.5px;font-style:italic">Sin rubros programados en este momento.</div>';
+  return html;
 }
 
 function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
@@ -8770,9 +8922,9 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   var presupuestoIcon = '<path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/>';
   var cronogramaIcon = '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/>';
 
-  var sectionHeader = function(icon, color, label){
+  var sectionHeader = function(icon, color, label, margin){
     return (
-      '<div style="display:flex;align-items:center;gap:9px;margin:28px 0 14px">'+
+      '<div style="display:flex;align-items:center;gap:9px;margin:'+margin+'">'+
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2">'+icon+'</svg>'+
         '<div style="font-size:14px;font-weight:700;color:var(--ow,#F0F4FF)">'+label+'</div>'+
         '<div style="flex:1;height:1px;background:var(--br)"></div>'+
@@ -8781,7 +8933,7 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   };
   var colHeader = function(label, date, total){
     return (
-      '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;border-bottom:1px solid var(--br);z-index:2;margin-bottom:4px">'+
+      '<div style="position:sticky;top:0;background:var(--s1,#05080f);padding:14px 0 10px;border-bottom:1px solid var(--br);z-index:2;margin-bottom:10px">'+
         '<div style="font-size:11px;color:var(--sld)">'+label+(date?' · '+esc(date):'')+'</div>'+
         '<div style="font-size:21px;font-weight:800;color:var(--ow,#F0F4FF)">'+fmtUSD(total)+'</div>'+
       '</div>'
@@ -8800,24 +8952,24 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
       '<button type="button" class="btn ghost" id="bm-cmp-full-close">Cerrar</button>'+
     '</div>'+
     '<div style="overflow-y:auto;flex:1">'+
-      sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto').replace('margin:28px 0 14px', 'margin:20px 20px 14px')+
+      sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto', '20px 20px 14px')+
       '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;padding:0 20px">'+
         '<div class="bmcmp-col-a" style="padding:0 18px 8px 0;border-right:1px solid var(--br)">'+
           colHeader('Primer guardado', firstSnap.date, totA.total)+
-          _bmRenderCompareBudgetSide(capsOut, 'a')+
+          _bmRenderCompareBudgetSide(capsOut, firstSnap, totA, 'a')+
         '</div>'+
         '<div class="bmcmp-col-b" style="padding:0 0 8px 18px">'+
           colHeader('Actual', currentSnap.date, totB.total)+
-          _bmRenderCompareBudgetSide(capsOut, 'b')+
+          _bmRenderCompareBudgetSide(capsOut, currentSnap, totB, 'b')+
         '</div>'+
       '</div>'+
-      sectionHeader(cronogramaIcon, '#F59E0B', 'Cronograma').replace('margin:28px 0 14px', 'margin:8px 20px 14px')+
+      sectionHeader(cronogramaIcon, '#F59E0B', 'Cronograma', '8px 20px 14px')+
       '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;padding:0 20px 28px">'+
         '<div class="bmcmp-col-a" style="padding:0 18px 0 0;border-right:1px solid var(--br)">'+
-          _bmRenderCompareScheduleSide(capsOut, 'a')+
+          _bmRenderCompareScheduleSide(capsOut, firstSnap, 'a')+
         '</div>'+
         '<div class="bmcmp-col-b" style="padding:0 0 0 18px">'+
-          _bmRenderCompareScheduleSide(capsOut, 'b')+
+          _bmRenderCompareScheduleSide(capsOut, currentSnap, 'b')+
         '</div>'+
       '</div>'+
     '</div>';

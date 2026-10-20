@@ -4,7 +4,17 @@
 <meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Cargada SIN bloquear el primer pintado (preload + swap a stylesheet real
+     cuando termina), en vez de un <link rel="stylesheet"> normal — ese
+     bloqueaba el pintado inicial de la página hasta que esta hoja externa
+     terminara de descargar, y en redes lentas (ej. iPad en wifi débil) el
+     navegador a veces pinta igual pasado un límite de espera, ANTES de que
+     el CSS de abajo (el que fija el logo arriba a la izquierda) ya esté
+     listo — por eso el logo aparecía mal ubicado por unos milisegundos y
+     luego saltaba a su lugar. Con esto nunca bloquea, así que ese pintado
+     forzado-a-medias ya no puede pasar. -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"></noscript>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>BuildMatrix — Ingeniería de Costos de Nueva Generación</title>
 
@@ -8035,7 +8045,7 @@ function _bmAuditShowModal(findings, meta){
         (meta && meta.model ? ' · modelo: '+esc(meta.model) : '')+
       '</div>'+
       '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+itemsHtml+'</div>'+
-      '<button type="button" id="bm-audit-close" style="margin-top:16px;padding:11px;border-radius:10px;border:0;background:linear-gradient(180deg,#00D4FF,#0052FF);color:#04121F;font-weight:700;font-size:13px;cursor:pointer">Entendido</button>'+
+      '<button type="button" id="bm-audit-close" style="margin-top:16px;padding:11px;border-radius:10px;border:0;background:linear-gradient(180deg,#34D399,#059669);color:#04291A;font-weight:700;font-size:13px;cursor:pointer">Entendido</button>'+
     '</div>';
   document.body.appendChild(modal);
   function close(){ modal.remove(); }
@@ -9643,14 +9653,92 @@ function _bmPortalTrackOpen(shareId){
 //     regla de Firestore deja tocar SOLO esos 2 campos desde fuera, nada
 //     del contenido cifrado).
 //
-// "Visto" se guarda en localStorage (por notificación individual, no en la
-// nube) — así que es por dispositivo: si entras desde otro computador, las
-// vuelves a ver ahí la primera vez.
+// "Visto" se guarda en la nube (users/{uid}.notifSeenIds), no solo en este
+// dispositivo — así que si lo marcas leído en el PC, también aparece leído
+// al entrar desde el iPad o el celular. Se mantiene además un espejo en
+// localStorage como caché instantánea (para no esperar la red al dibujar el
+// panel la primera vez), pero la fuente de verdad real es Firestore.
 // ══════════════════════════════════════════════════════════════════════════
 
-function _bmNotifSeenKey(id){ return 'bm_notif_seen_' + id; }
-function _bmNotifIsSeen(id){ try{ return localStorage.getItem(_bmNotifSeenKey(id)) === '1'; }catch(e){ return false; } }
-function _bmNotifMarkSeen(id){ try{ localStorage.setItem(_bmNotifSeenKey(id), '1'); }catch(e){} }
+var _bmNotifSeenSet = null;       // Set<string> en memoria, una vez cargado
+var _bmNotifSeenLoading = null;   // promesa en curso, para no cargar 2 veces
+var _BM_NOTIF_CACHE_KEY = 'bm_notif_seen_ids_cache';
+
+function _bmNotifReadLocalCache(){
+  try{ return JSON.parse(localStorage.getItem(_BM_NOTIF_CACHE_KEY) || '[]'); }catch(e){ return []; }
+}
+function _bmNotifWriteLocalCache(){
+  try{ localStorage.setItem(_BM_NOTIF_CACHE_KEY, JSON.stringify(Array.from(_bmNotifSeenSet))); }catch(e){}
+}
+
+// Carga (una sola vez por sesión) el set de "vistos" desde la nube, partiendo
+// de la caché local para que el badge no parpadee mientras llega la red.
+function _bmNotifLoadSeenFromCloud(uid){
+  if (_bmNotifSeenLoading) return _bmNotifSeenLoading;
+  _bmNotifSeenLoading = (async function(){
+    _bmNotifSeenSet = new Set(_bmNotifReadLocalCache());
+    if (!uid) return _bmNotifSeenSet;
+    try{
+      var doc = await firebase.firestore().collection('users').doc(uid).get();
+      var ids = (doc.exists && doc.data().notifSeenIds) || [];
+      ids.forEach(function(id){ _bmNotifSeenSet.add(id); });
+      _bmNotifWriteLocalCache();
+    }catch(e){ console.warn('[Notif] No se pudo leer el estado de leído desde la nube:', e && e.message); }
+    return _bmNotifSeenSet;
+  })();
+  return _bmNotifSeenLoading;
+}
+
+function _bmNotifIsSeen(id){
+  if (_bmNotifSeenSet) return _bmNotifSeenSet.has(id);
+  return _bmNotifReadLocalCache().indexOf(id) !== -1; // aún no cargó la nube
+}
+
+function _bmNotifMarkSeen(id){
+  if (!_bmNotifSeenSet) _bmNotifSeenSet = new Set(_bmNotifReadLocalCache());
+  if (_bmNotifSeenSet.has(id)) return; // ya estaba — nada que sincronizar
+  _bmNotifSeenSet.add(id);
+  _bmNotifWriteLocalCache();
+  var user = firebase.auth().currentUser;
+  if (!user) return;
+  // Tope de seguridad: si la lista ya creció demasiado (meses de portales
+  // abiertos, etc.), se recorta a las últimas 300 antes de seguir agregando,
+  // para no inflar el documento del usuario de forma indefinida.
+  if (_bmNotifSeenSet.size > 400) {
+    var trimmed = Array.from(_bmNotifSeenSet).slice(-300);
+    _bmNotifSeenSet = new Set(trimmed);
+    _bmNotifWriteLocalCache();
+    firebase.firestore().collection('users').doc(user.uid).update({ notifSeenIds: trimmed })
+      .catch(function(e){ console.warn('[Notif] No se pudo sincronizar "leído":', e && e.message); });
+    return;
+  }
+  firebase.firestore().collection('users').doc(user.uid).update({
+    notifSeenIds: firebase.firestore.FieldValue.arrayUnion(id)
+  }).catch(function(e){ console.warn('[Notif] No se pudo sincronizar "leído":', e && e.message); });
+}
+
+// Marca varios a la vez en UNA sola escritura a Firestore (en vez de una por
+// notificación) — se usa en "Marcar todo leído".
+function _bmNotifMarkManySeen(ids){
+  if (!_bmNotifSeenSet) _bmNotifSeenSet = new Set(_bmNotifReadLocalCache());
+  var newOnes = ids.filter(function(id){ return !_bmNotifSeenSet.has(id); });
+  if (!newOnes.length) return;
+  newOnes.forEach(function(id){ _bmNotifSeenSet.add(id); });
+  _bmNotifWriteLocalCache();
+  var user = firebase.auth().currentUser;
+  if (!user) return;
+  if (_bmNotifSeenSet.size > 400) {
+    var trimmed = Array.from(_bmNotifSeenSet).slice(-300);
+    _bmNotifSeenSet = new Set(trimmed);
+    _bmNotifWriteLocalCache();
+    firebase.firestore().collection('users').doc(user.uid).update({ notifSeenIds: trimmed })
+      .catch(function(e){ console.warn('[Notif] No se pudo sincronizar "leído":', e && e.message); });
+    return;
+  }
+  firebase.firestore().collection('users').doc(user.uid).update({
+    notifSeenIds: firebase.firestore.FieldValue.arrayUnion.apply(null, newOnes)
+  }).catch(function(e){ console.warn('[Notif] No se pudo sincronizar "leído":', e && e.message); });
+}
 
 async function _bmCollectNotifications(uid){
   var out = [];
@@ -9697,6 +9785,7 @@ async function _bmCollectNotifications(uid){
 async function bmRefreshNotifications(){
   try{
     var user = firebase.auth().currentUser;
+    await _bmNotifLoadSeenFromCloud(user ? user.uid : null);
     var list = await _bmCollectNotifications(user ? user.uid : null);
     window._bmNotifList = list;
     var unseen = list.filter(function(n){ return !_bmNotifIsSeen(n.id); }).length;
@@ -9751,7 +9840,7 @@ function _bmRenderNotifPanel(){
   });
   var markAllBtn = document.getElementById('bm-notif-markall');
   if (markAllBtn) markAllBtn.addEventListener('click', function(){
-    list.forEach(function(n){ _bmNotifMarkSeen(n.id); });
+    _bmNotifMarkManySeen(list.map(function(n){ return n.id; }));
     bmRefreshNotifications();
   });
 }

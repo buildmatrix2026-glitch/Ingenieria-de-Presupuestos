@@ -3,11 +3,9 @@
 //  Estrategia: Cache-First con actualización en segundo plano
 // ══════════════════════════════════════════════════════
 
-const CACHE_NAME  = 'buildmatrix-v4';   // v4 → limpia buildmatrix-v3 (y las anteriores), para que
-                                         // nadie se quede con una copia vieja guardada después de
-                                         // toda la ronda de arreglos de hoy (usuarios, proyectos,
-                                         // login, reglas de Firestore). Cada vez que subas un
-                                         // index.html con cambios importantes, conviene subir el
+const CACHE_NAME  = 'buildmatrix-v5';   // v5 → limpia buildmatrix-v4 (y las anteriores), por la
+                                         // ronda de hoy del Comparador de presupuestos. Cada vez
+                                         // que subas un index.html con cambios importantes, conviene subir el
                                          // número de esta línea también (v5, v6...) — así, en el
                                          // navegador de cualquiera que ya haya entrado antes, el
                                          // propio Service Worker limpia su caché vieja solo, sin

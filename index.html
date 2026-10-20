@@ -8366,7 +8366,10 @@ function _bmLogProjectHistory(prev, next){
         totalAfter: totalsNext.total
       };
       if (withSnapshot) entryData.snapshot = buildSnapshot();
-      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+      histCol.add(entryData).catch(function(e){
+        console.warn('No se pudo registrar historial (no crítico):', e && e.message);
+        if (typeof toast === 'function') toast('⚠️ Historial (escritura): ' + (e && e.message || e), false);
+      });
     };
 
     if (!prev) {
@@ -8394,10 +8397,19 @@ function _bmLogProjectHistory(prev, next){
       if (!yaTieneFotoInicial) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
       if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
       writeEntry(changes, false);
-    }).catch(function(){
-      if (changes.length) writeEntry(changes, false); // mejor esfuerzo si falla la consulta previa
+    }).catch(function(e){
+      console.warn('No se pudo consultar historial previo (no crítico):', e && e.message);
+      if (typeof toast === 'function') toast('⚠️ Historial (lectura): ' + (e && e.message || e), false);
+      // Mejor esfuerzo: si no se pudo saber si ya había foto base, igual se
+      // intenta dejar una — es preferible una foto "de más" (se sobrescribe
+      // más adelante) a quedarse sin ninguna para siempre por una consulta
+      // que falló.
+      writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
     });
-  }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
+  }catch(e){
+    console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message);
+    if (typeof toast === 'function') toast('⚠️ Historial (error): ' + (e && e.message || e), false);
+  }
 }
 
 function bmOpenHistoryModal(){
@@ -8587,7 +8599,7 @@ function bmOpenCompareModal(){
         '</div>';
     }).catch(function(e){
       console.warn('Error comparando presupuestos:', e && e.message);
-      resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el primer guardado (red lenta o inestable).<br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" id="bm-cmp-retry">Reintentar</button></div>';
+      resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el primer guardado (red lenta o inestable).<br><span style="color:#F87171;font-size:11px">'+esc(e && e.message || String(e))+'</span><br><button type="button" class="btn ghost" style="margin-top:10px;padding:8px 16px;font-size:12px" id="bm-cmp-retry">Reintentar</button></div>';
       var retryBtn = document.getElementById('bm-cmp-retry');
       if (retryBtn) retryBtn.onclick = runCompare;
     });

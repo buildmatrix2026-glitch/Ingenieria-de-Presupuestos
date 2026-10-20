@@ -5103,6 +5103,7 @@ gsap.fromTo('.chapter-card',
 @keyframes bmcf-icon-pulse{0%,100%{box-shadow:0 0 0 0 var(--bmcf-ring)}50%{box-shadow:0 0 0 6px transparent}}
 .bmcf-ov{position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 40%,rgba(9,16,30,.78),rgba(3,7,15,.88));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:bmcf-ov-in .18s ease-out both;font-family:var(--font-main,'Outfit',sans-serif)}
 .bmcf-outer{position:relative;width:100%;max-width:440px;border-radius:17px;animation:bmcf-in .28s cubic-bezier(.19,1,.22,1) both;box-shadow:0 18px 40px -10px rgba(0,0,0,.5)}
+.bmcf-outer.bmcf-wide{max-width:640px}
 .bmcf-outer>.bmcf-run{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 3px var(--bmcf-accent-glow));z-index:3}
 .bmcf-outer>.bmcf-run rect{fill:none;stroke:var(--bmcf-accent);stroke-opacity:.55;stroke-width:2;stroke-linecap:butt;animation:bmRun var(--bmcf-run-dur,3s) linear infinite}
 @media (prefers-reduced-motion: reduce){.bmcf-outer>.bmcf-run rect{animation:none}}
@@ -5182,7 +5183,12 @@ window.BM_CONFIRM = function (msg) {
     var lines = rest.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
 
     var ov = document.createElement('div'); ov.className = 'bmcf-ov';
-    var outer = document.createElement('div'); outer.className = 'bmcf-outer';
+    // ── Mensajes largos (varias líneas o un título extenso) usan el modal ancho
+    // (.bmcf-wide) para que el texto respire en vez de apretarse en una columna
+    // angosta de 440px — eso es lo que se veía "feo" en avisos largos como el
+    // del autocompletado del Cronograma.
+    var isLongMsg = title.length > 160 || lines.length >= 3;
+    var outer = document.createElement('div'); outer.className = 'bmcf-outer' + (isLongMsg ? ' bmcf-wide' : '');
     outer.style.cssText = '--bmcf-accent:' + t.a + ';--bmcf-accent-2:' + t.a2 + ';--bmcf-accent-dim:' + t.dim + ';--bmcf-accent-glow:' + t.glow + ';--bmcf-icon-bg:' + t.ibg + ';--bmcf-icon-br:' + t.ibr + ';--bmcf-warn-bg:' + t.warnbg + ';--bmcf-warn-br:' + t.warnbr + ';--bmcf-warn-fg:' + t.warnfg + ';--bmcf-btn-bg:' + t.btnbg + ';--bmcf-btn-br:' + t.btnbr + ';--bmcf-btn-fg:' + t.btnfg + ';--bmcf-btn-shadow:' + t.btnsh + ';--bmcf-ring:' + t.dim;
     var card = document.createElement('div'); card.className = 'bmcf-card';
 
@@ -8072,7 +8078,17 @@ const CRO_CAP_DEPS = [
 async function croAutoFill(){
   const startInput=$id('cro-proj-start');
   const projStart=(startInput&&startInput.value)||new Date().toISOString().slice(0,10);
-  if(!await BM_CONFIRM('Esto asignará fechas automáticas a todos los rubros que aún no tienen fecha de inicio desde '+formatDateDisplay(projStart)+', respetando dependencias reales entre capítulos (p.ej. mampostería no puede iniciar antes de que la estructura esté fundida y curada) y dejando que capítulos independientes — como cubierta y acabados interiores — avancen en PARALELO, como varias cuadrillas reales. La duración de cada rubro se estima según su descripción/cantidad/unidad (o su costo si no se reconoce nada), y se respetan tiempos de curado y fraguado reales del hormigón, la mampostería y el enlucido (una losa deja 14 días de espera antes de cargar algo encima). Dentro de cada capítulo los rubros SÍ van uno tras otro (una sola cuadrilla por capítulo) — son días orientativos, ajústalos luego a mano según tu cuadrilla, clima y criterio del residente de obra. El % de avance de todos los rubros se pondrá en 100%. Los rubros que ya tienen fecha o días puestos a mano NO se tocan en esos campos. ¿Continuar?')) return;
+  if(!await BM_CONFIRM(
+    '¿Autocompletar cronograma desde '+formatDateDisplay(projStart)+'?\n'+
+    'Respeta dependencias reales entre capítulos: p.ej. mampostería no puede iniciar antes de que la estructura esté fundida y curada.\n'+
+    'Los capítulos independientes —como cubierta y acabados interiores— avanzan en PARALELO, simulando varias cuadrillas reales trabajando a la vez.\n'+
+    'La duración de cada rubro se estima según su descripción, cantidad y unidad (o su costo si no se reconoce nada).\n'+
+    'Se respetan tiempos reales de curado y fraguado: una losa deja 14 días de espera antes de cargar algo encima.\n'+
+    'Dentro de cada capítulo los rubros van uno tras otro (una sola cuadrilla por capítulo) — son días orientativos, ajústalos luego según tu cuadrilla, el clima y el criterio del residente de obra.\n'+
+    'El % de avance de todos los rubros se pondrá en 100%.\n'+
+    'Los rubros que ya tienen fecha o días puestos a mano no se tocan.\n'+
+    '¿Continuar?'
+  )) return;
   const CAPS=getCaps();
   const capFinish=new Array(CAPS.length).fill(null);   // fecha de fin calculada de cada capítulo
   // CRO_CAP_DEPS ya está en orden topológico válido (cada capítulo solo depende de

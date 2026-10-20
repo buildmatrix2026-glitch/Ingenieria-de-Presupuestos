@@ -8645,10 +8645,20 @@ function _bmBuildCompareRows(firstSnap, currentSnap){
         var pa = parseFloat(a.row.pu)||0, pb = parseFloat(b.row.pu)||0;
         status = (qa!==qb || pa!==pb) ? 'changed' : 'same';
       }
+      var schedA = a ? (((firstSnap.schedule||{})[ci]||{})[a.idx] || null) : null;
+      var schedB = b ? (((currentSnap.schedule||{})[ci]||{})[b.idx] || null) : null;
+      // Estado del CRONOGRAMA, independiente del estado del PRESUPUESTO: un
+      // rubro puede costar igual pero haberse movido de fecha, o viceversa.
+      var schedStatus;
+      var hasA = !!(schedA && schedA.start && schedA.dur), hasB = !!(schedB && schedB.start && schedB.dur);
+      if (!hasA && !hasB) schedStatus = 'none';
+      else if (!hasA) schedStatus = 'sched-added';
+      else if (!hasB) schedStatus = 'sched-removed';
+      else schedStatus = (schedA.start!==schedB.start || String(schedA.dur)!==String(schedB.dur)) ? 'sched-changed' : 'sched-same';
+      var dayShift = (hasA && hasB) ? croDaysBetween(schedA.start, schedB.start) : null;
       return {
         key: k, a: a, b: b, status: status,
-        schedA: a ? (((firstSnap.schedule||{})[ci]||{})[a.idx] || null) : null,
-        schedB: b ? (((currentSnap.schedule||{})[ci]||{})[b.idx] || null) : null
+        schedA: schedA, schedB: schedB, schedStatus: schedStatus, dayShift: dayShift
       };
     });
     out.push({ ci: ci, name: capNamesRef[ci] || ('Capítulo '+(ci+1)), rubros: rubros });
@@ -8673,11 +8683,18 @@ function _bmSchedTxt(sched){
   return sched.start + ' · ' + sched.dur + 'd' + (endDate ? ' (fin ' + endDate + ')' : '');
 }
 
-function _bmCmpRowBg(status, side, forBudget){
-  if (status==='added') return side==='a' ? null : 'rgba(52,211,153,.12)';
-  if (status==='removed') return side==='b' ? null : 'rgba(248,113,113,.12)';
-  if (status==='changed') return 'rgba(251,191,36,.12)';
+function _bmCmpRowBg(status, side){
+  if (status==='added' || status==='sched-added') return side==='a' ? null : 'rgba(52,211,153,.12)';
+  if (status==='removed' || status==='sched-removed') return side==='b' ? null : 'rgba(248,113,113,.12)';
+  if (status==='changed' || status==='sched-changed') return 'rgba(251,191,36,.12)';
   return 'transparent';
+}
+// true si la fila NO tiene ninguna diferencia (ni en costo ni en fecha) —
+// usado por el filtro "Solo diferencias" para poder ocultarla.
+function _bmRowIsUnchanged(entry){
+  var budgetSame = entry.status==='same';
+  var schedSame = entry.schedStatus==='same' || entry.schedStatus==='sched-same' || entry.schedStatus==='none';
+  return budgetSame && schedSame;
 }
 
 // ── Bloque de totales de costos (igual criterio visual que la vista de
@@ -8721,18 +8738,33 @@ function _bmRenderCompareBudgetSide(capsOut, snap, totals, side){
     var subtotal = 0;
     var rowsHtml = cap.rubros.map(function(entry){
       var e = side==='a' ? entry.a : entry.b;
+      var other = side==='a' ? entry.b : entry.a;
       var bg = _bmCmpRowBg(entry.status, side);
+      var rowCls = _bmRowIsUnchanged(entry) ? 'bmcmp-row-same' : 'bmcmp-row-diff';
       if (!e) {
-        return '<div style="display:flex;align-items:center;padding:8px 14px;color:var(--sld);font-style:italic;font-size:11.5px;border-top:1px solid rgba(255,255,255,.04)">— no existía en este momento —</div>';
+        return '<div class="'+rowCls+'" style="display:flex;align-items:center;padding:8px 14px;color:var(--sld);font-style:italic;font-size:11.5px;border-top:1px solid rgba(255,255,255,.04)">— no existía en este momento —</div>';
       }
       var r = e.row;
       var qty = parseFloat(r.qty)||0, pu = parseFloat(r.pu)||0, tot = qty*pu;
       subtotal += tot;
+      // En filas que CAMBIARON de costo, mostrar debajo cuál era/será el otro
+      // valor, para que el cambio se entienda sin tener que mirar la otra
+      // columna: a la izquierda dice "ahora: …", a la derecha dice "antes: …".
+      var deltaLine = '';
+      if (entry.status==='changed' && other){
+        var or = other.row;
+        var oQty = parseFloat(or.qty)||0, oPu = parseFloat(or.pu)||0, oTot = oQty*oPu;
+        var deltaUSD = side==='a' ? (oTot-tot) : (tot-oTot);
+        var deltaSign = deltaUSD>=0 ? '+' : '−';
+        var prefix = side==='a' ? 'ahora: ' : 'antes: ';
+        deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px">'+prefix+oQty+' '+esc(or.unit||'')+' × '+fmtUSD(oPu)+' = '+fmtUSD(oTot)+' <span style="opacity:.8">('+deltaSign+fmtUSD(Math.abs(deltaUSD))+')</span></div>';
+      }
       return (
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
+        '<div class="'+rowCls+'" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
           '<div style="flex:1;min-width:0">'+
             '<div style="color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(r))+'</div>'+
             '<div style="font-size:10.5px;color:var(--sld);margin-top:1px">'+qty+' '+esc(r.unit||'')+' × '+fmtUSD(pu)+'</div>'+
+            deltaLine+
           '</div>'+
           '<div style="flex-shrink:0;font-weight:700;font-size:12.5px;color:var(--ow,#F0F4FF);white-space:nowrap">'+fmtUSD(tot)+'</div>'+
         '</div>'
@@ -8883,11 +8915,17 @@ function _bmRenderCompareScheduleSide(capsOut, snap, side){
       var e = side==='a' ? entry.a : entry.b;
       var sched = side==='a' ? entry.schedA : entry.schedB;
       if (!e || !sched || !sched.start || !sched.dur) return null;
-      var bg = _bmCmpRowBg(entry.status, side);
+      var bg = _bmCmpRowBg(entry.schedStatus, side);
+      var rowCls = (entry.schedStatus==='sched-same' || entry.schedStatus==='none') ? 'bmcmp-row-same' : 'bmcmp-row-diff';
+      var shiftTxt = '';
+      if (entry.schedStatus==='sched-changed' && entry.dayShift){
+        var shiftSign = entry.dayShift>0 ? '+' : '';
+        shiftTxt = ' <span style="color:#FBBF24;font-weight:700">('+shiftSign+entry.dayShift+'d vs. primer guardado)</span>';
+      }
       return (
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
+        '<div class="'+rowCls+'" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
           '<div style="flex:1;min-width:0;color:var(--ow,#F0F4FF);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_bmRubroLabelFull(e.row))+'</div>'+
-          '<div style="flex-shrink:0;font-size:11.5px;color:var(--sld);white-space:nowrap">'+esc(_bmSchedTxt(sched))+'</div>'+
+          '<div style="flex-shrink:0;font-size:11.5px;color:var(--sld);white-space:nowrap">'+esc(_bmSchedTxt(sched))+shiftTxt+'</div>'+
         '</div>'
       );
     }).filter(Boolean);
@@ -8909,6 +8947,7 @@ function _bmRenderCompareScheduleSide(capsOut, snap, side){
 function _bmCompareChangeStats(capsOut){
   var added=0, removed=0, changed=0, same=0;
   var addedTotal=0, removedTotal=0, changedDelta=0;
+  var schedMoved=0, schedAdded=0, schedRemoved=0;
   capsOut.forEach(function(cap){
     cap.rubros.forEach(function(entry){
       if (entry.status==='added'){
@@ -8922,9 +8961,12 @@ function _bmCompareChangeStats(capsOut){
         var ra=entry.a.row, rb=entry.b.row;
         changedDelta += ((parseFloat(rb.qty)||0)*(parseFloat(rb.pu)||0)) - ((parseFloat(ra.qty)||0)*(parseFloat(ra.pu)||0));
       } else same++;
+      if (entry.schedStatus==='sched-changed') schedMoved++;
+      else if (entry.schedStatus==='sched-added') schedAdded++;
+      else if (entry.schedStatus==='sched-removed') schedRemoved++;
     });
   });
-  return { added:added, removed:removed, changed:changed, same:same, addedTotal:addedTotal, removedTotal:removedTotal, changedDelta:changedDelta };
+  return { added:added, removed:removed, changed:changed, same:same, addedTotal:addedTotal, removedTotal:removedTotal, changedDelta:changedDelta, schedMoved:schedMoved, schedAdded:schedAdded, schedRemoved:schedRemoved };
 }
 
 function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
@@ -8932,7 +8974,9 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   if (!document.getElementById('bm-cmp-full-styles')) {
     var st = document.createElement('style');
     st.id = 'bm-cmp-full-styles';
-    st.textContent = '@media (max-width: 860px){ #bm-cmp-full .bmcmp-grid{ grid-template-columns:1fr !important; } #bm-cmp-full .bmcmp-col-a{ border-right:0 !important; border-bottom:1px solid var(--br); padding-bottom:20px !important; } }';
+    st.textContent = '@media (max-width: 860px){ #bm-cmp-full .bmcmp-grid{ grid-template-columns:1fr !important; } #bm-cmp-full .bmcmp-col-a{ border-right:0 !important; border-bottom:1px solid var(--br); padding-bottom:20px !important; } }'+
+      '#bm-cmp-full.bmcmp-only-diff .bmcmp-row-same{ display:none !important; }'+
+      '#bm-cmp-full-diffbtn.active{ background:rgba(0,212,255,.14); border-color:rgba(0,212,255,.5); color:var(--cy,#00D4FF); }';
     document.head.appendChild(st);
   }
 
@@ -8944,6 +8988,9 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   var diffSign = diffAbs >= 0 ? '+' : '−';
   var stats = _bmCompareChangeStats(capsOut);
   var changeLines = _bmDiffProjectEntries(firstSnap, currentSnap);
+  var seriesA = _bmSnapCroSeries(firstSnap), seriesB = _bmSnapCroSeries(currentSnap);
+  var durDiff = (seriesA && seriesB) ? (seriesB.range.totalDays - seriesA.range.totalDays) : null;
+  var endDiff = (seriesA && seriesB) ? croDaysBetween(seriesA.range.max, seriesB.range.max) : null;
 
   var presupuestoIcon = '<path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/>';
   var cronogramaIcon = '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/>';
@@ -8997,17 +9044,27 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
         '</div>'+
       '</div>'+
       '<div style="padding:20px 20px 4px;max-width:1040px;margin:0 auto">'+
-        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">'+
+        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap">'+
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sld)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
           '<div style="font-size:14px;font-weight:700;color:var(--ow,#F0F4FF)">Resumen de cambios</div>'+
           '<div style="flex:1;height:1px;background:var(--br)"></div>'+
+          '<button type="button" id="bm-cmp-full-diffbtn" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--br);background:rgba(255,255,255,.02);color:var(--ow,#F0F4FF);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .15s">'+
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>'+
+            'Solo diferencias'+
+          '</button>'+
         '</div>'+
-        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">'+
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">'+
           statTile('RUBROS AGREGADOS', stats.added+' <span style="font-size:11px;font-weight:600">(+'+fmtUSD(stats.addedTotal)+')</span>', '#34D399')+
           statTile('RUBROS ELIMINADOS', stats.removed+' <span style="font-size:11px;font-weight:600">(−'+fmtUSD(stats.removedTotal)+')</span>', '#F87171')+
           statTile('RUBROS MODIFICADOS', stats.changed+' <span style="font-size:11px;font-weight:600">('+(stats.changedDelta>=0?'+':'−')+fmtUSD(Math.abs(stats.changedDelta))+')</span>', '#FBBF24')+
           statTile('SIN CAMBIOS', stats.same, 'var(--ow,#F0F4FF)')+
         '</div>'+
+        (seriesA && seriesB ?
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">'+
+            statTile('DURACIÓN DE OBRA', _bmDurTxt(seriesA.range.totalDays)+' → '+_bmDurTxt(seriesB.range.totalDays)+' <span style="font-size:11px;font-weight:600;color:'+(durDiff>0?'#F87171':durDiff<0?'#34D399':'var(--sld)')+'">('+(durDiff>=0?'+':'')+durDiff+'d)</span>', 'var(--ow,#F0F4FF)')+
+            statTile('FECHA DE FIN', esc(seriesA.range.max)+' → '+esc(seriesB.range.max)+' <span style="font-size:11px;font-weight:600;color:'+(endDiff>0?'#F87171':endDiff<0?'#34D399':'var(--sld)')+'">('+(endDiff>=0?'+':'')+endDiff+'d)</span>', 'var(--ow,#F0F4FF)')+
+            statTile('RUBROS CON FECHA MOVIDA', stats.schedMoved+(stats.schedAdded||stats.schedRemoved ? ' <span style="font-size:11px;font-weight:600;color:var(--sld)">(+'+stats.schedAdded+' nuevos, −'+stats.schedRemoved+')</span>' : ''), '#FBBF24')+
+          '</div>' : '')+
         '<div style="border:1px solid var(--br);border-radius:12px;padding:14px 18px;background:rgba(255,255,255,.015);margin-bottom:6px">'+
           '<div style="font-size:11.5px;font-weight:700;color:var(--sld);letter-spacing:.03em">QUÉ CAMBIÓ</div>'+
           changeListHtml+
@@ -9036,6 +9093,11 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
     '</div>';
   document.body.appendChild(wrap);
   document.getElementById('bm-cmp-full-close').onclick = function(){ wrap.remove(); };
+  var diffBtn = document.getElementById('bm-cmp-full-diffbtn');
+  if (diffBtn) diffBtn.onclick = function(){
+    wrap.classList.toggle('bmcmp-only-diff');
+    diffBtn.classList.toggle('active');
+  };
 }
 
 // ── Menú "Más" (solo móvil) ──────────────────────────────────────────────

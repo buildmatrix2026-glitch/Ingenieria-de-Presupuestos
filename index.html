@@ -8335,11 +8335,10 @@ function _bmLogProjectHistory(prev, next){
   // Mejor esfuerzo total: cualquier fallo aquí se traga en silencio y NUNCA
   // debe afectar el guardado (que ya ocurrió) ni la sincronización a Firestore.
   try{
-    if (!next || !next.name) { if (typeof toast === 'function') toast('⚠️ Historial: entry sin nombre, no se registró', false); return; }
+    if (!next || !next.name) return;
     var user = firebase.auth().currentUser;
-    if (!user) { if (typeof toast === 'function') toast('⚠️ Historial: no hay sesión activa, no se registró', false); return; } // sin sesión no hay a dónde registrar el historial
+    if (!user) return; // sin sesión no hay a dónde registrar el historial
 
-    if (typeof toast === 'function') toast('🔎 Historial: registrando "'+next.name+'"…', true);
     var changes = prev ? _bmDiffProjectEntries(prev, next) : ['Primer guardado del proyecto'];
 
     var totalsNext = _calcProjTotals(next);
@@ -8349,13 +8348,23 @@ function _bmLogProjectHistory(prev, next){
     var db = firebase.firestore();
     var histCol = db.collection('projects').doc(docId).collection('history');
 
-    var buildSnapshot = function(){
-      return {
+    // ── CAUSA RAÍZ DEL BUG "el Comparador nunca encuentra la foto inicial" ──
+    // Firestore NO permite un array que contenga directamente otros arrays
+    // ("Nested arrays are not supported"), y S.caps es justo eso: un array de
+    // capítulos, cada uno con un array de rubros adentro. Guardar la foto
+    // como objeto nativo (entryData.snapshot = {..., caps: [...]}) hacía que
+    // addDoc() fallara SIEMPRE — ni con error visible normalmente, se veía
+    // como "no pasa nada". Igual que ya hacen las Plantillas de esta misma
+    // app (bmSaveAsTemplate guarda `dataJson: JSON.stringify(tpl)`), la foto
+    // se guarda aquí como texto JSON en un solo campo de texto, que Firestore
+    // sí acepta sin problema.
+    var buildSnapshotJson = function(){
+      return JSON.stringify({
         own: next.own || '', date: next.date || '',
         ind: next.ind, uti: next.uti, iva: next.iva,
-        caps: JSON.parse(JSON.stringify(next.caps||[])),
-        capNames: JSON.parse(JSON.stringify(next.capNames||[]))
-      };
+        caps: next.caps || [],
+        capNames: next.capNames || []
+      });
     };
     var writeEntry = function(changesArr, withSnapshot){
       var entryData = {
@@ -8366,13 +8375,8 @@ function _bmLogProjectHistory(prev, next){
         totalBefore: totalBefore,
         totalAfter: totalsNext.total
       };
-      if (withSnapshot) entryData.snapshot = buildSnapshot();
-      histCol.add(entryData).then(function(){
-        if (typeof toast === 'function') toast('✅ Historial guardado' + (withSnapshot ? ' (con foto base)' : ''), true);
-      }).catch(function(e){
-        console.warn('No se pudo registrar historial (no crítico):', e && e.message);
-        if (typeof toast === 'function') toast('⚠️ Historial (escritura): ' + (e && e.message || e), false);
-      });
+      if (withSnapshot) entryData.snapshotJson = buildSnapshotJson();
+      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
     };
 
     if (!prev) {
@@ -8392,27 +8396,21 @@ function _bmLogProjectHistory(prev, next){
     // siempre en proyectos antiguos. IMPORTANTE: esto se decide ANTES de
     // mirar si "changes" detectó algo, porque _bmDiffProjectEntries solo
     // compara own/fecha/ind/uti/iva y cantidad/P.U. por rubro — una edición
-    // de APU, cronograma, insumos personalizados, etc. no aparece ahí, y
-    // antes eso hacía que el guardado se saltara por completo sin crear
-    // nunca la foto base (el bug reportado: "hice un cambio y no se nota").
+    // de APU, cronograma, insumos personalizados, etc. no aparece ahí.
     histCol.orderBy('ts', 'asc').limit(1).get().then(function(snap){
-      var yaTieneFotoInicial = !snap.empty && !!snap.docs[0].data().snapshot;
+      var yaTieneFotoInicial = !snap.empty && !!snap.docs[0].data().snapshotJson;
       if (!yaTieneFotoInicial) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); return; }
       if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
       writeEntry(changes, false);
     }).catch(function(e){
       console.warn('No se pudo consultar historial previo (no crítico):', e && e.message);
-      if (typeof toast === 'function') toast('⚠️ Historial (lectura): ' + (e && e.message || e), false);
       // Mejor esfuerzo: si no se pudo saber si ya había foto base, igual se
       // intenta dejar una — es preferible una foto "de más" (se sobrescribe
       // más adelante) a quedarse sin ninguna para siempre por una consulta
       // que falló.
       writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
     });
-  }catch(e){
-    console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message);
-    if (typeof toast === 'function') toast('⚠️ Historial (error): ' + (e && e.message || e), false);
-  }
+  }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
 
 function bmOpenHistoryModal(){
@@ -8562,11 +8560,15 @@ function bmOpenCompareModal(){
         .orderBy('ts', 'asc').limit(1).get(),
       9000, 'COMPARADOR:lectura'
     ).then(function(snap){
-      if (snap.empty || !snap.docs[0].data().snapshot) {
+      if (snap.empty || !snap.docs[0].data().snapshotJson) {
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
         return;
       }
-      var first = snap.docs[0].data().snapshot; // {own,date,ind,uti,iva,caps,capNames}
+      var first;
+      try{ first = JSON.parse(snap.docs[0].data().snapshotJson); }catch(e){
+        resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">La foto guardada de "'+esc(picked.name)+'" está dañada y no se pudo leer.</div>';
+        return;
+      } // {own,date,ind,uti,iva,caps,capNames}
 
       // "Actual": si es el proyecto abierto ahora mismo, usa S en vivo;
       // si no, usa su última versión guardada en localStorage.

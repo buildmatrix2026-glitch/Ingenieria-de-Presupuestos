@@ -1556,6 +1556,15 @@ body.ia #app{display:flex;flex-direction:column;height:calc(100svh / 1.18);overf
 .at .bw{font-size:16px}
 .tp{margin-left:6px;padding-left:14px;border-left:1px solid var(--br);font-size:12px;color:var(--sl);display:flex;flex-direction:column;line-height:1.3;min-width:0}
 .tp b{color:var(--ow);font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+/* En PC/tablet/iPad hay espacio de sobra en la barra superior — que el nombre
+   del proyecto se vea COMPLETO en vez de cortado con "...". En celular se deja
+   igual que antes (200px), porque ahí sí hace falta recortarlo. */
+@media(min-width:601px) and (max-width:1024px){
+  .tp b{max-width:360px}
+}
+@media(min-width:1025px){
+  .tp b{max-width:640px}
+}
 .ta{margin-left:auto;display:flex;gap:8px;align-items:center}
 .qa-btn{width:37px;height:37px;min-height:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,255,.05);flex-shrink:0;border:1px solid rgba(0,212,255,.25);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;opacity:0;transform:translateX(16px) scale(.7);transition:opacity .25s ease,transform .25s cubic-bezier(.34,1.56,.64,1)}
 .qa-btn.qa-visible{opacity:1;transform:translateX(0) scale(1)}
@@ -1583,6 +1592,14 @@ body.ia #app{display:flex;flex-direction:column;height:calc(100svh / 1.18);overf
     .ab { padding-top: calc(60px + env(safe-area-inset-top)); }
     #sd-backdrop { top: calc(60px + env(safe-area-inset-top)); }
   }
+}
+/* Zona "toca arriba para subir el scroll" — cubre el notch/status bar (si lo
+   hay) más un mínimo de 14px siempre, para que también funcione en celulares
+   sin notch. Va por encima de todo (z-index alto) pero es invisible. */
+#bm-scroll-top-zone{
+  position:fixed;top:0;left:0;right:0;
+  height:max(14px, env(safe-area-inset-top, 0px));
+  z-index:99999;background:transparent;cursor:pointer;
 }
 #stog{display:none}
 .slab{font-family:var(--f-mo);font-size:10px;letter-spacing:1.8px;color:var(--sld);text-transform:uppercase;padding:12px 11px 6px}
@@ -3765,6 +3782,11 @@ gsap.fromTo('.chapter-card',
      APP DE PRESUPUESTOS
      ═══════════════════════════════════════════════════════ -->
 <div id="app">
+  <!-- Zona invisible arriba del todo (notch/status bar): tocarla sube el scroll
+       al inicio, imitando el gesto nativo de iOS "tocar arriba para subir".
+       Esto NO pasa solo en una web app (no es una app nativa), así que lo
+       simulamos nosotros — ver #bm-scroll-top-zone y su listener más abajo. -->
+  <div id="bm-scroll-top-zone" aria-hidden="true"></div>
   <header class="at">
     <button class="ib" id="stog" aria-label="Menú" onclick="window.bmToggleSidebar&&window.bmToggleSidebar()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -23806,6 +23828,43 @@ html[data-theme="dark"] #land .nz.nz-sub{--nz-off-c:#34435f;--nz-on-c:#b9c8ec;--
 
   document.addEventListener('touchend', function () { tracking = false; mode = null; }, { passive: true });
   document.addEventListener('touchcancel', function () { tracking = false; mode = null; }, { passive: true });
+})();
+</script>
+
+<script>
+/* ── Tocar arriba del todo (notch/status bar) sube el scroll al inicio ──
+   Imita el gesto nativo de iOS en Safari. Como esto es una web app (no una
+   app nativa), iOS no lo hace solo — lo simulamos con #bm-scroll-top-zone
+   (franja invisible fija en la parte superior, ver su CSS). Al tocarla,
+   sube con scroll suave el contenedor con scroll que esté visible en ese
+   momento (el panel principal ".mn", o un modal abierto si lo tiene).
+*/
+(function () {
+  var zone = document.getElementById('bm-scroll-top-zone');
+  if (!zone) return;
+  function scrollActiveToTop() {
+    // Si hay un modal/overlay abierto con su propio scroll, sube ese primero;
+    // si no, sube el panel principal de la app.
+    var candidates = [
+      '.bmcf-ov .bmcf-card',             // modal de confirmación (BM_CONFIRM)
+      '#welcome-modal [style*="overflow"]',
+      '.mn'                                // panel principal de contenido
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var el = document.querySelector(candidates[i]);
+      if (el && el.offsetParent !== null && el.scrollTop > 0) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+    // Nada tenía scroll que bajar: igual sube el panel principal por si acaso
+    // (deja la app en un estado predecible incluso si scrollTop ya era 0).
+    var mn = document.querySelector('.mn');
+    if (mn) mn.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  zone.addEventListener('click', scrollActiveToTop);
+  zone.addEventListener('touchend', function (e) { e.preventDefault(); scrollActiveToTop(); }, { passive: false });
 })();
 </script>
 

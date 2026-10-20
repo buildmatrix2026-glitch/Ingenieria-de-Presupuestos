@@ -5167,6 +5167,7 @@ gsap.fromTo('.chapter-card',
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
 <style id="bmcf-style">
 @keyframes bmcf-in{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -8563,6 +8564,50 @@ async function _bmDecryptPayload(cipherB64, ivB64, saltB64, password){
   return JSON.parse(dec.decode(plainBuf));
 }
 
+// Variante en binario de _bmEncryptPayload/_bmDecryptPayload — usada para cifrar
+// el PDF combinado (bytes), no un JSON. El PDF se sube cifrado a Storage (lectura
+// pública del archivo, pero sin la contraseña nadie puede abrirlo) para no toparse
+// con el límite de 1MB por documento de Firestore.
+async function _bmEncryptBytes(bytes, password){
+  var der = await _bmDeriveKey(password, null, true);
+  var iv = window.crypto.getRandomValues(new Uint8Array(12));
+  var cipherBuf = await window.crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, der.key, bytes);
+  var ivB64 = btoa(String.fromCharCode.apply(null, iv));
+  return { cipherBuf: cipherBuf, iv: ivB64, salt: der.saltB64 };
+}
+
+async function _bmDecryptBytes(cipherBuf, ivB64, saltB64, password){
+  var der = await _bmDeriveKey(password, saltB64, false);
+  var iv = Uint8Array.from(atob(ivB64), function(c){return c.charCodeAt(0);});
+  var plainBuf = await window.crypto.subtle.decrypt({ name:'AES-GCM', iv:iv }, der.key, cipherBuf);
+  return plainBuf;
+}
+
+// Arma el PDF combinado (Resumen + APUs + Cronograma) usando exactamente los
+// mismos generadores jsPDF que ya usa el exportador normal de la app (mismo
+// formato/estilo BuildMatrix) y los une en un solo PDF con pdf-lib. Esto se
+// hace del lado del dueño del proyecto (acá SÍ está disponible el estado
+// completo S — capítulos, cronograma, insumos) porque el portal público no
+// tiene nada de eso cargado: generar el PDF ahí sería reconstruir toda la app.
+async function _bmBuildCombinedPresupuestoPdfBytes(autor){
+  var PDFLib = window.PDFLib;
+  if (!PDFLib) throw new Error('No se cargó la librería de combinar PDF');
+  var merged = await PDFLib.PDFDocument.create();
+
+  var parts = [
+    _pdfV2BuildResumen('h', autor||''),
+    _pdfV2BuildAPUs('h', autor||''),
+    _pdfV2BuildCronograma('h', autor||'')
+  ];
+  for (var i=0; i<parts.length; i++){
+    var bytes = parts[i].output('arraybuffer');
+    var src = await PDFLib.PDFDocument.load(bytes);
+    var pages = await merged.copyPages(src, src.getPageIndices());
+    pages.forEach(function(p){ merged.addPage(p); });
+  }
+  return await merged.save();
+}
+
 async function _bmBuildPortalPayload(){
   var CAPS = getCaps();
   var caps = [];
@@ -8608,7 +8653,7 @@ function bmShareWithClient(){
         '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Portal del cliente</div>'+
       '</div>'+
       '<div id="bm-share-step1" style="font-size:12px;color:var(--sld);margin:10px 0 14px">'+
-        'Crea un enlace de solo lectura para que tu cliente vea el avance, el cronograma, los totales y el desglose de rubros de este proyecto — sin poder editar nada. Protégelo con una contraseña que tú le compartes aparte (por WhatsApp, por ejemplo).'+
+        'Crea un enlace que abre directo en el navegador un PDF con el resumen del presupuesto, el desglose de APUs y el cronograma de tu proyecto — con el mismo formato que ya exportas. Protégelo con una contraseña que tú le compartes aparte (por WhatsApp, por ejemplo).'+
       '</div>'+
       '<label style="font-size:11.5px;color:var(--sld);display:block;margin-bottom:5px">Contraseña para el cliente</label>'+
       '<input type="text" id="bm-share-pwd" placeholder="Ej. casa2026" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--br);background:rgba(255,255,255,.03);color:var(--ow,#F0F4FF);font-size:13.5px;margin-bottom:16px;box-sizing:border-box">'+
@@ -8628,14 +8673,19 @@ function bmShareWithClient(){
     var btn = document.getElementById('bm-share-go');
     var origHtml = btn.innerHTML;
     btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = 'Generando…';
+    bmShowGlobalLoader('Generando el PDF del presupuesto…\nResumen + APUs + cronograma');
     try{
-      var payload = await _bmBuildPortalPayload();
-      var enc = await _bmEncryptPayload(payload, pwd);
+      var pdfBytes = await _bmBuildCombinedPresupuestoPdfBytes(S.own || '');
+      var enc = await _bmEncryptBytes(pdfBytes, pwd);
       var shareId = _bmRandomToken(18);
+      var storagePath = 'public_share_pdfs/' + user.uid + '/' + shareId + '.bin';
+      var storageRef = firebase.storage().ref(storagePath);
+      await storageRef.put(new Blob([enc.cipherBuf], {type:'application/octet-stream'}));
+      var pdfUrl = await storageRef.getDownloadURL();
       var db = firebase.firestore();
       await db.collection('public_shares').doc(shareId).set({
         ownerUid: user.uid, proj: S.proj || '', ts: Date.now(),
-        cipher: enc.cipher, iv: enc.iv, salt: enc.salt
+        pdfPath: storagePath, pdfUrl: pdfUrl, iv: enc.iv, salt: enc.salt
       });
       var link = location.origin + location.pathname + '#/portal/' + shareId;
       document.getElementById('bm-share-result').innerHTML =
@@ -8670,6 +8720,8 @@ function bmShareWithClient(){
     }catch(e){
       toast('No se pudo generar el portal: ' + (e && e.message || 'error desconocido'));
       btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = origHtml;
+    } finally {
+      bmHideGlobalLoader();
     }
   };
 }
@@ -8741,17 +8793,58 @@ async function bmInitPortalIfNeeded(){
     var pwd = (document.getElementById('bm-portal-pwd').value || '');
     var btn = document.getElementById('bm-portal-go');
     btn.disabled = true; btn.textContent = 'Verificando…';
-    _bmDecryptPayload(doc.cipher, doc.iv, doc.salt, pwd).then(function(payload){
-      _bmRenderPortalView(payload);
-    }).catch(function(){
-      btn.disabled = false; btn.textContent = 'Ver proyecto';
-      var err = document.getElementById('bm-portal-err');
-      if (err) err.style.display = 'block';
-    });
+    if (doc.pdfUrl) {
+      // Portal nuevo: el enlace muestra directo el PDF combinado (resumen + APUs
+      // + cronograma, con el mismo formato que exporta la app) — se descarga
+      // cifrado desde Storage y se descifra aquí mismo con la contraseña.
+      fetch(doc.pdfUrl).then(function(r){
+        if (!r.ok) throw new Error('No se pudo descargar el PDF');
+        return r.arrayBuffer();
+      }).then(function(cipherBuf){
+        return _bmDecryptBytes(cipherBuf, doc.iv, doc.salt, pwd);
+      }).then(function(plainBuf){
+        var blob = new Blob([plainBuf], {type:'application/pdf'});
+        var blobUrl = URL.createObjectURL(blob);
+        _bmRenderPortalPdfView(blobUrl);
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = 'Ver proyecto';
+        var err = document.getElementById('bm-portal-err');
+        if (err) err.style.display = 'block';
+      });
+    } else {
+      // Compatibilidad con enlaces generados antes de este cambio (portal con
+      // vista propia en vez de PDF).
+      _bmDecryptPayload(doc.cipher, doc.iv, doc.salt, pwd).then(function(payload){
+        _bmRenderPortalView(payload);
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = 'Ver proyecto';
+        var err = document.getElementById('bm-portal-err');
+        if (err) err.style.display = 'block';
+      });
+    }
   };
   document.getElementById('bm-portal-go').onclick = go;
   document.getElementById('bm-portal-pwd').addEventListener('keydown', function(e){ if (e.key==='Enter') go(); });
   return true;
+}
+
+// Pantalla final del portal nuevo: ocupa toda la ventana del navegador con el
+// PDF (resumen + APUs + cronograma) embebido, más una barra superior angosta
+// con el nombre y un botón de descarga por si el visor embebido falla (pasa
+// a veces en algunos navegadores de celular).
+function _bmRenderPortalPdfView(blobUrl){
+  document.documentElement.style.background = '#070B14';
+  document.body.innerHTML =
+    '<div style="position:fixed;inset:0;display:flex;flex-direction:column">'+
+      '<div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#0E1420;border-bottom:1px solid rgba(255,255,255,.08)">'+
+        '<div style="color:#00D4FF;font-weight:700;font-size:13px;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">BUILDMATRIX · PORTAL DEL CLIENTE</div>'+
+        '<a href="'+blobUrl+'" download="Presupuesto.pdf" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1px solid rgba(0,212,255,.35);color:#00D4FF;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">'+
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg>'+
+          'Descargar'+
+        '</a>'+
+      '</div>'+
+      '<iframe src="'+blobUrl+'" title="Presupuesto" style="flex:1 1 auto;width:100%;border:0;background:#fff"></iframe>'+
+    '</div>';
 }
 
 function _bmPortalFmtUSD(n){ return '$'+(Number(n)||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2}); }

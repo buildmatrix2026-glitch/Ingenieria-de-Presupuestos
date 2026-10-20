@@ -8335,10 +8335,11 @@ function _bmLogProjectHistory(prev, next){
   // Mejor esfuerzo total: cualquier fallo aquí se traga en silencio y NUNCA
   // debe afectar el guardado (que ya ocurrió) ni la sincronización a Firestore.
   try{
-    if (!next || !next.name) return;
+    if (!next || !next.name) { if (typeof toast === 'function') toast('⚠️ Historial: entry sin nombre, no se registró', false); return; }
     var user = firebase.auth().currentUser;
-    if (!user) return; // sin sesión no hay a dónde registrar el historial
+    if (!user) { if (typeof toast === 'function') toast('⚠️ Historial: no hay sesión activa, no se registró', false); return; } // sin sesión no hay a dónde registrar el historial
 
+    if (typeof toast === 'function') toast('🔎 Historial: registrando "'+next.name+'"…', true);
     var changes = prev ? _bmDiffProjectEntries(prev, next) : ['Primer guardado del proyecto'];
 
     var totalsNext = _calcProjTotals(next);
@@ -8366,7 +8367,9 @@ function _bmLogProjectHistory(prev, next){
         totalAfter: totalsNext.total
       };
       if (withSnapshot) entryData.snapshot = buildSnapshot();
-      histCol.add(entryData).catch(function(e){
+      histCol.add(entryData).then(function(){
+        if (typeof toast === 'function') toast('✅ Historial guardado' + (withSnapshot ? ' (con foto base)' : ''), true);
+      }).catch(function(e){
         console.warn('No se pudo registrar historial (no crítico):', e && e.message);
         if (typeof toast === 'function') toast('⚠️ Historial (escritura): ' + (e && e.message || e), false);
       });

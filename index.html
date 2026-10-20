@@ -8850,7 +8850,7 @@ function _bmRenderCompareScheduleSide(capsOut, snap, side){
   var html = '';
 
   if (!series) {
-    html += '<div style="padding:16px 4px;color:var(--sld);font-size:12.5px;font-style:italic;border:1px dashed var(--br);border-radius:10px;margin-bottom:14px">Sin rubros programados en este momento.</div>';
+    html += '<div style="padding:16px 4px;color:var(--sld);font-size:12.5px;font-style:italic;border:1px dashed var(--br);border-radius:10px;margin-bottom:14px">Este guardado todavía no tenía fechas de cronograma asignadas a ningún rubro.</div>';
   } else {
     var range = series.range;
     html +=
@@ -8903,6 +8903,30 @@ function _bmRenderCompareScheduleSide(capsOut, snap, side){
   return html;
 }
 
+// Resumen numérico de lo que cambió entre los dos lados: cuántos rubros se
+// agregaron/eliminaron/modificaron y cuánto representa cada cosa en dólares
+// — para que el resumen no sea solo "subió $X" sino de dónde vino ese $X.
+function _bmCompareChangeStats(capsOut){
+  var added=0, removed=0, changed=0, same=0;
+  var addedTotal=0, removedTotal=0, changedDelta=0;
+  capsOut.forEach(function(cap){
+    cap.rubros.forEach(function(entry){
+      if (entry.status==='added'){
+        added++;
+        var r=entry.b.row; addedTotal += (parseFloat(r.qty)||0)*(parseFloat(r.pu)||0);
+      } else if (entry.status==='removed'){
+        removed++;
+        var r2=entry.a.row; removedTotal += (parseFloat(r2.qty)||0)*(parseFloat(r2.pu)||0);
+      } else if (entry.status==='changed'){
+        changed++;
+        var ra=entry.a.row, rb=entry.b.row;
+        changedDelta += ((parseFloat(rb.qty)||0)*(parseFloat(rb.pu)||0)) - ((parseFloat(ra.qty)||0)*(parseFloat(ra.pu)||0));
+      } else same++;
+    });
+  });
+  return { added:added, removed:removed, changed:changed, same:same, addedTotal:addedTotal, removedTotal:removedTotal, changedDelta:changedDelta };
+}
+
 function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   var old = document.getElementById('bm-cmp-full'); if (old) old.remove();
   if (!document.getElementById('bm-cmp-full-styles')) {
@@ -8918,6 +8942,8 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
   var diffPct = totA.total > 0 ? (diffAbs/totA.total*100) : 0;
   var diffColor = diffAbs > 0.005 ? '#F87171' : (diffAbs < -0.005 ? '#34D399' : 'var(--sld)');
   var diffSign = diffAbs >= 0 ? '+' : '−';
+  var stats = _bmCompareChangeStats(capsOut);
+  var changeLines = _bmDiffProjectEntries(firstSnap, currentSnap);
 
   var presupuestoIcon = '<path d="M9 7h7M9 12h7M9 17h4"/><rect x="4" y="3" width="16" height="18" rx="2.5"/>';
   var cronogramaIcon = '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 13h4M7 17h7"/>';
@@ -8940,19 +8966,54 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
     );
   };
 
+  // Tarjeta de estadística del resumen de cambios (reutilizada 4 veces)
+  var statTile = function(lbl, val, color){
+    return (
+      '<div style="border:1px solid var(--br);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02);text-align:center">'+
+        '<div style="font-size:9.5px;letter-spacing:.04em;color:var(--sld);margin-bottom:4px">'+lbl+'</div>'+
+        '<div style="font-size:15px;font-weight:800;color:'+color+'">'+val+'</div>'+
+      '</div>'
+    );
+  };
+  var changeListHtml = changeLines.length
+    ? '<ul style="margin:10px 0 0;padding:0 0 0 18px;font-size:12px;color:var(--ow,#F0F4FF);line-height:1.9">'+
+        changeLines.map(function(l){ return '<li>'+esc(l)+'</li>'; }).join('')+
+      '</ul>'
+    : '<div style="margin-top:10px;font-size:12px;color:var(--sld);font-style:italic">Sin cambios detectados en nombres, propietario, fecha ni rubros.</div>';
+
   var wrap = document.createElement('div');
   wrap.id = 'bm-cmp-full';
   wrap.style.cssText = 'position:fixed;inset:0;z-index:99995;background:var(--s1,#05080f);display:flex;flex-direction:column';
   wrap.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--br);flex-shrink:0;flex-wrap:wrap">'+
-      '<div>'+
-        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Comparación — '+esc(picked.name)+'</div>'+
-        '<div style="font-size:12px;color:'+diffColor+';font-weight:700">'+diffSign+fmtUSD(Math.abs(diffAbs))+' ('+diffSign+Math.abs(diffPct).toFixed(1)+'%) vs. el primer guardado</div>'+
-      '</div>'+
+    '<div style="display:flex;align-items:center;justify-content:flex-end;padding:12px 20px;border-bottom:1px solid var(--br);flex-shrink:0">'+
       '<button type="button" class="btn ghost" id="bm-cmp-full-close">Cerrar</button>'+
     '</div>'+
     '<div style="overflow-y:auto;flex:1">'+
-      sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto', '20px 20px 14px')+
+      '<div style="text-align:center;padding:26px 20px 22px;border-bottom:1px solid var(--br)">'+
+        '<div style="font-size:11px;letter-spacing:.06em;color:var(--sld);margin-bottom:6px">COMPARACIÓN DE PRESUPUESTO</div>'+
+        '<div style="font-size:30px;font-weight:800;color:var(--ow,#F0F4FF);margin-bottom:10px">'+esc(picked.name)+'</div>'+
+        '<div style="display:inline-flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:'+diffColor+'">'+
+          diffSign+fmtUSD(Math.abs(diffAbs))+' <span style="color:var(--sld);font-weight:500">('+diffSign+Math.abs(diffPct).toFixed(1)+'% vs. el primer guardado)</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="padding:20px 20px 4px;max-width:1040px;margin:0 auto">'+
+        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sld)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
+          '<div style="font-size:14px;font-weight:700;color:var(--ow,#F0F4FF)">Resumen de cambios</div>'+
+          '<div style="flex:1;height:1px;background:var(--br)"></div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">'+
+          statTile('RUBROS AGREGADOS', stats.added+' <span style="font-size:11px;font-weight:600">(+'+fmtUSD(stats.addedTotal)+')</span>', '#34D399')+
+          statTile('RUBROS ELIMINADOS', stats.removed+' <span style="font-size:11px;font-weight:600">(−'+fmtUSD(stats.removedTotal)+')</span>', '#F87171')+
+          statTile('RUBROS MODIFICADOS', stats.changed+' <span style="font-size:11px;font-weight:600">('+(stats.changedDelta>=0?'+':'−')+fmtUSD(Math.abs(stats.changedDelta))+')</span>', '#FBBF24')+
+          statTile('SIN CAMBIOS', stats.same, 'var(--ow,#F0F4FF)')+
+        '</div>'+
+        '<div style="border:1px solid var(--br);border-radius:12px;padding:14px 18px;background:rgba(255,255,255,.015);margin-bottom:6px">'+
+          '<div style="font-size:11.5px;font-weight:700;color:var(--sld);letter-spacing:.03em">QUÉ CAMBIÓ</div>'+
+          changeListHtml+
+        '</div>'+
+      '</div>'+
+      sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto', '28px 20px 14px')+
       '<div class="bmcmp-grid" style="display:grid;grid-template-columns:1fr 1fr;padding:0 20px">'+
         '<div class="bmcmp-col-a" style="padding:0 18px 8px 0;border-right:1px solid var(--br)">'+
           colHeader('Primer guardado', firstSnap.date, totA.total)+

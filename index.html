@@ -3879,6 +3879,15 @@ gsap.fromTo('.chapter-card',
       <div class="vw" id="v-pre">
         <div class="vh"><div><h2>Presupuesto maestro</h2><div class="sub" id="caps-subtitle">16 capítulos · Cámara de la Construcción 2026</div></div>
           <div class="vh-pre-actions" style="display:flex;gap:8px">
+            <button class="btn ghost" id="btn-audit-ia" style="padding:9px 16px;font-size:12.5px" onclick="bmAuditRubros()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/></svg>Auditar con IA
+            </button>
+            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenTemplatesModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Plantillas
+            </button>
+            <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="bmOpenHistoryModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Historial
+            </button>
             <button class="btn ghost" style="padding:9px 16px;font-size:12.5px" onclick="addNewCap()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px"><path d="M12 5v14M5 12h14"/></svg>Nuevo capítulo
             </button>
@@ -6667,12 +6676,16 @@ function saveProject(){
   entry.totalCapitulos = _tPreview2.capCount;
   entry.totalGeneral = _tPreview2.total;
   entry.costoDirecto = _tPreview2.cd;
+  var _prevEntryForHistory = idx>=0 ? projects[idx] : null;
   if(idx>=0) projects[idx]=entry; else projects.push(entry);
   try{localStorage.setItem(PROJ_KEY(), JSON.stringify(projects));}catch(e){toast('Sin espacio en almacenamiento');return;}
   renderSavedProjects();
   toast('Proyecto "' + name + '" guardado ✓');
   // Sincronizar a Firestore
   _syncProjectToFirestore(entry);
+  // Historial de cambios: registra qué cambió respecto al guardado anterior de
+  // este mismo proyecto (mejor esfuerzo — nunca bloquea ni revierte el guardado).
+  _bmLogProjectHistory(_prevEntryForHistory, entry);
 
   // ── Prueba gratuita: contar este presupuesto como "creado" (solo si es nuevo) ──
   if (isNewProject && acc && acc.checked && !acc.isPro) {
@@ -7842,6 +7855,479 @@ function addRubroToCap(ci,rub){
   toast(`${rub[0]} agregado al capítulo ${ci}`);
 }
 async function resetBudget(){if(!await BM_CONFIRM('¿Vaciar presupuesto completo?'))return;S.caps=CAPS_DEFAULT.map(()=>[]);S.capNames=[];S.capNums=[];S.schedule={};S.own='';S.proj='';S.date='';S.ind=10;S.uti=14;S.iva=15;$id('pown').value='';$id('pname').value='';$id('pdate').value='';$id('pind').value=10;$id('puti').value=14;$id('piva').value=15;$id('tpn').textContent='';document.getElementById('tp-header').style.display='none';persist();renderBudget();toast('Presupuesto vaciado');}
+
+// ═══════════════════════════════════════════════════════════════════════
+// AUDITOR DE RUBROS CON IA — revisa el presupuesto actual contra el mismo
+// checklist de 16 capítulos (rubros típicos que suelen faltar, consistencia
+// cruzada entre capítulos relacionados) y señala posibles omisiones. Es
+// SOLO de lectura: nunca modifica el presupuesto por su cuenta, solo avisa.
+// Reutiliza la clave de Gemini que ya configura el usuario en "Gastos y
+// Facturas" → "Clave API" (misma GEMINI_API_KEY / localStorage bm_gemini_key).
+// ═══════════════════════════════════════════════════════════════════════
+function _bmAuditGetKey(){
+  var k = (typeof GEMINI_API_KEY === 'string') ? GEMINI_API_KEY.trim() : '';
+  if (k && k !== 'TU_GEMINI_API_KEY') return k;
+  try { return (localStorage.getItem('bm_gemini_key') || '').trim(); } catch (e) { return ''; }
+}
+function _bmAuditModelList(){
+  var out = [];
+  try { if (typeof GEMINI_MODEL === 'string' && GEMINI_MODEL) out.push(GEMINI_MODEL); } catch(e){}
+  try { if (Array.isArray(GEMINI_MODEL_FALLBACKS)) GEMINI_MODEL_FALLBACKS.forEach(function(m){ if(out.indexOf(m)<0) out.push(m); }); } catch(e){}
+  if (!out.length) out = ['gemini-2.5-flash-lite','gemini-2.5-flash'];
+  return out;
+}
+function _bmAuditBuildPrompt(){
+  var CAPS = getCaps();
+  var lineas = [];
+  CAPS.forEach(function(nombre, ci){
+    var rows = S.caps[ci]||[];
+    lineas.push('CAPÍTULO '+ci+' — '+nombre+':');
+    if (!rows.length) { lineas.push('  (vacío)'); return; }
+    rows.forEach(function(r){
+      lineas.push('  - '+(r.code||'')+' | '+(r.desc||'')+' | '+(r.unit||'')+' | qty='+(r.qty||0)+' | pu='+(r.pu||0));
+    });
+  });
+  var presupuesto = lineas.join('\n');
+  return 'Eres un auditor experto en presupuestos de construcción en Ecuador. Te doy el presupuesto ' +
+    'completo de un proyecto, organizado en 16 capítulos fijos (0 a 15, ya nombrados abajo). ' +
+    'Tu única tarea es señalar posibles OMISIONES o INCONSISTENCIAS, NO calcular ni corregir nada tú mismo.\n\n' +
+    'Revisa específicamente:\n' +
+    '1. Rubros típicos que normalmente aparecen en cada capítulo y que no están presentes (ej.: si hay ' +
+    'enlucido interior en el capítulo 5 pero no hay pintura interior en el capítulo 12; si hay varios baños ' +
+    'pero pocos puntos de agua/desagüe en el capítulo 9; si hay mampostería pero no hay dinteles; si hay ' +
+    'estructura de hormigón pero no aparece el acero de refuerzo; si hay cubierta pero no hay canales/bajantes; etc.)\n' +
+    '2. Capítulos completamente vacíos que, a juzgar por el resto del presupuesto, probablemente sí deberían ' +
+    'tener algo (ej. un proyecto con varios baños pero el capítulo de Aparatos Sanitarios está vacío).\n' +
+    '3. Inconsistencias de cantidad entre capítulos relacionados (ej. número de aparatos sanitarios vs número ' +
+    'de puntos de desagüe).\n\n' +
+    'NO señales como problema un capítulo vacío si es razonable que el proyecto no lo necesite (ej. Estructura ' +
+    'Metálica vacía en una casa que es toda de hormigón armado es normal, no es un error). Sé conservador: ' +
+    'solo reporta lo que de verdad parece una omisión real, no inventes problemas por inventar.\n\n' +
+    'Responde ÚNICAMENTE con JSON válido, sin markdown ni texto adicional, con esta forma exacta:\n' +
+    '{"findings":[{"capitulo":"<nombre del capítulo o \'Varios capítulos\'>","tipo":"faltante|inconsistencia",' +
+    '"detalle":"<explicación breve y concreta, 1-2 frases>"}]}\n' +
+    'Si no encuentras ningún problema real, responde {"findings":[]}.\n\n' +
+    'PRESUPUESTO A REVISAR:\n' + presupuesto;
+}
+async function _bmAuditCallGemini(prompt, key, model){
+  var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 45000) : null;
+  try{
+    var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-goog-api-key':key},
+      signal: ctrl ? ctrl.signal : undefined,
+      body: JSON.stringify({
+        contents:[{role:'user',parts:[{text:prompt}]}],
+        generationConfig:{temperature:0,responseMimeType:'application/json'}
+      })
+    });
+    var body = null; try{ body = await resp.json(); }catch(e){}
+    if (timer) clearTimeout(timer);
+    if (!resp.ok){
+      var msg = body && body.error && body.error.message || ('HTTP '+resp.status);
+      throw new Error(msg);
+    }
+    var parts = (body && body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts) || [];
+    var text = parts.map(function(p){ return p.text||''; }).join('');
+    if (!text) throw new Error('Respuesta vacía del modelo');
+    return text;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+function _bmAuditShowModal(findings, meta){
+  var old = document.getElementById('bm-audit-modal'); if (old) old.remove();
+  var modal = document.createElement('div');
+  modal.id = 'bm-audit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+  var itemsHtml;
+  if (!findings.length){
+    itemsHtml = '<div style="text-align:center;padding:30px 10px;color:var(--sl)">'+
+      '<div style="font-size:34px;margin-bottom:10px">✓</div>'+
+      '<div style="font-size:14px;font-weight:600;color:var(--ow,#F0F4FF);margin-bottom:4px">No se detectaron omisiones evidentes</div>'+
+      '<div style="font-size:12px;color:var(--sld)">Esto no reemplaza tu propia revisión del plano — es un apoyo adicional.</div>'+
+      '</div>';
+  } else {
+    itemsHtml = findings.map(function(f){
+      var isWarn = f.tipo === 'inconsistencia';
+      var color = isWarn ? '#FFB648' : '#FF6B6B';
+      var label = isWarn ? 'Inconsistencia' : 'Posible faltante';
+      return '<div style="display:flex;gap:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.02)">'+
+        '<div style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:'+color+';margin-top:6px"></div>'+
+        '<div style="min-width:0">'+
+          '<div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:'+color+';margin-bottom:3px">'+label+' · '+esc(f.capitulo||'')+'</div>'+
+          '<div style="font-size:13px;color:var(--ow,#F0F4FF);line-height:1.45">'+esc(f.detalle||'')+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(560px,94vw);max-height:84vh;display:flex;flex-direction:column">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2.2"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/></svg>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Auditoría con IA</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--sld);margin-bottom:16px">'+
+        (findings.length ? findings.length+' posible'+(findings.length===1?'':'s')+' observación'+(findings.length===1?'':'es')+' — revisa cada una contra el plano antes de decidir' : 'Revisión completa del presupuesto')+
+        (meta && meta.model ? ' · modelo: '+esc(meta.model) : '')+
+      '</div>'+
+      '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+itemsHtml+'</div>'+
+      '<button type="button" id="bm-audit-close" style="margin-top:16px;padding:11px;border-radius:10px;border:0;background:linear-gradient(180deg,#00D4FF,#0052FF);color:#04121F;font-weight:700;font-size:13px;cursor:pointer">Entendido</button>'+
+    '</div>';
+  document.body.appendChild(modal);
+  function close(){ modal.remove(); }
+  document.getElementById('bm-audit-close').onclick = close;
+  modal.onclick = function(e){ if (e.target===modal) close(); };
+}
+async function bmAuditRubros(){
+  var anyRubro = (S.caps||[]).some(function(c){ return c && c.length; });
+  if (!anyRubro){ toast('Agrega al menos un rubro antes de auditar'); return; }
+  var key = _bmAuditGetKey();
+  if (!key){ toast('Falta la clave de Gemini — configúrala en "Gastos y Facturas" → "Clave API" para usar el Auditor IA'); return; }
+  var btn = document.getElementById('btn-audit-ia');
+  var originalHtml = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="40 56"/></svg>Analizando…</span>'; }
+  var prompt = _bmAuditBuildPrompt();
+  var models = _bmAuditModelList();
+  var lastErr = null;
+  try{
+    for (var i=0;i<models.length;i++){
+      try{
+        var text = await _bmAuditCallGemini(prompt, key, models[i]);
+        var parsed;
+        try{ parsed = JSON.parse(text); } catch(e){
+          var m = text.match(/\{[\s\S]*\}/);
+          if (m) parsed = JSON.parse(m[0]); else throw e;
+        }
+        var findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+        _bmAuditShowModal(findings, {model: models[i]});
+        lastErr = null;
+        break;
+      } catch(e){ lastErr = e; continue; }
+    }
+    if (lastErr) toast('No se pudo completar la auditoría: '+(lastErr.message||'error desconocido'));
+  } finally {
+    if (btn){ btn.disabled = false; btn.innerHTML = originalHtml; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PLANTILLAS REUTILIZABLES — guarda la estructura de capítulos/rubros de un
+// proyecto (sin propietario/fecha/cronograma, que son propios de cada obra)
+// para arrancar un presupuesto nuevo sin partir de cero. Se guardan en
+// localStorage de este dispositivo Y, si hay sesión, también en Firestore
+// (users/{uid}/templates/{nombre}) para que estén disponibles en cualquier
+// dispositivo donde el usuario inicie sesión — misma subcolección que ya
+// cubren las reglas de Firestore para users/{uid}/*, sin reglas nuevas.
+// ═══════════════════════════════════════════════════════════════════════
+function TPL_KEY(){ return 'bm_templates_' + _localUid(); }
+function bmGetTemplates(){
+  try{ return JSON.parse(localStorage.getItem(TPL_KEY()))||[]; }catch(e){ return []; }
+}
+function _bmSaveTemplatesLocal(list){
+  try{ localStorage.setItem(TPL_KEY(), JSON.stringify(list)); }catch(e){}
+}
+function _bmTemplateFromCurrent(name){
+  return {
+    name: name,
+    ts: Date.now(),
+    caps: JSON.parse(JSON.stringify(S.caps||[])),
+    capNames: JSON.parse(JSON.stringify(S.capNames||[])),
+    capNums: JSON.parse(JSON.stringify(S.capNums||[])),
+    ind: S.ind, uti: S.uti, iva: S.iva
+  };
+}
+async function bmSaveAsTemplate(){
+  var anyRubro = (S.caps||[]).some(function(c){ return c && c.length; });
+  if (!anyRubro){ toast('Agrega al menos un rubro antes de guardar una plantilla'); return; }
+  var name = (prompt('Nombre de la plantilla:', (S.proj||'')+' (plantilla)')||'').trim();
+  if (!name) return;
+  var list = bmGetTemplates();
+  var idx = list.findIndex(function(t){ return t.name===name; });
+  if (idx>=0 && !await BM_CONFIRM('Ya existe una plantilla llamada "'+name+'".\n¿Reemplazarla?')) return;
+  var tpl = _bmTemplateFromCurrent(name);
+  if (idx>=0) list[idx]=tpl; else list.push(tpl);
+  _bmSaveTemplatesLocal(list);
+  toast('Plantilla "'+name+'" guardada ✓');
+  // Firestore: mejor esfuerzo, no bloquea ni rompe nada si falla (sin sesión, sin red, etc.)
+  try{
+    var user = firebase.auth().currentUser;
+    if (user){
+      firebase.firestore().collection('users').doc(user.uid).collection('templates').doc(name)
+        .set({ name:tpl.name, ts:tpl.ts, dataJson: JSON.stringify(tpl) }, {merge:true})
+        .catch(function(){});
+    }
+  }catch(e){}
+}
+async function bmDeleteTemplate(name){
+  if (!await BM_CONFIRM('¿Eliminar la plantilla "'+name+'"?\nEsta acción no se puede deshacer.')) return;
+  var list = bmGetTemplates().filter(function(t){ return t.name!==name; });
+  _bmSaveTemplatesLocal(list);
+  try{
+    var user = firebase.auth().currentUser;
+    if (user) firebase.firestore().collection('users').doc(user.uid).collection('templates').doc(name).delete().catch(function(){});
+  }catch(e){}
+  bmOpenTemplatesModal();
+}
+async function bmUseTemplate(name){
+  var tpl = bmGetTemplates().find(function(t){ return t.name===name; });
+  if (!tpl) return;
+  if ((S.caps.some(function(c){return c.length>0;}) || S.proj)){
+    if (!await BM_CONFIRM('¿Crear un presupuesto nuevo desde la plantilla "'+name+'"?\n\nEl presupuesto actual se perderá si no lo has guardado.')) return;
+  }
+  S.proj=''; S.own=''; S.date='';
+  S.caps = JSON.parse(JSON.stringify(tpl.caps||CAPS_DEFAULT.map(function(){return [];})));
+  S.capNames = JSON.parse(JSON.stringify(tpl.capNames||[]));
+  S.capNums = JSON.parse(JSON.stringify(tpl.capNums||[]));
+  S.ind = tpl.ind??10; S.uti = tpl.uti??14; S.iva = tpl.iva??15;
+  S.schedule = {};
+  S.customAPU = {}; S.customInsumos = [];
+  _restoreBD();
+  _applyProjectToBD({ caps: S.caps, customAPU:{}, customInsumos:[], customGroups:[] });
+  $id('tpn').textContent='';
+  var tph=document.getElementById('tp-header'); if(tph) tph.style.display='none';
+  localStorage.removeItem(ACTIVE_PROJ_KEY());
+  sessionStorage.removeItem('bm_session');
+  var modal = document.getElementById('bm-tpl-modal'); if (modal) modal.remove();
+  persist();
+  renderBudget();
+  go('pre');
+  toast('Presupuesto nuevo creado desde la plantilla "'+name+'" — ponle nombre y guárdalo cuando quieras');
+}
+function _bmTplRowHtml(t){
+  var caps = t.caps||[];
+  var nRubros = caps.reduce(function(a,c){return a+(c?c.length:0);},0);
+  var nCaps = caps.filter(function(c){return c&&c.length;}).length;
+  var dateStr = t.ts ? new Date(t.ts).toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}) : '';
+  return '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.02)">'+
+    '<div style="min-width:0;flex:1">'+
+      '<div style="font-size:13.5px;font-weight:600;color:var(--ow,#F0F4FF);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>'+
+      '<div style="font-size:11px;color:var(--sld);margin-top:2px">'+nCaps+' capítulos · '+nRubros+' rubros'+(dateStr?' · guardada '+dateStr:'')+'</div>'+
+    '</div>'+
+    '<button type="button" class="btn ghost" style="padding:7px 12px;font-size:11.5px;flex-shrink:0" onclick="bmUseTemplate('+JSON.stringify(t.name)+')">Usar</button>'+
+    '<button type="button" title="Eliminar plantilla" style="flex-shrink:0;width:30px;height:30px;border:0;background:transparent;color:var(--sld);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px" onclick="bmDeleteTemplate('+JSON.stringify(t.name)+')">'+
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>'+
+    '</button>'+
+  '</div>';
+}
+function bmOpenTemplatesModal(){
+  var old = document.getElementById('bm-tpl-modal'); if (old) old.remove();
+  var list = bmGetTemplates().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  var modal = document.createElement('div');
+  modal.id = 'bm-tpl-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+  var listHtml = list.length
+    ? list.map(_bmTplRowHtml).join('')
+    : '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tienes plantillas guardadas.<br>Arma un presupuesto y usa "Guardar como plantilla" para reutilizarlo después.</div>';
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(520px,94vw);max-height:84vh;display:flex;flex-direction:column">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Plantillas de presupuesto</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Arranca un presupuesto nuevo con la misma estructura de capítulos y rubros de una plantilla guardada.</div>'+
+      '<div style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+listHtml+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" id="bm-tpl-save" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--br);background:transparent;color:var(--ow,#F0F4FF);font-weight:600;font-size:13px;cursor:pointer">+ Guardar presupuesto actual como plantilla</button>'+
+        '<button type="button" id="bm-tpl-close" style="padding:11px 18px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(modal);
+  document.getElementById('bm-tpl-save').onclick = async function(){ await bmSaveAsTemplate(); bmOpenTemplatesModal(); };
+  document.getElementById('bm-tpl-close').onclick = function(){ modal.remove(); };
+  modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
+  // Mejor esfuerzo: si hay sesión, trae también las plantillas guardadas en la nube
+  // (de otro dispositivo) y las mezcla con las locales, sin bloquear la vista inicial.
+  try{
+    var user = firebase.auth().currentUser;
+    if (user){
+      firebase.firestore().collection('users').doc(user.uid).collection('templates').get().then(function(snap){
+        var local = bmGetTemplates(); var byName = {};
+        local.forEach(function(t){ byName[t.name]=t; });
+        var changed = false;
+        snap.forEach(function(doc){
+          var d = doc.data();
+          if (!d || !d.dataJson) return;
+          try{
+            var remote = JSON.parse(d.dataJson);
+            var prev = byName[remote.name];
+            if (!prev || (remote.ts||0) > (prev.ts||0)){ byName[remote.name]=remote; changed=true; }
+          }catch(e){}
+        });
+        if (changed){
+          _bmSaveTemplatesLocal(Object.values(byName));
+          if (document.getElementById('bm-tpl-modal')) bmOpenTemplatesModal();
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── HISTORIAL DE CAMBIOS DEL PRESUPUESTO ────────────────────────────────────
+// Cada vez que se pulsa "Guardar" sobre un proyecto YA EXISTENTE, se compara
+// la versión anterior con la nueva y se registra un resumen legible de lo que
+// cambió (rubros agregados/quitados/editados, ind/uti/iva, propietario/fecha,
+// total antes/después) en Firestore: projects/{docId}/history/{autoId}.
+// Es best-effort: nunca debe bloquear ni revertir el guardado si algo falla.
+// ══════════════════════════════════════════════════════════════════════════
+
+function _bmRubroKey(r, idx){
+  // Prioriza un código/descripción estable; si no hay nada reconocible, usa el índice
+  // de la fila como última opción (mejor esfuerzo, puede marcar falsos "editado").
+  if (!r) return 'idx:'+idx;
+  var cod = (r.cod || r.code || r.codigo || '').toString().trim();
+  if (cod) return 'cod:'+cod;
+  var desc = (r.desc || r.descripcion || r.name || '').toString().trim().toLowerCase();
+  if (desc) return 'desc:'+desc;
+  return 'idx:'+idx;
+}
+
+function _bmDiffProjectEntries(prev, next){
+  var changes = [];
+  if (!prev || !next) return changes;
+  try{
+    if ((prev.own||'') !== (next.own||'')) {
+      changes.push('Propietario: "'+(prev.own||'—')+'" → "'+(next.own||'—')+'"');
+    }
+    if ((prev.date||'') !== (next.date||'')) {
+      changes.push('Fecha del proyecto: "'+(prev.date||'—')+'" → "'+(next.date||'—')+'"');
+    }
+    ['ind','uti','iva'].forEach(function(k){
+      var a = parseFloat(prev[k])||0, b = parseFloat(next[k])||0;
+      if (a !== b) {
+        var label = k==='ind' ? 'Indirectos' : (k==='uti' ? 'Utilidad' : 'IVA');
+        changes.push(label+': '+a+'% → '+b+'%');
+      }
+    });
+
+    var prevCaps = Array.isArray(prev.caps) ? prev.caps : [];
+    var nextCaps = Array.isArray(next.caps) ? next.caps : [];
+    var nCaps = Math.max(prevCaps.length, nextCaps.length);
+    var capNamesRef = (next.capNames && next.capNames.length) ? next.capNames : (prev.capNames||[]);
+
+    for (var ci = 0; ci < nCaps; ci++){
+      var capName = capNamesRef[ci] || ('Capítulo '+(ci+1));
+      var prevRows = Array.isArray(prevCaps[ci]) ? prevCaps[ci] : [];
+      var nextRows = Array.isArray(nextCaps[ci]) ? nextCaps[ci] : [];
+      if (!prevRows.length && !nextRows.length) continue;
+
+      var prevByKey = {}; prevRows.forEach(function(r,i){ prevByKey[_bmRubroKey(r,i)] = r; });
+      var nextByKey = {}; nextRows.forEach(function(r,i){ nextByKey[_bmRubroKey(r,i)] = r; });
+
+      var added = 0, removed = 0, edited = 0;
+      Object.keys(nextByKey).forEach(function(k){
+        if (!(k in prevByKey)) { added++; return; }
+        var a = prevByKey[k], b = nextByKey[k];
+        var qtyA = parseFloat(a.qty)||0, qtyB = parseFloat(b.qty)||0;
+        var puA = parseFloat(a.pu)||0, puB = parseFloat(b.pu)||0;
+        if (qtyA !== qtyB || puA !== puB) edited++;
+      });
+      Object.keys(prevByKey).forEach(function(k){ if (!(k in nextByKey)) removed++; });
+
+      if (added || removed || edited) {
+        var parts = [];
+        if (added) parts.push(added+' rubro'+(added!==1?'s':'')+' agregado'+(added!==1?'s':''));
+        if (removed) parts.push(removed+' quitado'+(removed!==1?'s':''));
+        if (edited) parts.push(edited+' editado'+(edited!==1?'s':''));
+        changes.push(capName+': '+parts.join(', '));
+      }
+    }
+
+    var totalsPrev = _calcProjTotals(prev);
+    var totalsNext = _calcProjTotals(next);
+    if (Math.round(totalsPrev.total) !== Math.round(totalsNext.total)) {
+      changes.push('Total del presupuesto: '+fmtUSD(totalsPrev.total)+' → '+fmtUSD(totalsNext.total));
+    }
+  }catch(e){ console.warn('Error calculando diff de historial:', e && e.message); }
+  return changes;
+}
+
+function _bmLogProjectHistory(prev, next){
+  // Mejor esfuerzo total: cualquier fallo aquí se traga en silencio y NUNCA
+  // debe afectar el guardado (que ya ocurrió) ni la sincronización a Firestore.
+  try{
+    if (!next || !next.name) return;
+    var user = firebase.auth().currentUser;
+    if (!user) return; // sin sesión no hay a dónde registrar el historial
+
+    var changes = prev ? _bmDiffProjectEntries(prev, next) : ['Primer guardado del proyecto'];
+    if (!changes.length) return; // nada relevante que registrar (p.ej. guardó sin cambios)
+
+    var totalsNext = _calcProjTotals(next);
+    var totalBefore = prev ? _calcProjTotals(prev).total : 0;
+
+    var docId = user.uid + '_' + (next.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
+    var db = firebase.firestore();
+    db.collection('projects').doc(docId).collection('history').add({
+      ts: Date.now(),
+      userUid: user.uid,
+      userEmail: user.email || '',
+      changes: changes,
+      totalBefore: totalBefore,
+      totalAfter: totalsNext.total
+    }).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+  }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
+}
+
+function bmOpenHistoryModal(){
+  var old = document.getElementById('bm-hist-modal'); if (old) old.remove();
+  var modal = document.createElement('div');
+  modal.id = 'bm-hist-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(4,8,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--br);border-radius:18px;padding:26px;width:min(560px,94vw);max-height:84vh;display:flex;flex-direction:column">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2.2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--ow,#F0F4FF)">Historial de cambios</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--sld);margin-bottom:14px">Registro de lo que cambió cada vez que se guardó este proyecto.</div>'+
+      '<div id="bm-hist-list" style="overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px">'+
+        '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Cargando historial…</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" id="bm-hist-close" style="flex:1;padding:11px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:var(--sl);font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(modal);
+  document.getElementById('bm-hist-close').onclick = function(){ modal.remove(); };
+  modal.onclick = function(e){ if (e.target===modal) modal.remove(); };
+
+  var listEl = document.getElementById('bm-hist-list');
+  try{
+    var user = firebase.auth().currentUser;
+    if (!user) { listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Inicia sesión para ver el historial de este proyecto.</div>'; return; }
+    if (!S.proj) { listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Abre o guarda un proyecto primero.</div>'; return; }
+    var docId = user.uid + '_' + (S.proj || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
+    firebase.firestore().collection('projects').doc(docId).collection('history')
+      .orderBy('ts', 'desc').limit(50).get().then(function(snap){
+        if (snap.empty) {
+          listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no hay historial para este proyecto.<br>Se irá registrando cada vez que pulses "Guardar" sobre un cambio.</div>';
+          return;
+        }
+        var html = '';
+        snap.forEach(function(doc){
+          var d = doc.data();
+          var dt = d.ts ? new Date(d.ts) : null;
+          var dateStr = dt ? dt.toLocaleString('es-EC', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+          var changesHtml = (d.changes||[]).map(function(c){ return '<li style="margin-bottom:3px">'+esc(c)+'</li>'; }).join('');
+          html +=
+            '<div style="padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.02)">'+
+              '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px">'+
+                '<div style="font-size:11.5px;color:var(--sld)">'+esc(dateStr)+(d.userEmail?' · '+esc(d.userEmail):'')+'</div>'+
+              '</div>'+
+              '<ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--ow,#F0F4FF)">'+changesHtml+'</ul>'+
+            '</div>';
+        });
+        listEl.innerHTML = html;
+      }).catch(function(e){
+        listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial.</div>';
+      });
+  }catch(e){
+    listEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">No se pudo cargar el historial.</div>';
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // ── CRONOGRAMA (BETA): Gantt + Curva S ──────────────────────────────────────

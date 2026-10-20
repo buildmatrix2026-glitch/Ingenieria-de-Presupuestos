@@ -8426,6 +8426,45 @@ function _bmFindBaselineSnapshot(histCol){
   });
 }
 
+// ── Caché local de la foto base real, no solo un flag ───────────────────────
+// El flag de _bmHistBaselineKnownLocally (ver más arriba, junto a
+// _bmLogProjectHistory) evita que un segundo guardado rápido vuelva a
+// ESCRIBIR una foto base equivocada. Pero el Comparador (bmOpenCompareModal)
+// también hace su PROPIA consulta a Firestore para LEER esa foto cada vez
+// que se pulsa "Comparar" — y esa lectura, igual que cualquier consulta de
+// red, puede tardar un poco en ver un documento que se acaba de escribir
+// (sobre todo la primera vez que se consulta esa colección en la sesión).
+// Si esa primera consulta "no ve" la foto todavía, el código de abajo la
+// trata como inexistente — no muestra una comparación mala, muestra el
+// aviso de "todavía no hay foto", así que el síntoma real que reportaste
+// (compara "igual antes que después" la primera vez) viene de esa misma
+// consulta tardando en confirmar, pero resolviendo justo a tiempo para
+// mostrar ALGO en vez de nada — con datos que para ese instante ya reflejan
+// el cambio recién guardado como si fuera el "antes" también.
+// Solución: guardar la foto COMPLETA (no solo un flag) en localStorage ni
+// bien se adjunta, y que tanto el Historial como el Comparador la lean de
+// ahí primero — cero consultas de red, cero carrera — y solo caigan a
+// Firestore si este dispositivo no la tiene (otro dispositivo, u otra
+// sesión de navegador).
+function _bmHistBaselineLocalKey(docId){ return 'bm_hist_baseline_json_' + docId; }
+function _bmHistStoreBaselineLocal(docId, snapshotJson){
+  try{ localStorage.setItem(_bmHistBaselineLocalKey(docId), snapshotJson); }catch(e){}
+}
+function _bmHistReadBaselineLocal(docId){
+  try{ return localStorage.getItem(_bmHistBaselineLocalKey(docId)); }catch(e){ return null; }
+}
+// Reemplazo "consciente de la caché local" para _bmFindBaselineSnapshot:
+// úsese en vez de la función de arriba en cualquier lugar que necesite LEER
+// la foto base (Historial y Comparador por igual).
+function _bmGetBaselineSnapshot(docId, histCol){
+  var local = _bmHistReadBaselineLocal(docId);
+  if (local) return Promise.resolve(local);
+  return _bmFindBaselineSnapshot(histCol).then(function(json){
+    if (json) _bmHistStoreBaselineLocal(docId, json);
+    return json;
+  });
+}
+
 // ── Bug real que arreglamos aquí: "la primera edición no se comparaba, solo
 // la segunda" ──────────────────────────────────────────────────────────────
 // Para un proyecto NUEVO, el primer "Guardar" adjunta la foto base (ver más
@@ -8519,11 +8558,13 @@ function _bmLogProjectHistory(prev, next){
       // actual" más adelante, sin tener que guardar una copia completa en
       // CADA guardado (eso sí pesaría mucho con el tiempo).
       writeEntry(changes, true);
-      // Se recuerda YA MISMO, local e instantáneamente — sin esto, un
-      // segundo guardado hecho segundos después podía no encontrar esta
-      // foto todavía en Firestore y terminaba adjuntando otra, equivocada
-      // (ver la explicación completa más arriba, junto a estas funciones).
+      // Se recuerda YA MISMO, local e instantáneamente — foto completa
+      // incluida, no solo el flag — sin esto, un segundo guardado (o abrir
+      // el Comparador) hecho segundos después podía no encontrar esta foto
+      // todavía en Firestore (ver la explicación completa más arriba, junto
+      // a _bmGetBaselineSnapshot).
       _bmHistMarkBaselineKnown(docId);
+      _bmHistStoreBaselineLocal(docId, buildSnapshotJson());
       return;
     }
     // Este dispositivo ya sabe (por localStorage) que este proyecto tiene
@@ -8543,9 +8584,14 @@ function _bmLogProjectHistory(prev, next){
     // _bmDiffProjectEntries solo compara own/fecha/ind/uti/iva y
     // cantidad/P.U. por rubro — una edición de APU, cronograma, insumos
     // personalizados, etc. no aparece ahí.
-    _bmFindBaselineSnapshot(histCol).then(function(baselineJson){
-      if (!baselineJson) { writeEntry(changes.length ? changes : ['Punto de partida capturado'], true); _bmHistMarkBaselineKnown(docId); return; }
-      _bmHistMarkBaselineKnown(docId); // ya existe en la nube — recordarlo para no volver a consultar
+    _bmGetBaselineSnapshot(docId, histCol).then(function(baselineJson){
+      if (!baselineJson) {
+        writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
+        _bmHistMarkBaselineKnown(docId);
+        _bmHistStoreBaselineLocal(docId, buildSnapshotJson());
+        return;
+      }
+      _bmHistMarkBaselineKnown(docId); // ya existe (en la nube o localmente) — recordarlo para no volver a consultar
       if (!changes.length) return; // ya hay foto base y este guardado no tuvo cambios reconocibles: no registra nada más
       writeEntry(changes, false);
     }).catch(function(e){
@@ -8556,6 +8602,7 @@ function _bmLogProjectHistory(prev, next){
       // que falló.
       writeEntry(changes.length ? changes : ['Punto de partida capturado'], true);
       _bmHistMarkBaselineKnown(docId);
+      _bmHistStoreBaselineLocal(docId, buildSnapshotJson());
     });
   }catch(e){ console.warn('Error en _bmLogProjectHistory (no crítico):', e && e.message); }
 }
@@ -8738,7 +8785,11 @@ function bmOpenCompareModal(){
 
     var docId = user.uid + '_' + (picked.name || 'sin_nombre').replace(/[^a-zA-Z0-9]/g, '_');
     var histCol = firebase.firestore().collection('projects').doc(docId).collection('history');
-    _bmConTiempoLimite(_bmFindBaselineSnapshot(histCol), 9000, 'COMPARADOR:lectura').then(function(baselineJson){
+    // Usa primero la foto guardada en ESTE dispositivo (si la hay) — así el
+    // Comparador nunca depende de una consulta de red para ver una foto que
+    // este mismo dispositivo acaba de guardar hace instantes (ver la
+    // explicación completa junto a _bmGetBaselineSnapshot, más arriba).
+    _bmConTiempoLimite(_bmGetBaselineSnapshot(docId, histCol), 9000, 'COMPARADOR:lectura').then(function(baselineJson){
       if (!baselineJson) {
         resEl.innerHTML = '<div style="text-align:center;padding:26px 10px;color:var(--sld);font-size:12.5px">Todavía no tenemos guardada la foto del primer guardado de "'+esc(picked.name)+'".<br>Esta comparación queda disponible desde el próximo guardado en adelante.</div>';
         return;

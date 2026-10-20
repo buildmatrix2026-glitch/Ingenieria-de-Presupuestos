@@ -6686,6 +6686,7 @@ function _bmReallySyncProjectToFirestore(entry) {
 }
 
 function saveProject(){
+  alert('[DEBUG] saveProject() se ejecutó. S.proj="' + (S.proj||'') + '"');
   const name = (S.proj||'').trim() || prompt('Nombre del proyecto:','Mi Proyecto');
   if(!name){toast('Ingresa un nombre de proyecto');return;}
 
@@ -8376,7 +8377,12 @@ function _bmLogProjectHistory(prev, next){
         totalAfter: totalsNext.total
       };
       if (withSnapshot) entryData.snapshotJson = buildSnapshotJson();
-      histCol.add(entryData).catch(function(e){ console.warn('No se pudo registrar historial (no crítico):', e && e.message); });
+      histCol.add(entryData).then(function(ref){
+        alert('[DEBUG] Historial guardado OK, doc: ' + ref.id + (withSnapshot ? ' (CON foto base)' : ' (sin foto)'));
+      }).catch(function(e){
+        console.warn('No se pudo registrar historial (no crítico):', e && e.message);
+        alert('[DEBUG] Historial FALLÓ al guardar: ' + (e && e.message || e));
+      });
     };
 
     if (!prev) {

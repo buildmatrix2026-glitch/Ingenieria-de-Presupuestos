@@ -8798,6 +8798,22 @@ function _bmCompareProjectList(){
 }
 
 function bmOpenCompareModal(){
+  // ── Causa real de "el primer cambio no se compara, el segundo sí" ──────
+  // Los campos de cantidad/P.U. del presupuesto guardan su valor en S recién
+  // en el evento "change" del input — es decir, SOLO cuando el campo pierde
+  // el foco (clic afuera, Tab, etc.), no mientras se escribe. Si tocas
+  // "Comparar" justo después de escribir un valor, sin haber salido todavía
+  // de ese campo, ese cambio puede no haberse guardado en S todavía, así
+  // que el Comparador ve el valor VIEJO como "actual" — compara igual
+  // contra igual. Recién al editar un SEGUNDO campo, el primero pierde el
+  // foco de verdad y ahí se confirman ambos cambios de una vez. Por eso se
+  // fuerza aquí mismo, a propósito, que cualquier campo que esté activo en
+  // ese momento pierda el foco (confirmando su valor en S) ANTES de leer
+  // nada para comparar — así el primer cambio también queda confirmado
+  // siempre, sin tener que hacer un segundo.
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
   var old = document.getElementById('bm-cmp-modal'); if (old) old.remove();
   var user = firebase.auth().currentUser;
   if (!user) { toast('Inicia sesión para poder comparar (el primer guardado se guarda en tu cuenta)', false); return; }
@@ -8836,6 +8852,11 @@ function bmOpenCompareModal(){
   var selP = document.getElementById('bm-cmp-proj');
 
   var runCompare = function(){
+    // Mismo motivo que al abrir el modal (ver comentario en bmOpenCompareModal):
+    // confirmar cualquier campo activo antes de leer el estado actual.
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     var resEl = document.getElementById('bm-cmp-result');
     var i = parseInt(selP.value, 10);
     var picked = list[i];

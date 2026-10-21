@@ -9054,24 +9054,23 @@ function _bmRenderCompareBudgetSide(capsOut, snap, totals, side){
       var r = e.row;
       var qty = parseFloat(r.qty)||0, pu = parseFloat(r.pu)||0, tot = qty*pu;
       subtotal += tot;
-      // En filas que CAMBIARON de costo, mostrar debajo cuál era el valor
-      // anterior — SOLO en la columna "Presupuesto final" (actual), nunca en
-      // "Presupuesto inicial". Antes se mostraba en los dos lados ("ahora: …"
-      // a la izquierda, "antes: …" a la derecha), pero esa anotación "ahora"
-      // debajo de la columna INICIAL confundía: parecía que esa columna
-      // mostraba el valor actual, cuando en realidad sigue mostrando el
-      // valor original (como debe ser) — el "ahora" era solo un adelanto
-      // redundante del otro lado. Mostrarlo nada más en el lado final, como
-      // referencia de "antes", es la única anotación que de verdad hace
-      // falta: cada columna ya muestra su propio valor correcto como fila
-      // principal.
+      // En filas que CAMBIARON de costo, se etiqueta cada columna con SU
+      // PROPIO valor, sin cruzar datos de la otra columna (eso era lo que
+      // confundía antes): la columna "Presupuesto inicial" se marca como
+      // "antes", la columna "Presupuesto final" se marca como "ahora" — cada
+      // una hablando siempre de sí misma, nunca mostrando el número de la
+      // otra.
       var deltaLine = '';
-      if (entry.status==='changed' && other && side==='b'){
-        var or = other.row;
-        var oQty = parseFloat(or.qty)||0, oPu = parseFloat(or.pu)||0, oTot = oQty*oPu;
-        var deltaUSD = tot-oTot;
-        var deltaSign = deltaUSD>=0 ? '+' : '−';
-        deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px">antes: '+oQty+' '+esc(or.unit||'')+' × '+fmtUSD(oPu)+' = '+fmtUSD(oTot)+' <span style="opacity:.8">('+deltaSign+fmtUSD(Math.abs(deltaUSD))+')</span></div>';
+      if (entry.status==='changed'){
+        if (side==='a'){
+          deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px;font-weight:700">antes</div>';
+        } else if (other){
+          var or = other.row;
+          var oTot = (parseFloat(or.qty)||0)*(parseFloat(or.pu)||0);
+          var deltaUSD = tot-oTot;
+          var deltaSign = deltaUSD>=0 ? '+' : '−';
+          deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px"><span style="font-weight:700">ahora</span> <span style="opacity:.8">('+deltaSign+fmtUSD(Math.abs(deltaUSD))+' vs. antes)</span></div>';
+        }
       }
       return (
         '<div class="'+rowCls+'" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+

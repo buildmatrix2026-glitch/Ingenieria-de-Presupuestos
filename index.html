@@ -9054,17 +9054,24 @@ function _bmRenderCompareBudgetSide(capsOut, snap, totals, side){
       var r = e.row;
       var qty = parseFloat(r.qty)||0, pu = parseFloat(r.pu)||0, tot = qty*pu;
       subtotal += tot;
-      // En filas que CAMBIARON de costo, mostrar debajo cuál era/será el otro
-      // valor, para que el cambio se entienda sin tener que mirar la otra
-      // columna: a la izquierda dice "ahora: …", a la derecha dice "antes: …".
+      // En filas que CAMBIARON de costo, mostrar debajo cuál era el valor
+      // anterior — SOLO en la columna "Presupuesto final" (actual), nunca en
+      // "Presupuesto inicial". Antes se mostraba en los dos lados ("ahora: …"
+      // a la izquierda, "antes: …" a la derecha), pero esa anotación "ahora"
+      // debajo de la columna INICIAL confundía: parecía que esa columna
+      // mostraba el valor actual, cuando en realidad sigue mostrando el
+      // valor original (como debe ser) — el "ahora" era solo un adelanto
+      // redundante del otro lado. Mostrarlo nada más en el lado final, como
+      // referencia de "antes", es la única anotación que de verdad hace
+      // falta: cada columna ya muestra su propio valor correcto como fila
+      // principal.
       var deltaLine = '';
-      if (entry.status==='changed' && other){
+      if (entry.status==='changed' && other && side==='b'){
         var or = other.row;
         var oQty = parseFloat(or.qty)||0, oPu = parseFloat(or.pu)||0, oTot = oQty*oPu;
-        var deltaUSD = side==='a' ? (oTot-tot) : (tot-oTot);
+        var deltaUSD = tot-oTot;
         var deltaSign = deltaUSD>=0 ? '+' : '−';
-        var prefix = side==='a' ? 'ahora: ' : 'antes: ';
-        deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px">'+prefix+oQty+' '+esc(or.unit||'')+' × '+fmtUSD(oPu)+' = '+fmtUSD(oTot)+' <span style="opacity:.8">('+deltaSign+fmtUSD(Math.abs(deltaUSD))+')</span></div>';
+        deltaLine = '<div style="font-size:10.5px;color:#FBBF24;margin-top:2px">antes: '+oQty+' '+esc(or.unit||'')+' × '+fmtUSD(oPu)+' = '+fmtUSD(oTot)+' <span style="opacity:.8">('+deltaSign+fmtUSD(Math.abs(deltaUSD))+')</span></div>';
       }
       return (
         '<div class="'+rowCls+'" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);background:'+bg+'">'+
@@ -9387,11 +9394,11 @@ function _bmOpenFullCompareView(picked, firstSnap, currentSnap){
       sectionHeader(presupuestoIcon, 'var(--cy,#00D4FF)', 'Presupuesto', '28px 20px 14px')+
       '<div class="bmcmp-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:0 20px">'+
         '<div class="bmcmp-col-a" style="padding:0 18px 8px 0;border-right:1px solid var(--br);min-width:0;overflow-x:hidden">'+
-          colHeader('Primer guardado', firstSnap.date, totA.total)+
+          colHeader('Presupuesto inicial', firstSnap.date, totA.total)+
           _bmRenderCompareBudgetSide(capsOut, firstSnap, totA, 'a')+
         '</div>'+
         '<div class="bmcmp-col-b" style="padding:0 0 8px 18px;min-width:0;overflow-x:hidden">'+
-          colHeader('Actual', currentSnap.date, totB.total)+
+          colHeader('Presupuesto final', currentSnap.date, totB.total)+
           _bmRenderCompareBudgetSide(capsOut, currentSnap, totB, 'b')+
         '</div>'+
       '</div>'+
